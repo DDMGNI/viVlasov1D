@@ -1,0 +1,67 @@
+
+
+[grid]
+
+nt = 100
+nx = 101
+nv = 101
+
+ht = 0.01
+
+L = 0.0
+vmin = -5.0
+vmax = 5.0
+
+boundary_condition = None
+
+
+[solver]
+
+solver_module = vlasov.vi.sbs_sym_arakawa.scipy_sparse
+solver_method = newton
+poisson_const = 1.0
+
+
+[initial_data]
+
+evolve = False
+
+mass = 1.0
+
+distribution = 0.0
+density = 1.0
+temperature = 1.0
+potential = 0.0
+
+distribution_file = None
+density_file = None
+temperature_file = None
+potential_file = None
+
+# Here, you can specify Python modules that contain functions are called by
+# distribution(grid), density(grid), temperature(grid), potential(grid)
+# which return a NumPy array of size (grid.nx, grid.nv) or (grid.nx).
+# Just give the module name (without the trailing .py).
+
+distribution_python = None
+density_python = None
+temperature_python = None
+potential_python = None
+
+
+[io]
+
+hdf5_input = None
+hdf5_output = None
+nsave = 1
+
+
+[mode]
+
+interactive = False
+
+
+[plot]
+
+nplot = 1
+ntime = 0
