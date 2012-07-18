@@ -72,8 +72,8 @@ class movie(object):
         
     
     def __del__(self):
-        self.hdf5.close()
-        
+#        self.hdf5.close()
+#        
 #        if self.hdf5_files != None:
 #            for hdf5 in self.hdf5_files:
 #                hdf5.close()
