@@ -71,7 +71,7 @@ class movie(object):
                               nTime, nPlot, self.nt, vMax, cMax, cFac, write)
         
     
-    def __del__(self):
+#    def __del__(self):
 #        self.hdf5.close()
 #        
 #        if self.hdf5_files != None:
