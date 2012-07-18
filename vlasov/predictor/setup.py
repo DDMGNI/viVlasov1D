@@ -36,11 +36,11 @@ INCLUDE_DIRS += [numpy.get_include()]
 import petsc4py
 INCLUDE_DIRS += [petsc4py.get_include()]
 
-# HDF5
-INCLUDE_DIRS += ['/opt/local/include']
-
-# MPI
+# OpenMPI
 INCLUDE_DIRS += ['/opt/local/include/openmpi']
+
+# Intel MPI
+INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.0.0/intel64/include']
 
 
 ext_modules = [
