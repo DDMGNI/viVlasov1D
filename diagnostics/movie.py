@@ -4,7 +4,7 @@ Created on Apr 06, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-#import matplotlib as mpl
+import matplotlib as mpl
 
 import StringIO
 import argparse
