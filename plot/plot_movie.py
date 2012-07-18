@@ -18,17 +18,20 @@ class PlotMovie(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, vMax=0.0, cMax=False, cFac=1.5, write=False):
+    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMax=0.0, cMax=False, cFac=1.5, write=False):
         '''
         Constructor
         '''
         
         self.prefix = '_pyVlasov1D_'
         
-        if nTime > 0 and nTime <= grid.nt:
+        if ntMax == 0:
+            ntMax = self.grid.nt
+        
+        if nTime > 0 and nTime <= ntMax:
             self.nTime = nTime
         else:
-            self.nTime = grid.nt
+            self.nTime = ntMax
         
         if self.nTime > 20000:
             self.nTime = 20000
@@ -286,8 +289,11 @@ class PlotMovie(object):
 #        E0 = self.hamiltonian.E0
 #        E  = self.hamiltonian.E
         
-        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + np.sign(self.potential.poisson.const) * self.potential.E0
-        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + np.sign(self.potential.poisson.const) * self.potential.E
+#        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + np.sign(self.potential.poisson.const) * self.potential.E0
+#        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + np.sign(self.potential.poisson.const) * self.potential.E
+        
+        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 - self.potential.E0
+        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  - self.potential.E
         
 #        E0 = self.hamiltonian.Ekin0 - np.sign(self.potential.poisson.const) * self.potential.E0
 #        E  = self.hamiltonian.Ekin  - np.sign(self.potential.poisson.const) * self.potential.E
