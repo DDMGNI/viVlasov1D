@@ -527,7 +527,7 @@ class petscVP1D(object):
         
         
         # save to hdf5 file
-        if itime % self.nsave == 0 or itime == self.grid.nt + 1:
+        if itime % self.nsave == 0 or itime == self.nt + 1:
             self.hdf5_viewer.HDF5SetTimestep(self.hdf5_viewer.HDF5GetTimestep() + 1)
             self.hdf5_viewer(self.time)
             self.hdf5_viewer(self.x)
