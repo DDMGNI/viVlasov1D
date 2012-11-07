@@ -31,6 +31,7 @@ module load python27/cython
 module load python27/h5py
 module load python27/mpi4py
 module load python27/petsc4py
+module load python27/mayavi # should be configobj
 
 
 export RUN_DIR=/afs/ipp/home/m/mkraus/Codes/petscVlasovPoisson1D
