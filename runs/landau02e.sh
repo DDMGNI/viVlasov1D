@@ -27,10 +27,10 @@ module load hdf5-serial
 
 module load python27/python
 module load python27/numpy
+module load python27/cython
 module load python27/h5py
 module load python27/mpi4py
 module load python27/petsc4py
-module load python27/cython
 
 
 export RUN_DIR=/afs/ipp/home/m/mkraus/Codes/petscVlasovPoisson1D
