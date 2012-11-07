@@ -45,7 +45,8 @@ cdef class PETScSolver(object):
         self.hx = hx
         self.hv = hv
         
-        self.hx2_inv = 1. / hx**2
+        self.hx2     = hx**2
+        self.hx2_inv = 1. / self.hx2 
         
         
         # kinetic Hamiltonian
@@ -79,16 +80,15 @@ cdef class PETScSolver(object):
         
     
     def update_history(self, Vec X):
-        x  = self.da2.getVecArray(X)
-        x1 = self.da2.getVecArray(self.X1)
+        X.copy(self.X1)
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
-        
-        x1[xs:xe, ys:ye, :] = x[xs:xe, ys:ye, :]
+    
+    def mult(self, Mat mat, Vec X, Vec Y):
+        self.matrix_mult(X, Y)
         
     
 #    @cython.boundscheck(False)
-    def mult(self, Mat mat, Vec X, Vec Y):
+    def matrix_mult(self, Vec X, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xe, xs, ye, ys
@@ -134,7 +134,7 @@ cdef class PETScSolver(object):
                 y[iy, :, 1] = phisum
                 
             else:
-                laplace  = (p[ix-1, 0] - 2. * p[ix, 0] + p[ix+1, 0]) * self.hx2_inv
+                laplace  = (p[ix-1, 0] - 2. * p[ix, 0] + p[ix+1, 0]) # * self.hx2_inv
                 
                 integral = ( \
                              + 1. * f[ix-1, :].sum() \
@@ -142,8 +142,7 @@ cdef class PETScSolver(object):
                              + 1. * f[ix+1, :].sum() \
                            ) * 0.25 * self.hv
                 
-#                y[iy, :, 1] = - laplace + self.poisson_const * integral
-                y[iy, :, 1] = - laplace + self.poisson_const * (integral-fsum)
+                y[iy, :, 1] = - laplace + self.poisson_const * (integral-fsum) * self.hx2
             
             # Vlasov Equation
             for j in np.arange(ys, ye):
@@ -156,8 +155,9 @@ cdef class PETScSolver(object):
                     
                 else:
                     y[iy, jy, 0] = self.time_derivative(f, ix, jx) \
-                                 + 0.5 * self.arakawa.arakawa(f,  h0 + ph, ix, jx) \
-                                 + 0.5 * self.arakawa.arakawa(fh, h0 + p,  ix, jx)
+                                 + 0.5 * self.arakawa.arakawa(f,  h0, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(f,  ph, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(fh, p,  ix, jx)
                     
         
     
@@ -186,11 +186,6 @@ cdef class PETScSolver(object):
             # Poisson equation
             b[iy, :, 1] = 0.
             
-#            if i == 0:
-#                b[iy, :, 1] = 0.
-#            else:
-#                b[iy, :, 1] = self.poisson_const
-            
             
             # Vlasov equation
             for j in np.arange(ys, ye):
@@ -202,8 +197,8 @@ cdef class PETScSolver(object):
                     b[iy, jy, 0] = 0.0
                     
                 else:
-                    b[iy, jy, 0] = self.time_derivative(fh, ix, jx) #\
-                                 #- 0.5 * self.arakawa.arakawa(fh, h0, ix, jx)
+                    b[iy, jy, 0] = self.time_derivative(fh, ix, jx) \
+                                 - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx)
     
 
 

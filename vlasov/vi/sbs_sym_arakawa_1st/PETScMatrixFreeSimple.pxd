@@ -22,6 +22,7 @@ cdef class PETScSolver(object):
     cdef np.float64_t hx
     cdef np.float64_t hv
     
+    cdef np.float64_t hx2
     cdef np.float64_t hx2_inv
     
     cdef np.float64_t poisson_const

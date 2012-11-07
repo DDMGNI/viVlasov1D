@@ -23,7 +23,6 @@ from vlasov.predictor.PETScVlasov     import PETScVlasovSolver
 #from vlasov.vi.sbs_sym_arakawa_1st.petsc_sparse_simple     import PETScSolver
 #from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFree         import PETScSolver
 from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimple          import PETScSolver
-#from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeNonlinearSimple import PETScSolver
 
 
 
@@ -54,6 +53,9 @@ class petscVP1D(object):
         vMin = cfg['grid']['vmin']
         vMax = cfg['grid']['vmax']
         
+        self.nx = nx
+        self.nv = nv
+        
         self.hx = L / nx                            # gridstep size in x
         self.hv = (vMax - vMin) / (nv-1)            # gridstep size in v
         
@@ -67,11 +69,16 @@ class petscVP1D(object):
         # set some PETSc options
         OptDB = PETSc.Options()
         
+        self.max_iter = 100
+#        self.max_iter = 200
+#        self.max_iter = 500
+#        self.max_iter = 1000
+        
+        self.max_iter_poisson = 1000
+        
+        
         OptDB.setValue('ksp_rtol', cfg['solver']['petsc_residual'])
-#        OptDB.setValue('ksp_max_it', 100)
-#        OptDB.setValue('ksp_max_it', 200)
-#        OptDB.setValue('ksp_max_it', 500)
-        OptDB.setValue('ksp_max_it', 1000)
+        OptDB.setValue('ksp_max_it', self.max_iter)
 
 #        OptDB.setValue('ksp_monitor', '')
 #        OptDB.setValue('log_info', '')
@@ -203,6 +210,8 @@ class petscVP1D(object):
         
         
         # create Poisson matrix and solver
+        OptDB.setValue('ksp_max_it', self.max_iter_poisson)
+        
         self.poisson_mat = PETScPoissonSolver(self.da1, self.dax, self.f, 
                                               nx, nv, self.hx, self.hv,
                                               cfg['solver']['poisson_const'])
@@ -214,7 +223,8 @@ class petscVP1D(object):
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
         self.poisson_ksp.setOperators(self.poisson_A)
-        self.poisson_ksp.setType(cfg['solver']['petsc_ksp_type'])
+#        self.poisson_ksp.setType(cfg['solver']['petsc_ksp_type'])
+        self.poisson_ksp.setType('cg')
         self.poisson_ksp.setInitialGuessNonzero(True)
         
         self.poisson_pc = self.poisson_ksp.getPC()
@@ -322,9 +332,14 @@ class petscVP1D(object):
         self.poisson_mat.formRHS(self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
+        phisum = self.p.sum()
+        phiave = phisum / self.nx
+        
         p_arr  = self.dax.getVecArray(self.p)
         x_arr  = self.da2.getVecArray(self.x)
         h1_arr = self.da1.getVecArray(self.h1)
+
+        p_arr[xs:xe] -= phiave
         
         for j in range(ys, ye):
             h1_arr[xs:xe, j]    = p_arr[xs:xe]
@@ -411,6 +426,9 @@ class petscVP1D(object):
                 print("   Vlasov:  %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
                 print("                                sum(phi) = %24.16E" % (phisum))
                 print
+                
+                if self.ksp.getIterationNumber() == self.max_iter:
+                    exit()
             
         
     
@@ -420,30 +438,37 @@ class petscVP1D(object):
         # calculate initial guess for distribution function
         self.arakawa_rk4.rk4(self.x)
         
-        x_arr  = self.da2.getVecArray(self.x)
-        f_arr  = self.da1.getVecArray(self.f)
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("   RK4")
         
-        f_arr[xs:xe, ys:ye]  = x_arr[xs:xe, ys:ye, 0] 
+        x_arr = self.da2.getVecArray(self.x)
+        f_arr = self.da1.getVecArray(self.f)
+        p_arr = self.dax.getVecArray(self.p)
         
+        f_arr[xs:xe, ys:ye] = x_arr[xs:xe, ys:ye, 0]
+        p_arr[xs:xe]        = x_arr[xs:xe, 0,     1]
         
         # calculate initial guess for potential
         self.poisson_mat.formRHS(self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
+        phisum = self.p.sum()
+        phiave = phisum / self.nx
+        
         p_arr = self.dax.getVecArray(self.p)
         x_arr = self.da2.getVecArray(self.x)
+        
+        p_arr[xs:xe] -= phiave
         
         for j in range(ys, ye):
             x_arr[xs:xe, j, 1] = p_arr[xs:xe]
         
         self.vlasov_mat.update_current(self.x)
         
-        phisum = self.p.sum()
-        
         if PETSc.COMM_WORLD.getRank() == 0:
             print("   Poisson: %5i iterations,   residual = %24.16E " % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
             print("                                sum(phi) = %24.16E" % (phisum))
-        
+            
         
 #        # correct initial guess for distribution function
 #        self.vlasov_mat.formRHS(self.vb)

@@ -95,10 +95,11 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-            if i == 0:
-                y[iy] = phisum
-            else:            
-                y[iy] = (x[ix-1] - 2 * x[ix] + x[ix+1]) / self.hx**2
+#            if i == 0:
+#                y[iy] = phisum
+#            else:            
+#                y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) / self.hx**2
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1])
         
     
     @cython.boundscheck(False)
@@ -121,16 +122,16 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-            if i == 0:
-                # impose constraint
-                b[iy] = 0.
+#            if i == 0:
+#                # impose constraint
+#                b[iy] = 0.
+#            
+#            else:
+            integral = ( \
+                         + 1. * f[ix-1, :].sum() \
+                         + 2. * f[ix,   :].sum() \
+                         + 1. * f[ix+1, :].sum() \
+                       ) * 0.25 * self.hv
             
-            else:
-                integral = ( \
-                             + 1. * f[ix-1, :].sum() \
-                             + 2. * f[ix,   :].sum() \
-                             + 1. * f[ix+1, :].sum() \
-                           ) * 0.25 * self.hv
-                
-                b[iy] = (integral - fsum) * self.poisson_const
+            b[iy] = - (integral - fsum) * self.poisson_const * self.hx**2
         
