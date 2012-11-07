@@ -427,8 +427,8 @@ class petscVP1D(object):
                 print("                                sum(phi) = %24.16E" % (phisum))
                 print
                 
-                if self.ksp.getIterationNumber() == self.max_iter:
-                    exit()
+            if self.ksp.getIterationNumber() == self.max_iter:
+                break
             
         
     
