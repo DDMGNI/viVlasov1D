@@ -27,6 +27,7 @@ module load impi
 module load python27/python
 module load python27/numpy
 module load python27/mpi4py
+module load python27/petsc4py
 module load python27/cython
 
 
