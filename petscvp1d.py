@@ -66,6 +66,11 @@ class petscVP1D(object):
             self.time.setValue(0, 0.0)
         
         
+#        alpha = 0.0
+#        alpha = 0.01
+#        alpha = 0.1
+        alpha = self.hv
+        
         # set some PETSc options
         OptDB = PETSc.Options()
         
@@ -134,6 +139,20 @@ class petscVP1D(object):
         self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
         
         
+        # get coordinate vectors
+        coords_x = self.dax.getCoordinates()
+        coords_y = self.day.getCoordinates()
+        
+        scatter, vVec = PETSc.Scatter.toAll(coords_y)
+
+        scatter.begin(coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.end  (coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+                  
+        vGrid = vVec.getValues(range(0, self.nv)).copy()
+        
+        scatter.destroy()
+        vVec.destroy()
+        
         # create solution and RHS vector
         self.x  = self.da2.createGlobalVec()
         self.b  = self.da2.createGlobalVec()
@@ -166,10 +185,11 @@ class petscVP1D(object):
 #        self.vp = _solver.Solver(self.grid, cfg['solver']['solver_method'])
         
 #        self.petsc_mat = _solver.PETScSolver(self.da, self.x, self.b,
-        self.petsc_mat = PETScSolver(self.da1, self.da2, self.dax,
-                                     self.x, self.b, self.h0, 
+        self.petsc_mat = PETScSolver(self.da1, self.da2, self.dax, self.day,
+                                     self.x, self.b, self.h0, vGrid,
                                      nx, nv, self.ht, self.hx, self.hv,
-                                     cfg['solver']['poisson_const'])
+                                     cfg['solver']['poisson_const'],
+                                     alpha)
         
         # create sparse matrix
         if self.petsc_mat.isSparse():
@@ -257,9 +277,10 @@ class petscVP1D(object):
             print("ht = %e" % (self.ht))
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
+            print("a  = %e" % (alpha))
             print
-            print("CFL = %e" % (self.hx / vMax))
-            print
+#            print("CFL = %e" % (self.hx / vMax))
+#            print
         
 #        print(coords[1,0][0] - coords[0,0][0])
 #        print(coords[0,1][1] - coords[0,0][1])
@@ -360,8 +381,8 @@ class petscVP1D(object):
         
         
         # write grid data to hdf5 file
-        coords_x = self.dax.getCoordinates()
-        coords_y = self.day.getCoordinates()
+#        coords_x = self.dax.getCoordinates()
+#        coords_y = self.day.getCoordinates()
         
         coords_x.setName('x')
         coords_y.setName('v')
