@@ -20,9 +20,9 @@ from vlasov.predictor.PETScPoisson    import PETScPoissonSolver
 from vlasov.predictor.PETScVlasov     import PETScVlasovSolver
 
 
-#from vlasov.vi.sbs_sym_arakawa_1st.petsc_sparse_simple     import PETScSolver
-#from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFree         import PETScSolver
-from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimple          import PETScSolver
+#from vlasov.vi.petsc_sparse_simple     import PETScSolver
+#from vlasov.vi.PETScMatrixFree         import PETScSolver
+from vlasov.vi.PETScMatrixFreeSimple          import PETScSolver
 
 
 

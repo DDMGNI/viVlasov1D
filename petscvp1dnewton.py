@@ -19,8 +19,8 @@ from vlasov.predictor.PETScArakawaRK4 import PETScArakawaRK4
 from vlasov.predictor.PETScPoisson    import PETScPoissonSolver
 from vlasov.predictor.PETScVlasov     import PETScVlasovSolver
 
-from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimpleNLFunction import PETScFunction
-from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimpleNLJacobian import PETScJacobian
+from vlasov.vi.PETScMatrixFreeSimpleNLFunction import PETScFunction
+from vlasov.vi.PETScMatrixFreeSimpleNLJacobian import PETScJacobian
 
 
 
