@@ -59,7 +59,7 @@ cdef class PETScVlasovSolver(object):
         self.localX1 = da2.createLocalVec()
         
         # create Arakawa solver object
-        self.arakawa = PETScArakawa(da1, da2, nx, nv, hx, hv)
+        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
         
     
     def update_current(self, Vec X):
@@ -117,6 +117,7 @@ cdef class PETScVlasovSolver(object):
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
                     y[iy, jy] = f[ix, jx]
+#                    y[iy, jy] = 0.0
                     
                 else:
                     y[iy, jy] = self.time_derivative(f, ix, jx) \

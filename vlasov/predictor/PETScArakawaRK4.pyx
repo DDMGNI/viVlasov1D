@@ -20,7 +20,7 @@ cdef class PETScArakawaRK4(object):
     '''
     
     
-    def __cinit__(self, DA da1, DA da2, Vec H0,
+    def __cinit__(self, DA da1, Vec H0,
                   np.uint64_t nx, np.uint64_t nv,
                   np.float64_t ht, np.float64_t hx, np.float64_t hv,
                   PETScArakawa arakawa = None):
@@ -38,7 +38,6 @@ cdef class PETScArakawaRK4(object):
 
         # distributed array
         self.da1 = da1
-        self.da2 = da2
         
         # kinetic Hamiltonian
         self.H0 = H0
@@ -50,23 +49,24 @@ cdef class PETScArakawaRK4(object):
         self.X4 = self.da1.createGlobalVec()
         
         # create local vectors
-        self.localX  = da2.createLocalVec()
+        self.localX  = da1.createLocalVec()
         self.localX1 = da1.createLocalVec()
         self.localX2 = da1.createLocalVec()
         self.localX3 = da1.createLocalVec()
         self.localX4 = da1.createLocalVec()
         self.localH0 = da1.createLocalVec()
+        self.localH1 = da1.createLocalVec()
         
         # create Arakawa solver object
         if arakawa != None:
             self.arakawa = arakawa
         else:
-            self.arakawa = PETScArakawa(da1, da2, nx, nv, hx, hv)
+            self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
         
      
-    def rk4(self, Vec X):
+    def rk4(self, Vec X, Vec H1):
         
-        cdef np.ndarray[np.float64_t, ndim=2] tx
+        cdef np.ndarray[np.float64_t, ndim=2] x
         cdef np.ndarray[np.float64_t, ndim=2] tx1
         cdef np.ndarray[np.float64_t, ndim=2] tx2
         cdef np.ndarray[np.float64_t, ndim=2] tx3
@@ -76,36 +76,36 @@ cdef class PETScArakawaRK4(object):
         cdef np.ndarray[np.float64_t, ndim=2] h1
         
         self.da1.globalToLocal(self.H0, self.localH0)
-        self.da2.globalToLocal(X,       self.localX)
+        self.da1.globalToLocal(H1,      self.localH1)
+        self.da1.globalToLocal(X,       self.localX)
         
         h0  = self.da1.getVecArray(self.localH0)[...]
-        x   = self.da2.getVecArray(self.localX )[...]
-        tx  = x[:,:,0]
-        h1  = x[:,:,1]
+        h1  = self.da1.getVecArray(self.localH1)[...]
+        x   = self.da1.getVecArray(self.localX )[...]
         
         tx1 = self.da1.getVecArray(self.X1)[...]
-        self.arakawa.arakawa_timestep(tx, tx1, h0, h1)
+        self.arakawa.arakawa_timestep(x, tx1, h0, h1)
         
         self.da1.globalToLocal(self.X1, self.localX1)
         tx1 = self.da1.getVecArray(self.localX1)[...]
         tx2 = self.da1.getVecArray(self.X2)[...]
-        self.arakawa.arakawa_timestep(tx + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.arakawa.arakawa_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         self.da1.globalToLocal(self.X2, self.localX2)
         tx2 = self.da1.getVecArray(self.localX2)[...]
         tx3 = self.da1.getVecArray(self.X3)[...]
-        self.arakawa.arakawa_timestep(tx + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.arakawa.arakawa_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         self.da1.globalToLocal(self.X3, self.localX3)
         tx3 = self.da1.getVecArray(self.localX3)[...]
         tx4 = self.da1.getVecArray(self.X4)[...]
-        self.arakawa.arakawa_timestep(tx + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.arakawa.arakawa_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
-        tx  = self.da2.getVecArray(X)[...][:,:,0]
+        x   = self.da1.getVecArray(X)[...]
         tx1 = self.da1.getVecArray(self.X1)[...]
         tx2 = self.da1.getVecArray(self.X2)[...]
         tx3 = self.da1.getVecArray(self.X3)[...]
         tx4 = self.da1.getVecArray(self.X4)[...]
         
-        tx[:,:] = tx + self.ht * (tx1 + 2.*tx2 + 2.*tx3 + tx4) / 6.
+        x[:,:] = x + self.ht * (tx1 + 2.*tx2 + 2.*tx3 + tx4) / 6.
         

@@ -74,14 +74,17 @@ cdef class PETScSolver(object):
         self.F   = self.da1.createGlobalVec()
         self.PHI = self.dax.createGlobalVec()
 
-        self.N   = self.dax.createGlobalVec()
-        self.U   = self.dax.createGlobalVec()
-        self.E   = self.dax.createGlobalVec()
+        self.VF  = self.da1.createGlobalVec()
+        self.VF1 = self.da1.createGlobalVec()
         
-        self.A1  = self.dax.createGlobalVec()
-        self.A1h = self.dax.createGlobalVec()
-        self.A2  = self.dax.createGlobalVec()
-        self.A2h = self.dax.createGlobalVec()
+#        self.N   = self.dax.createGlobalVec()
+#        self.U   = self.dax.createGlobalVec()
+#        self.E   = self.dax.createGlobalVec()
+#        
+#        self.A1  = self.dax.createGlobalVec()
+#        self.A1h = self.dax.createGlobalVec()
+#        self.A2  = self.dax.createGlobalVec()
+#        self.A2h = self.dax.createGlobalVec()
         
         # create local vectors
         self.localB   = da2.createLocalVec()
@@ -89,10 +92,13 @@ cdef class PETScSolver(object):
         self.localX1  = da2.createLocalVec()
         self.localH0  = da1.createLocalVec()
 
-        self.localA1  = dax.createLocalVec()
-        self.localA1h = dax.createLocalVec()
-        self.localA2  = dax.createLocalVec()
-        self.localA2h = dax.createLocalVec()
+        self.localVF  = da1.createLocalVec()
+        self.localVF1 = da1.createLocalVec()
+
+#        self.localA1  = dax.createLocalVec()
+#        self.localA1h = dax.createLocalVec()
+#        self.localA2  = dax.createLocalVec()
+#        self.localA2h = dax.createLocalVec()
         
         # create Arakawa solver object
         self.arakawa     = PETScArakawa(da1, da2, nx, nv, hx, hv)
@@ -100,9 +106,10 @@ cdef class PETScSolver(object):
     
     def update_history(self, Vec X):
         X.copy(self.X1)
+        self.VF.copy(self.VF1)
         
-        self.A1.copy(self.A1h)
-        self.A2.copy(self.A2h)
+#        self.A1.copy(self.A1h)
+#        self.A2.copy(self.A2h)
         
     
     def mult(self, Mat mat, Vec X, Vec Y):
@@ -134,37 +141,46 @@ cdef class PETScSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
         
         cdef np.ndarray[np.float64_t, ndim=2] gf = self.da2.getVecArray(self.X)[...][:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] tu = np.empty_like(gf)
-        cdef np.ndarray[np.float64_t, ndim=2] te = np.empty_like(gf)
-        
-        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getVecArray(self.N)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] u = self.dax.getVecArray(self.U)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] e = self.dax.getVecArray(self.E)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
         
         for j in np.arange(0, ye-ys):
-            tu[:, j] = gf[:, j] * self.v[j]
-            te[:, j] = tu[:, j] * self.v[j]
+            vf[:, j] = gf[:, j] * self.v[j]
         
-        n[:] = gf.sum(axis=1) * self.hv
-        u[:] = tu.sum(axis=1) * self.hv / n
-        e[:] = te.sum(axis=1) * self.hv
+#        cdef np.ndarray[np.float64_t, ndim=2] tu = np.empty_like(gf)
+#        cdef np.ndarray[np.float64_t, ndim=2] te = np.empty_like(gf)
+#        
+#        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getVecArray(self.N)[...]
+#        cdef np.ndarray[np.float64_t, ndim=1] u = self.dax.getVecArray(self.U)[...]
+#        cdef np.ndarray[np.float64_t, ndim=1] e = self.dax.getVecArray(self.E)[...]
+#        
+#        for j in np.arange(0, ye-ys):
+#            tu[:, j] = gf[:, j] * self.v[j]
+#            te[:, j] = tu[:, j] * self.v[j]
+#        
+#        n[:] = gf.sum(axis=1) * self.hv
+#        u[:] = tu.sum(axis=1) * self.hv
+#        e[:] = te.sum(axis=1) * self.hv
+#        
+#        cdef np.ndarray[np.float64_t, ndim=1] a1  = self.dax.getVecArray(self.A1)[...]
+#        cdef np.ndarray[np.float64_t, ndim=1] a2  = self.dax.getVecArray(self.A2)[...]
+#        
+#        a1[:] = u
+#        a2[:] = e
+#        
+#        self.dax.globalToLocal(self.A1,  self.localA1 )
+#        self.dax.globalToLocal(self.A1h, self.localA1h)
+#        self.dax.globalToLocal(self.A2,  self.localA2 )
+#        self.dax.globalToLocal(self.A2h, self.localA2h)
+#        
+#        a1 = self.dax.getVecArray(self.localA1)[...]
+#        a2 = self.dax.getVecArray(self.localA2)[...]
+#        
+#        cdef np.ndarray[np.float64_t, ndim=1] a1h = self.dax.getVecArray(self.localA1h)[...]
+#        cdef np.ndarray[np.float64_t, ndim=1] a2h = self.dax.getVecArray(self.localA2h)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=1] a1  = self.dax.getVecArray(self.A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a2  = self.dax.getVecArray(self.A2)[...]
         
-        a1[:] = u / (e - u**2 / n)
-        a2[:] = n / (e - u**2 / n)
-        
-        self.dax.globalToLocal(self.A1,  self.localA1 )
-        self.dax.globalToLocal(self.A1h, self.localA1h)
-        self.dax.globalToLocal(self.A2,  self.localA2 )
-        self.dax.globalToLocal(self.A2h, self.localA2h)
-        
-        a1 = self.dax.getVecArray(self.localA1)[...]
-        a2 = self.dax.getVecArray(self.localA2)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] a1h = self.dax.getVecArray(self.localA1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a2h = self.dax.getVecArray(self.localA2h)[...]
+        self.da1.globalToLocal(self.VF, self.localVF)
+        vf = self.da1.getVecArray(self.localVF)[...]
         
         
         gx  = self.da2.getVecArray(X)
@@ -214,8 +230,9 @@ cdef class PETScSolver(object):
                                  + 0.5 * self.arakawa.arakawa(f,  ph, ix, jx) \
                                  + 0.5 * self.arakawa.arakawa(fh, p,  ix, jx) \
                                  - 0.5 * self.alpha * self.dvdv(f,  ix, jx) \
-                                 + 0.5 * self.alpha * self.C1(f,  a1h, ix, jx) \
-                                 + 0.5 * self.alpha * self.C1(fh, a1,  ix, jx) #\
+                                 - 0.5 * self.alpha * self.C1(vf, ix, jx)
+#                                 + 0.5 * self.alpha * self.C1(f,  a1h, ix, jx) \
+#                                 + 0.5 * self.alpha * self.C1(fh, a1,  ix, jx) #\
 #                                 + 0.5 * self.alpha * self.C2(f,  a2h, self.v, ix, jx) \
 #                                 + 0.5 * self.alpha * self.C2(fh, a2,  self.v, ix, jx)
                     
@@ -238,6 +255,9 @@ cdef class PETScSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] fh = xh[:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
         
+        self.da1.globalToLocal(self.VF1, self.localVF1)
+        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVF1)[...]
+        
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
@@ -259,7 +279,8 @@ cdef class PETScSolver(object):
                 else:
                     b[iy, jy, 0] = self.time_derivative(fh, ix, jx) \
                                  - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx) \
-                                 + 0.5 * self.alpha * self.dvdv(fh, ix, jx)
+                                 + 0.5 * self.alpha * self.dvdv(fh, ix, jx) \
+                                 + 0.5 * self.alpha * self.C1(vfh, ix, jx)
     
 
 
@@ -315,7 +336,6 @@ cdef class PETScSolver(object):
     
 #    @cython.boundscheck(False)
     cdef np.float64_t C1(self, np.ndarray[np.float64_t, ndim=2] x,
-                               np.ndarray[np.float64_t, ndim=1] A,
                                np.uint64_t i, np.uint64_t j):
         '''
         Time Derivative
@@ -324,23 +344,10 @@ cdef class PETScSolver(object):
         cdef np.float64_t result
         
         result = ( \
-                     + x[i-1, j-1] * A[i-1] \
-                     - x[i-1, j+1] * A[i-1] \
-                     + x[i-1, j-1] * A[i  ] \
-                     - x[i-1, j+1] * A[i  ] \
-                     + x[i,   j-1] * A[i-1] \
-                     - x[i,   j+1] * A[i-1] \
-                     + x[i,   j-1] * A[i  ] \
-                     - x[i,   j+1] * A[i  ] \
-                     + x[i,   j-1] * A[i  ] \
-                     - x[i,   j+1] * A[i  ] \
-                     + x[i,   j-1] * A[i+1] \
-                     - x[i,   j+1] * A[i+1] \
-                     + x[i+1, j-1] * A[i  ] \
-                     - x[i+1, j+1] * A[i  ] \
-                     + x[i+1, j-1] * A[i+1] \
-                     - x[i+1, j+1] * A[i+1] \
-                  ) / (16. * self.hv)
+                   + 1. * ( x[i-1, j+1] - x[i-1, j-1] ) \
+                   + 2. * ( x[i,   j+1] - x[i,   j-1] ) \
+                   + 1. * ( x[i+1, j+1] - x[i+1, j-1] ) \
+                 ) * 0.25 / (2. * self.hv)
         
         return result
     

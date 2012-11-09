@@ -40,6 +40,8 @@ cdef class PETScSolver(object):
     cdef Vec B
     cdef Vec X
     cdef Vec X1
+    cdef Vec VF
+    cdef Vec VF1
     
     cdef Vec N
     cdef Vec U
@@ -58,6 +60,8 @@ cdef class PETScSolver(object):
     cdef Vec localB
     cdef Vec localX
     cdef Vec localX1
+    cdef Vec localVF
+    cdef Vec localVF1
     
     cdef Vec localA1
     cdef Vec localA1h
@@ -76,7 +80,6 @@ cdef class PETScSolver(object):
                                  np.uint64_t i, np.uint64_t j)
     
     cdef np.float64_t C1(self, np.ndarray[np.float64_t, ndim=2] x,
-                               np.ndarray[np.float64_t, ndim=1] A,
                                np.uint64_t i, np.uint64_t j)
     
     cdef np.float64_t C2(self, np.ndarray[np.float64_t, ndim=2] x,

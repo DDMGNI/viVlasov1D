@@ -18,7 +18,7 @@ cdef class PETScArakawa(object):
     '''
     
     
-    def __cinit__(self, DA da1, DA da2,
+    def __cinit__(self, DA da1,
                   np.uint64_t  nx, np.uint64_t  nv,
                   np.float64_t hx, np.float64_t hv):
         '''
@@ -34,7 +34,6 @@ cdef class PETScArakawa(object):
 
         # disstributed array
         self.da1 = da1
-        self.da2 = da2
         
     
 #    @cython.boundscheck(False)

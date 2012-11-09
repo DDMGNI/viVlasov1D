@@ -22,7 +22,6 @@ cdef class PETScArakawaRK4(object):
     cdef np.float64_t hv
     
     cdef DA da1
-    cdef DA da2
     
     cdef Vec H0
     
@@ -37,6 +36,7 @@ cdef class PETScArakawaRK4(object):
     cdef Vec localX3
     cdef Vec localX4
     cdef Vec localH0
+    cdef Vec localH1
     
     cdef PETScArakawa arakawa
     

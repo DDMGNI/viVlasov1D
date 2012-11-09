@@ -19,11 +19,8 @@ from vlasov.predictor.PETScArakawaRK4 import PETScArakawaRK4
 from vlasov.predictor.PETScPoisson    import PETScPoissonSolver
 from vlasov.predictor.PETScVlasov     import PETScVlasovSolver
 
-
-#from vlasov.vi.sbs_sym_arakawa_1st.petsc_sparse_simple     import PETScSolver
-#from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFree         import PETScSolver
-from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimple          import PETScSolver
-
+from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimpleNLFunction import PETScFunction
+from vlasov.vi.sbs_sym_arakawa_1st.PETScMatrixFreeSimpleNLJacobian import PETScJacobian
 
 
 
@@ -66,29 +63,25 @@ class petscVP1D(object):
             self.time.setValue(0, 0.0)
         
         
-        alpha = 0.0
-#        alpha = self.hv * 1E+1
-#        alpha = self.hv * 1E-1
-        alpha = self.hv * 1E-4
-#        alpha = self.hv * 1E-5
-        
         # set some PETSc options
         OptDB = PETSc.Options()
         
-        self.max_iter = 100
-#        self.max_iter = 200
-#        self.max_iter = 500
-#        self.max_iter = 1000
+        self.tolerance = cfg['solver']['petsc_residual']
+#        self.tolerance = 1E-7
+#        self.tolerance = 1E-5
+#        self.max_iter  = 10
+        self.max_iter  = 100
+#        self.max_iter  = 500
+#        self.max_iter  = 1000
         
-        self.max_iter_poisson = 1000
-        
-        
-        OptDB.setValue('ksp_rtol', cfg['solver']['petsc_residual'])
         OptDB.setValue('ksp_max_it', self.max_iter)
+        OptDB.setValue('ksp_rtol',   self.tolerance)
+#        OptDB.setValue('ksp_atol',   self.tolerance)
 
-#        OptDB.setValue('ksp_monitor', '')
-#        OptDB.setValue('log_info', '')
-#        OptDB.setValue('log_summary', '')
+
+        OptDB.setValue('ksp_monitor', '')
+        OptDB.setValue('log_info', '')
+        OptDB.setValue('log_summary', '')
 
 #        OptDB.setValue('ksp_gmres_classicalgramschmidt', '')
 #        OptDB.setValue('ksp_gmres_modifiedgramschmidt', '')
@@ -103,7 +96,6 @@ class petscVP1D(object):
                                     stencil_width=1,
                                     stencil_type='box')
         
-        
         # create DA (dof = number of species + 1 for the potential)
         self.da2 = PETSc.DA().create(dim=2, dof=2,
                                      sizes=[nx, nv],
@@ -111,7 +103,6 @@ class petscVP1D(object):
                                      boundary_type=('periodic', 'none'),
                                      stencil_width=1,
                                      stencil_type='box')
-        
         
         # create DA for Poisson guess
         self.dax = PETSc.DA().create(dim=1, dof=1,
@@ -140,21 +131,8 @@ class petscVP1D(object):
         self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
         
         
-        # get coordinate vectors
-        coords_x = self.dax.getCoordinates()
-        coords_y = self.day.getCoordinates()
-        
-        scatter, vVec = PETSc.Scatter.toAll(coords_y)
-
-        scatter.begin(coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-        scatter.end  (coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-                  
-        vGrid = vVec.getValues(range(0, self.nv)).copy()
-        
-        scatter.destroy()
-        vVec.destroy()
-        
-        # create solution and RHS vector
+        # create residual, solution and RHS vector
+        self.dx = self.da2.createGlobalVec()
         self.x  = self.da2.createGlobalVec()
         self.b  = self.da2.createGlobalVec()
         
@@ -182,34 +160,28 @@ class petscVP1D(object):
         
         
         # create Matrix object
-#        _solver = __import__(cfg['solver']['solver_module'], fromlist=['PETScSolver'])
-#        self.vp = _solver.Solver(self.grid, cfg['solver']['solver_method'])
+        self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, self.h0, 
+                                            nx, nv, self.ht, self.hx, self.hv,
+                                            cfg['solver']['poisson_const'])
         
-#        self.petsc_mat = _solver.PETScSolver(self.da, self.x, self.b,
-        self.petsc_mat = PETScSolver(self.da1, self.da2, self.dax, self.day,
-                                     self.x, self.b, self.h0, vGrid,
-                                     nx, nv, self.ht, self.hx, self.hv,
-                                     cfg['solver']['poisson_const'],
-                                     alpha)
+        self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax, self.h0, 
+                                            nx, nv, self.ht, self.hx, self.hv,
+                                            cfg['solver']['poisson_const'])
         
-        # create sparse matrix
-        if self.petsc_mat.isSparse():
-            self.A = self.da2.getMatrix('aij')
+        self.J = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], comm=PETSc.COMM_WORLD)
+        self.J.setPythonContext(self.petsc_jacobian)
+        self.J.setUp()
         
-        else:
-            self.A = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], comm=PETSc.COMM_WORLD)
-            self.A.setPythonContext(self.petsc_mat)
-            self.A.setUp()
-
+        
         # create linear solver and preconditioner
         self.ksp = PETSc.KSP().create()
+        self.ksp.setOperators(self.J)
         self.ksp.setFromOptions()
-        self.ksp.setOperators(self.A)
-        self.ksp.setType(cfg['solver']['petsc_ksp_type'])
-        self.ksp.setInitialGuessNonzero(True)
+        self.ksp.setType('gmres')
+#        self.ksp.setInitialGuessNonzero(True)
         
         self.pc = self.ksp.getPC()
-        self.pc.setType(cfg['solver']['petsc_pc_type'])
+        self.pc.setType('none')
         
         
         # create Vlasov matrix and solver
@@ -231,9 +203,7 @@ class petscVP1D(object):
         
         
         # create Poisson matrix and solver
-        OptDB.setValue('ksp_max_it', self.max_iter_poisson)
-        
-        self.poisson_mat = PETScPoissonSolver(self.da1, self.dax, self.f, 
+        self.poisson_mat = PETScPoissonSolver(self.da1, self.dax, 
                                               nx, nv, self.hx, self.hv,
                                               cfg['solver']['poisson_const'])
         
@@ -253,7 +223,7 @@ class petscVP1D(object):
         
         
         # create Arakawa RK4 solver object
-        self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.h0, nx, nv, self.ht, self.hx, self.hv)
+        self.arakawa_rk4 = PETScArakawaRK4(self.da1,self.h0, nx, nv, self.ht, self.hx, self.hv)
         
         
         # set initial data
@@ -278,17 +248,23 @@ class petscVP1D(object):
             print("ht = %e" % (self.ht))
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
-            print("a  = %e" % (alpha))
             print
-#            print("CFL = %e" % (self.hx / vMax))
-#            print
+            print("CFL = %e" % (self.hx / vMax))
+            print
         
+#        print
+#        print(self.hx)
 #        print(coords[1,0][0] - coords[0,0][0])
+#        print
+#        print(self.hv)
 #        print(coords[0,1][1] - coords[0,0][1])
-#        
+#        print
 #        print(L)
-#        print(L-self.hx)
-#        print(coords[...][-1,0][0])
+#        print(coords[-1,0][0]+self.hx)
+#        print
+#        print(coords[0,0][1])
+#        print(coords[0,-1][1])
+#        print
         
         if cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
@@ -334,12 +310,9 @@ class petscVP1D(object):
         # normalise f to fit density
         ### TODO (?) ###
         
-        # copy distribution function to solution vector
-        x_arr[xs:xe, ys:ye, 0] = f_arr[xs:xe, ys:ye]
-        
-        # calculate density
-        n_arr  = self.dax.getVecArray(self.n)
-        n_arr[xs:xe] = f_arr[xs:xe].sum(axis=1) * self.hv
+        # copy distribution function to solution vector and calculate density
+        self.copy_f_to_x()
+        self.calculate_density()
         
         
         # initialise kinetic hamiltonian
@@ -351,25 +324,11 @@ class petscVP1D(object):
         
         
         # solve initial potential
-        self.poisson_mat.formRHS(self.pb)
-        self.poisson_ksp.solve(self.pb, self.p)
-        
-        phisum = self.p.sum()
-        phiave = phisum / self.nx
-        
-        p_arr  = self.dax.getVecArray(self.p)
-        x_arr  = self.da2.getVecArray(self.x)
-        h1_arr = self.da1.getVecArray(self.h1)
-
-        p_arr[xs:xe] -= phiave
-        
-        for j in range(ys, ye):
-            h1_arr[xs:xe, j]    = p_arr[xs:xe]
-            x_arr [xs:xe, j, 1] = p_arr[xs:xe]
-        
+        self.calculate_potential()
         
         # update solution history
-        self.petsc_mat.update_history(self.x)
+        self.petsc_jacobian.update_history(self.x)
+        self.petsc_function.update_history(self.x)
         self.vlasov_mat.update_history(self.x)
         
         
@@ -382,8 +341,8 @@ class petscVP1D(object):
         
         
         # write grid data to hdf5 file
-#        coords_x = self.dax.getCoordinates()
-#        coords_y = self.day.getCoordinates()
+        coords_x = self.dax.getCoordinates()
+        coords_y = self.day.getCoordinates()
         
         coords_x.setName('x')
         coords_y.setName('v')
@@ -417,161 +376,177 @@ class petscVP1D(object):
         for itime in range(1, self.nt+1):
             if PETSc.COMM_WORLD.getRank() == 0:
                 localtime = time.asctime( time.localtime(time.time()) )
-                print("\nit = %4d,   t = %10.4f,   %s" % (itime, self.ht*itime, localtime) )
+                print("\ni = %4d,   t = %10.4f,   %s" % (itime, self.ht*itime, localtime) )
                 self.time.setValue(0, self.ht*itime)
             
-            # build matrix
-            if self.petsc_mat.isSparse():
-                self.petsc_mat.formMat(self.A, self.x)
-            
-            # build RHS
-            self.petsc_mat.formRHS(self.b)
             
             # calculate initial guess for distribution function
             self.initial_guess()
             
+            # calculate function and norm
+            self.petsc_function.matrix_mult(self.x, self.b)
+            norm0 = self.b.norm()
+            
+#            for iter in range(0, self.max_iter):
+#                # check if norm is smaller than tolerance
+#                if norm < self.tolerance:
+#                    break
+                
+            # update previous iteration
+            self.petsc_jacobian.update_previous(self.x)
+            
+            # RHS = - function
+            self.b.scale(-1.)
+            
             # solve
-            self.ksp.solve(self.b, self.x)
+            self.dx.set(0.)
+            self.ksp.solve(self.b, self.dx)
+            
+            # add to solution vector
+            self.x.axpy(1., self.dx)
+            
+            # calculate function and norm
+            self.petsc_function.matrix_mult(self.x, self.b)
+            norm1 = self.b.norm()
+            
+            # some solver output
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("     iter = %3i,  Linear Solver:  %5i iterations,   residual = %24.16E " % (0, self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
+#                print("     iter = %3i,  Linear Solver:  %5i iterations,   residual = %24.16E " % (iter, self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
+                print("                                         Initial Function Norm = %24.16E" % (norm0) )
+                print("                                         Final   Function Norm = %24.16E" % (norm1) )
+                
+            
+            # update data vectors
+            self.copy_x_to_f()
+            self.copy_x_to_p()
+            self.copy_p_to_h()
             
             # update history
-            self.petsc_mat.update_history(self.x)
+            self.petsc_function.update_history(self.x)
+            self.petsc_jacobian.update_history(self.x)
             self.vlasov_mat.update_history(self.x)
             
             # save to hdf5
             self.save_to_hdf5(itime)
             
-            
             # some solver output
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("   Solver:  %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
-                print("                                sum(phi) = %24.16E" % (phisum))
+                print("   Nonlin Solver:       %5i iterations,   tolerance = %E " % (1, self.tolerance) )
+#                print("   Nonlin Solver:  %5i iterations,   tolerance = %E " % (iter, self.tolerance) )
+                print("        sum(phi):       %24.16E" % (phisum))
                 print
-                
-            if self.ksp.getIterationNumber() == self.max_iter:
-                break
             
         
     
     def initial_guess(self):
-        (xs, xe), (ys, ye) = self.da2.getRanges()
-        
         # calculate initial guess for distribution function
-        self.arakawa_rk4.rk4(self.x)
+        self.arakawa_rk4.rk4(self.f, self.h1)
+        self.copy_f_to_x()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("   RK4")
-        
-        x_arr = self.da2.getVecArray(self.x)
-        f_arr = self.da1.getVecArray(self.f)
-        p_arr = self.dax.getVecArray(self.p)
-        
-        f_arr[xs:xe, ys:ye] = x_arr[xs:xe, ys:ye, 0]
-        p_arr[xs:xe]        = x_arr[xs:xe, 0,     1]
+            print("     RK4")
         
         # calculate initial guess for potential
-        self.poisson_mat.formRHS(self.pb)
+        self.calculate_potential()
+        self.vlasov_mat.update_current(self.x)
+        
+        # correct initial guess for distribution function
+        self.vlasov_mat.formRHS(self.vb)
+        self.vlasov_ksp.solve(self.vb, self.f)
+        self.copy_f_to_x()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("     Vlasov:   %5i iterations,   residual = %24.16E " % (self.vlasov_ksp.getIterationNumber(), self.vlasov_ksp.getResidualNorm()) )
+            print
+            
+    
+    def calculate_potential(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        self.poisson_mat.formRHS(self.f, self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
+        
+        p_arr  = self.dax.getVecArray(self.p)
         
         phisum = self.p.sum()
         phiave = phisum / self.nx
-        
-        p_arr = self.dax.getVecArray(self.p)
-        x_arr = self.da2.getVecArray(self.x)
-        
+
         p_arr[xs:xe] -= phiave
         
-        for j in range(ys, ye):
-            x_arr[xs:xe, j, 1] = p_arr[xs:xe]
-        
-        self.vlasov_mat.update_current(self.x)
+        self.copy_p_to_x()
+        self.copy_p_to_h()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("   Poisson: %5i iterations,   residual = %24.16E " % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
-            print("                                sum(phi) = %24.16E" % (phisum))
-            
-        
-#        # correct initial guess for distribution function
-#        self.vlasov_mat.formRHS(self.vb)
-#        self.vlasov_ksp.solve(self.vb, self.f)
-#        
-#        x_arr  = self.da2.getVecArray(self.x)
-#        f_arr  = self.da1.getVecArray(self.f)
-#        
-#        x_arr[xs:xe, ys:ye, 0] = f_arr[xs:xe, ys:ye] 
-#        
-#        if PETSc.COMM_WORLD.getRank() == 0:
-#            print("   Vlasov:  %5i iterations,   residual = %24.16E " % (self.vlasov_ksp.getIterationNumber(), self.vlasov_ksp.getResidualNorm()) )
-#            
-#
-#        # correct initial guess for potential
-#        self.poisson_mat.formRHS(self.pb)
-#        self.poisson_ksp.solve(self.pb, self.p)
-#        
-#        p_arr = self.dax.getVecArray(self.p)
-#        x_arr = self.da2.getVecArray(self.x)
-#        
-#        for j in range(ys, ye):
-#            x_arr[xs:xe, j, 1] = p_arr[xs:xe]
-#        
-#        self.vlasov_mat.update_current(self.x)
-#        
-#        phisum = self.p.sum()
-#        
-#        if PETSc.COMM_WORLD.getRank() == 0:
-#            print("   Poisson: %5i iterations,   residual = %24.16E " % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
-#            print("                                sum(phi) = %24.16E" % (phisum))
-#        
-#        
-#        # correct initial guess for distribution function
-#        self.vlasov_mat.update_current(self.x)
-#        
-#        self.vlasov_mat.formRHS(self.vb)
-#        self.vlasov_ksp.solve(self.vb, self.f)
-#        
-#        x_arr  = self.da2.getVecArray(self.x)
-#        f_arr  = self.da1.getVecArray(self.f)
-#        
-#        x_arr[xs:xe, ys:ye, 0] = f_arr[xs:xe, ys:ye] 
-#        
-#        if PETSc.COMM_WORLD.getRank() == 0:
-#            print("   Vlasov:  %5i iterations,   residual = %24.16E " % (self.vlasov_ksp.getIterationNumber(), self.vlasov_ksp.getResidualNorm()) )
-#            
-#
-#        # correct initial guess for potential
-#        self.poisson_mat.formRHS(self.pb)
-#        self.poisson_ksp.solve(self.pb, self.p)
-#        
-#        p_arr = self.dax.getVecArray(self.p)
-#        x_arr = self.da2.getVecArray(self.x)
-#        
-#        for j in range(ys, ye):
-#            x_arr[xs:xe, j, 1] = p_arr[xs:xe]
-#        
-#        phisum = self.p.sum()
-#        
-#        if PETSc.COMM_WORLD.getRank() == 0:
-#            print("   Poisson: %5i iterations,   residual = %24.16E " % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
-#            print("                                sum(phi) = %24.16E" % (phisum))            
+            print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
+            print("                                   sum(phi) = %24.16E" % (phisum))
     
     
-    
-    def save_to_hdf5(self, itime):
+    def calculate_density(self):
         (xs, xe), (ys, ye) = self.da2.getRanges()
         
         # copy solution to f and p vectors
-        x_arr  = self.da2.getVecArray(self.x)
         f_arr  = self.da1.getVecArray(self.f)
         n_arr  = self.dax.getVecArray(self.n)
+        
+        n_arr[xs:xe] = f_arr[xs:xe, :].sum(axis=1) * self.hv
+    
+    
+    def copy_x_to_f(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        x_arr  = self.da2.getVecArray(self.x)
+        f_arr  = self.da1.getVecArray(self.f)
+        
+        f_arr[xs:xe, ys:ye] = x_arr[xs:xe, ys:ye, 0] 
+        
+    
+    def copy_f_to_x(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        x_arr  = self.da2.getVecArray(self.x)
+        f_arr  = self.da1.getVecArray(self.f)
+        
+        x_arr[xs:xe, ys:ye, 0] = f_arr[xs:xe, ys:ye] 
+    
+    
+    def copy_x_to_p(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        x_arr  = self.da2.getVecArray(self.x)
+        p_arr  = self.dax.getVecArray(self.p)
+        
+        p_arr[xs:xe] = x_arr[xs:xe, 0, 1]
+        
+    
+    def copy_p_to_x(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        p_arr  = self.dax.getVecArray(self.p)
+        x_arr  = self.da2.getVecArray(self.x)
+        
+        for j in range(ys, ye):
+            x_arr [xs:xe, j, 1] = p_arr[xs:xe]
+        
+        
+    def copy_p_to_h(self):
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
         p_arr  = self.dax.getVecArray(self.p)
         h1_arr = self.da1.getVecArray(self.h1)
-
-        f_arr[xs:xe, ys:ye]  = x_arr[xs:xe, ys:ye, 0] 
-        n_arr[xs:xe]         = x_arr[xs:xe, :, 0].sum(axis=1) * self.hv
-        p_arr[xs:xe]         = x_arr[xs:xe, 0, 1]
-        h1_arr[xs:xe, ys:ye] = x_arr[xs:xe, ys:ye, 1]
+    
+        for j in range(ys, ye):
+            h1_arr[xs:xe, j] = p_arr[xs:xe]
         
+    
+    def save_to_hdf5(self, itime):
+        
+#        self.copy_x_to_f()
+#        self.copy_x_to_p()
+#        self.copy_p_to_h()
+        self.calculate_density()
         
         # save to hdf5 file
         if itime % self.nsave == 0 or itime == self.nt + 1:

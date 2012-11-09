@@ -20,7 +20,6 @@ cdef class PETScArakawa(object):
     cdef np.float64_t hv
     
     cdef DA da1
-    cdef DA da2
     
     
     cdef np.float64_t arakawa(self, np.ndarray[np.float64_t, ndim=2] x,

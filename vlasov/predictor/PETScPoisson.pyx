@@ -33,14 +33,13 @@ cdef class PETScPoissonSolver(object):
     
     cdef Vec B
     cdef Vec X
-    cdef Vec F
     
     cdef Vec localB
     cdef Vec localX
     cdef Vec localF
     
     
-    def __init__(self, DA da1, DA dax, Vec F,
+    def __init__(self, DA da1, DA dax, 
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
                  np.float64_t poisson_const):
@@ -64,9 +63,6 @@ cdef class PETScPoissonSolver(object):
         
         # poisson constant
         self.poisson_const = poisson_const
-        
-        # save distribution function vector
-        self.F = F
         
         # create local vectors
         self.localB = dax.createLocalVec()
@@ -103,18 +99,18 @@ cdef class PETScPoissonSolver(object):
         
     
     @cython.boundscheck(False)
-    def formRHS(self, Vec B):
+    def formRHS(self, Vec F, Vec B):
         cdef np.uint64_t i, ix, iy
         cdef np.uint64_t xs, xe
         
         cdef np.float64_t fsum
         
-        self.da1.globalToLocal(self.F, self.localF)
+        self.da1.globalToLocal(F, self.localF)
         
         cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getVecArray(B)[...]
         cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getVecArray(self.localF)[...]
         
-        fsum = self.F.sum() * self.hv / self.nx
+        fsum = F.sum() * self.hv / self.nx
         
         (xs, xe), = self.dax.getRanges()
         
