@@ -15,9 +15,9 @@ import time
 from core import Config
 from data import maxwellian
 
-from vlasov.predictor.PETScArakawaRK4 import PETScArakawaRK4
-from vlasov.predictor.PETScPoisson    import PETScPoissonSolver
-from vlasov.predictor.PETScVlasov     import PETScVlasovSolver
+from vlasov.predictor.PETScArakawaRK4   import PETScArakawaRK4
+from vlasov.predictor.PETScPoisson      import PETScPoissonSolver
+from vlasov.predictor.PETScVlasovSolver import PETScVlasovSolver
 
 from vlasov.vi.PETScMatrixFreeSimpleNLFunction import PETScFunction
 from vlasov.vi.PETScMatrixFreeSimpleNLJacobian import PETScJacobian

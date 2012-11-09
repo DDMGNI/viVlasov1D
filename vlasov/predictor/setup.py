@@ -65,8 +65,8 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
-        Extension("PETScVlasov",
-                  sources=["PETScVlasov.pyx"],
+        Extension("PETScVlasovSolver",
+                  sources=["PETScVlasovSolver.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
