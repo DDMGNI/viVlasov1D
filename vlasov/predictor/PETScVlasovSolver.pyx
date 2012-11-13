@@ -20,7 +20,7 @@ cdef class PETScVlasovSolver(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA da2, Vec H0,
+    def __init__(self, DA da1, Vec H0,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
         '''
@@ -28,11 +28,9 @@ cdef class PETScVlasovSolver(object):
         '''
         
         assert da1.getDim() == 2
-        assert da2.getDim() == 2
         
         # distributed array
         self.da1 = da1
-        self.da2 = da2
         
         # grid
         self.nx = nx
@@ -47,63 +45,53 @@ cdef class PETScVlasovSolver(object):
         self.H0 = H0
         
         # create history vectors
-        self.X0  = self.da2.createGlobalVec()
-        self.X1  = self.da2.createGlobalVec()
+        self.Fh  = self.da1.createGlobalVec()
+        self.H1  = self.da1.createGlobalVec()
+        self.H1h = self.da1.createGlobalVec()
         
         # create local vectors
-        self.localB  = da1.createLocalVec()
-        self.localX  = da1.createLocalVec()
+        self.localB   = da1.createLocalVec()
+        self.localF   = da1.createLocalVec()
+        self.localFh  = da1.createLocalVec()
         
-        self.localH0 = da1.createLocalVec()
-        self.localX0 = da2.createLocalVec()
-        self.localX1 = da2.createLocalVec()
+        self.localH0  = da1.createLocalVec()
+        self.localH1  = da1.createLocalVec()
+        self.localH1h = da1.createLocalVec()
         
         # create Arakawa solver object
         self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
         
     
-    def update_current(self, Vec X):
-        x  = self.da2.getVecArray(X)
-        x0 = self.da2.getVecArray(self.X0)
-        
-        (xs, xe), (ys, ye) = self.da2.getRanges()
-        
-        x0[xs:xe, ys:ye, :] = x[xs:xe, ys:ye, :]
+    def update_potential(self, Vec H1):
+        H1.copy(self.H1)
         
     
-    def update_history(self, Vec X):
-        x  = self.da2.getVecArray(X)
-        x1 = self.da2.getVecArray(self.X1)
-        
-        (xs, xe), (ys, ye) = self.da2.getRanges()
-        
-        x1[xs:xe, ys:ye, :] = x[xs:xe, ys:ye, :]
+    def update_history(self, Vec F, Vec H1):
+        F.copy(self.Fh)
+        H1.copy(self.H1h)
         
     
 #    @cython.boundscheck(False)
-    def mult(self, Mat mat, Vec X, Vec Y):
+    def mult(self, Mat mat, Vec F, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        self.da1.globalToLocal(X,       self.localX)
+        self.da1.globalToLocal(F,        self.localF)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
         
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da2.globalToLocal(self.X0, self.localX0)
-        self.da2.globalToLocal(self.X1, self.localX1)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.H1,  self.localH1)
+        self.da1.globalToLocal(self.H1h, self.localH1h)
         
-        cdef np.ndarray[np.float64_t, ndim=2] y  = self.da1.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getVecArray(self.localX) [...]
-        
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
-        cdef np.ndarray[np.float64_t, ndim=3] x0 = self.da2.getVecArray(self.localX0)[...]
-        cdef np.ndarray[np.float64_t, ndim=3] x1 = self.da2.getVecArray(self.localX1)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=2] fh = x1[:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] p  = x0[:,:,1]
-        cdef np.ndarray[np.float64_t, ndim=2] ph = x1[:,:,1]
+        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da1.getVecArray(Y)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF)  [...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
         
         for i in np.arange(xs, xe):
@@ -117,12 +105,11 @@ cdef class PETScVlasovSolver(object):
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
                     y[iy, jy] = f[ix, jx]
-#                    y[iy, jy] = 0.0
                     
                 else:
                     y[iy, jy] = self.time_derivative(f, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(f,  h0 + ph, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(fh, h0 + p,  ix, jx)
+                              + 0.5 * self.arakawa.arakawa(f,  h0 + h1h, ix, jx) \
+                              + 0.5 * self.arakawa.arakawa(fh, h0 + h1,  ix, jx)
                     
         
     
@@ -131,18 +118,12 @@ cdef class PETScVlasovSolver(object):
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xs, xe, ys, ye
         
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da2.globalToLocal(self.X1, self.localX1)
-        
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=2] b  = self.da1.getVecArray(B)[...]
+        self.da1.globalToLocal(self.Fh,  self.localFh)
         
-        cdef np.ndarray[np.float64_t, ndim=3] xh = self.da2.getVecArray(self.localX1)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=2] fh = xh[:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
+        cdef np.ndarray[np.float64_t, ndim=2] b   = self.da1.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh)[...]
         
         
         for i in np.arange(xs, xe):

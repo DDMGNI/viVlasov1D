@@ -24,21 +24,21 @@ cdef class PETScVlasovSolver(object):
     
     
     cdef DA da1
-    cdef DA da2
     
     cdef Vec B
-    cdef Vec X
+    cdef Vec Fh
     
     cdef Vec H0
-    cdef Vec X0
-    cdef Vec X1
+    cdef Vec H1
+    cdef Vec H1h
     
     cdef Vec localB
-    cdef Vec localX
+    cdef Vec localF
+    cdef Vec localFh
     
     cdef Vec localH0
-    cdef Vec localX0
-    cdef Vec localX1
+    cdef Vec localH1
+    cdef Vec localH1h
     
     cdef PETScArakawa arakawa
 

@@ -101,7 +101,7 @@ cdef class PETScSolver(object):
 #        self.localA2h = dax.createLocalVec()
         
         # create Arakawa solver object
-        self.arakawa     = PETScArakawa(da1, da2, nx, nv, hx, hv)
+        self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
         
     
     def update_history(self, Vec X):
