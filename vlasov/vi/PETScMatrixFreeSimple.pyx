@@ -116,7 +116,22 @@ cdef class PETScSolver(object):
         self.matrix_mult(X, Y)
         
     
-#    @cython.boundscheck(False)
+    
+    @cython.boundscheck(False)
+    def calculate_moments(self, Vec X):
+        cdef np.uint64_t xe, xs, ye, ys
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        cdef np.ndarray[np.float64_t, ndim=2] gf = self.da2.getVecArray(X)[...][:,:,0]
+        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
+        
+        for j in np.arange(0, ye-ys):
+            vf[:, j] = gf[:, j] * self.v[j]
+        
+        
+    
+    @cython.boundscheck(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
@@ -124,74 +139,36 @@ cdef class PETScSolver(object):
         
         cdef np.float64_t laplace, integral, fsum, phisum
         
+        self.calculate_moments(X)
+        
         (xs, xe), (ys, ye) = self.da2.getRanges()
         
         self.da2.globalToLocal(X,       self.localX)
         self.da2.globalToLocal(self.X1, self.localX1)
         self.da1.globalToLocal(self.H0, self.localH0)
+        self.da1.globalToLocal(self.VF, self.localVF)
 
         cdef np.ndarray[np.float64_t, ndim=3] y  = self.da2.getVecArray(Y)[...]
+        cdef np.ndarray[np.float64_t, ndim=3] gx = self.da2.getVecArray(X)[...]
         cdef np.ndarray[np.float64_t, ndim=3] x  = self.da2.getVecArray(self.localX) [...]
         cdef np.ndarray[np.float64_t, ndim=3] xh = self.da2.getVecArray(self.localX1)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.localVF)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f  = x [:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] fh = xh[:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] p  = x [:,:,1]
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
         
-        cdef np.ndarray[np.float64_t, ndim=2] gf = self.da2.getVecArray(self.X)[...][:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
         
-        for j in np.arange(0, ye-ys):
-            vf[:, j] = gf[:, j] * self.v[j]
+#        cdef np.ndarray[np.float64_t, ndim=1] tp = self.dax.getVecArray(self.PHI)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] tf = self.da1.getVecArray(self.F)  [...]
         
-#        cdef np.ndarray[np.float64_t, ndim=2] tu = np.empty_like(gf)
-#        cdef np.ndarray[np.float64_t, ndim=2] te = np.empty_like(gf)
-#        
-#        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getVecArray(self.N)[...]
-#        cdef np.ndarray[np.float64_t, ndim=1] u = self.dax.getVecArray(self.U)[...]
-#        cdef np.ndarray[np.float64_t, ndim=1] e = self.dax.getVecArray(self.E)[...]
-#        
-#        for j in np.arange(0, ye-ys):
-#            tu[:, j] = gf[:, j] * self.v[j]
-#            te[:, j] = tu[:, j] * self.v[j]
-#        
-#        n[:] = gf.sum(axis=1) * self.hv
-#        u[:] = tu.sum(axis=1) * self.hv
-#        e[:] = te.sum(axis=1) * self.hv
-#        
-#        cdef np.ndarray[np.float64_t, ndim=1] a1  = self.dax.getVecArray(self.A1)[...]
-#        cdef np.ndarray[np.float64_t, ndim=1] a2  = self.dax.getVecArray(self.A2)[...]
-#        
-#        a1[:] = u
-#        a2[:] = e
-#        
-#        self.dax.globalToLocal(self.A1,  self.localA1 )
-#        self.dax.globalToLocal(self.A1h, self.localA1h)
-#        self.dax.globalToLocal(self.A2,  self.localA2 )
-#        self.dax.globalToLocal(self.A2h, self.localA2h)
-#        
-#        a1 = self.dax.getVecArray(self.localA1)[...]
-#        a2 = self.dax.getVecArray(self.localA2)[...]
-#        
-#        cdef np.ndarray[np.float64_t, ndim=1] a1h = self.dax.getVecArray(self.localA1h)[...]
-#        cdef np.ndarray[np.float64_t, ndim=1] a2h = self.dax.getVecArray(self.localA2h)[...]
+#        tp[:]   = gx[:, 0, 1]
+        tf[:,:] = gx[:, :, 0]
         
-        
-        self.da1.globalToLocal(self.VF, self.localVF)
-        vf = self.da1.getVecArray(self.localVF)[...]
-        
-        
-        gx  = self.da2.getVecArray(X)
-        
-        phi = self.dax.getVecArray(self.PHI)
-        phi[xs:xe] = gx[:, 0, 1]
-        phisum = self.PHI.sum()
-        
-        tf = self.da1.getVecArray(self.F)
-        tf[xs:xe, ys:ye] = gx[:, :, 0]
-        fsum = self.F.sum() * self.hv / self.nx
+#        phisum = self.PHI.sum()
+        fsum   = self.F.sum() * self.hv / self.nx
         
 #        print(fsum)
         
@@ -201,10 +178,6 @@ cdef class PETScSolver(object):
             iy = i-xs
             
             # Poisson equation
-#            if i == 0:
-#                y[iy, :, 1] = phisum
-#                
-#            else:
             laplace  = (p[ix-1, 0] - 2. * p[ix, 0] + p[ix+1, 0])
             
             integral = ( \
@@ -231,6 +204,7 @@ cdef class PETScSolver(object):
                                  + 0.5 * self.arakawa.arakawa(fh, p,  ix, jx) \
                                  - 0.5 * self.alpha * self.dvdv(f,  ix, jx) \
                                  - 0.5 * self.alpha * self.C1(vf, ix, jx)
+                                 
 #                                 + 0.5 * self.alpha * self.C1(f,  a1h, ix, jx) \
 #                                 + 0.5 * self.alpha * self.C1(fh, a1,  ix, jx) #\
 #                                 + 0.5 * self.alpha * self.C2(f,  a2h, self.v, ix, jx) \
@@ -238,25 +212,25 @@ cdef class PETScSolver(object):
                     
         
     
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     def formRHS(self, Vec B):
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xs, xe, ys, ye
         
         self.da2.globalToLocal(self.X1, self.localX1)
         self.da1.globalToLocal(self.H0, self.localH0)
+        self.da1.globalToLocal(self.VF1, self.localVF1)
         
         (xs, xe), (ys, ye) = self.da2.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=3] b  = self.da2.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=3] xh = self.da2.getVecArray(self.localX1)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
+        cdef np.ndarray[np.float64_t, ndim=3] b   = self.da2.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim=3] xh  = self.da2.getVecArray(self.localX1)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVF1)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] fh = xh[:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
         
-        self.da1.globalToLocal(self.VF1, self.localVF1)
-        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVF1)[...]
         
         
         for i in np.arange(xs, xe):
@@ -284,7 +258,7 @@ cdef class PETScSolver(object):
     
 
 
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
                                             np.uint64_t i, np.uint64_t j):
         '''

@@ -9,16 +9,12 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from petsc4py import  PETSc
-from petsc4py cimport PETSc
-
 from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import  PETScArakawa
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.predictor.PETScArakawa import PETScArakawa
 
 
-cdef class PETScJacobian(object):
+cdef class PETScFunction(object):
     '''
     The ScipySparse class implements a couple of solvers for the Vlasov-Poisson system
     built on top of the SciPy Sparse package.
@@ -61,35 +57,33 @@ cdef class PETScJacobian(object):
         
         # create history vectors
         self.Xh  = self.da2.createGlobalVec()
-        self.Xp  = self.da2.createGlobalVec()
         self.F   = self.da1.createGlobalVec()
         self.PHI = self.dax.createGlobalVec()
         
         # create local vectors
+        self.localB  = da2.createLocalVec()
         self.localX  = da2.createLocalVec()
         self.localXh = da2.createLocalVec()
-        self.localXp = da2.createLocalVec()
         self.localH0 = da1.createLocalVec()
         
         # create Arakawa solver object
-        self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
+        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
         
     
     def update_history(self, Vec X):
         X.copy(self.Xh)
         
     
-    def update_previous(self, Vec X):
-        X.copy(self.Xp)
-        
-    
     def mult(self, Mat mat, Vec X, Vec Y):
         self.matrix_mult(X, Y)
         
     
+    def snes_mult(self, SNES snes, Vec X, Vec Y):
+        self.matrix_mult(X, Y)
+        
+        
 #    @cython.boundscheck(False)
     def matrix_mult(self, Vec X, Vec Y):
-        
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xe, xs, ye, ys
@@ -100,23 +94,18 @@ cdef class PETScJacobian(object):
         
         self.da2.globalToLocal(X,       self.localX)
         self.da2.globalToLocal(self.Xh, self.localXh)
-        self.da2.globalToLocal(self.Xp, self.localXp)
         self.da1.globalToLocal(self.H0, self.localH0)
         
         cdef np.ndarray[np.float64_t, ndim=3] y  = self.da2.getVecArray(Y)[...]
         cdef np.ndarray[np.float64_t, ndim=3] gx = self.da2.getVecArray(X)[...]
-        cdef np.ndarray[np.float64_t, ndim=3] dx = self.da2.getVecArray(self.localX) [...]
+        cdef np.ndarray[np.float64_t, ndim=3] x  = self.da2.getVecArray(self.localX) [...]
         cdef np.ndarray[np.float64_t, ndim=3] xh = self.da2.getVecArray(self.localXh)[...]
-        cdef np.ndarray[np.float64_t, ndim=3] xp = self.da2.getVecArray(self.localXp)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] df = dx[:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] dp = dx[:,:,1]
+        cdef np.ndarray[np.float64_t, ndim=2] f  = x [:,:,0]
+        cdef np.ndarray[np.float64_t, ndim=2] p  = x [:,:,1]
         cdef np.ndarray[np.float64_t, ndim=2] fh = xh[:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
-        cdef np.ndarray[np.float64_t, ndim=2] fp = xp[:,:,0]
-        cdef np.ndarray[np.float64_t, ndim=2] pp = xp[:,:,1]
-        
         
         cdef np.ndarray[np.float64_t, ndim=1] tp = self.dax.getVecArray(self.PHI)[...]
         cdef np.ndarray[np.float64_t, ndim=2] tf = self.da1.getVecArray(self.F)  [...]
@@ -133,36 +122,37 @@ cdef class PETScJacobian(object):
             iy = i-xs
             
             # Poisson equation
-            laplace  = (dp[ix-1, 0] + dp[ix+1, 0] - 2. * dp[ix, 0]) * self.hx2_inv
+            laplace  = (p[ix-1, 0] + p[ix+1, 0] - 2. * p[ix, 0]) * self.hx2_inv
             
             integral = ( \
-                         + 1. * df[ix-1, :].sum() \
-                         + 2. * df[ix,   :].sum() \
-                         + 1. * df[ix+1, :].sum() \
+                         + 1. * f[ix-1, :].sum() \
+                         + 2. * f[ix,   :].sum() \
+                         + 1. * f[ix+1, :].sum() \
                        ) * 0.25 * self.hv
             
-            y[iy, :, 1] = - laplace + self.poisson_const * (integral - nmean) # * self.hx2
+            y[iy, :, 1] = - laplace + self.poisson_const * (integral - nmean) #* self.hx2
             
             # Vlasov Equation
             for j in np.arange(ys, ye):
                 jx = j-ys
                 jy = j-ys
-                
+            
                 if j == 0 or j == self.nv-1:
-                    # Dirichlet Boundary Conditions
-                    y[iy, jy, 0] = df[ix, jx]
+#                   Dirichlet Boundary Conditions
+                    y[iy, jy, 0] = 0.0
                     
                 else:
-                    y[iy, jy, 0] = self.time_derivative(df, ix, jx) \
-                                 + 0.5  * self.arakawa.arakawa(df, h0, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(df, pp, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(df, ph, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(fp, dp, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(fh, dp, ix, jx)
-            
-        
-
-
+                    y[iy, jy, 0] = self.time_derivative(f,  ix, jx) \
+                                 - self.time_derivative(fh, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(f,  h0, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(f,  ph, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(fh, h0, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(fh, p,  ix, jx)
+#                                 + 0.5 * self.arakawa.arakawa(f,  h0 + ph, ix, jx) \
+#                                 + 0.5 * self.arakawa.arakawa(fh, h0 + p,  ix, jx)
+                    
+                    
+    
 #    @cython.boundscheck(False)
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
                                             np.uint64_t i, np.uint64_t j):
@@ -171,8 +161,6 @@ cdef class PETScJacobian(object):
         '''
         
         cdef np.float64_t result
-        
-#        result = x[i,   j  ] / self.ht
         
         result = ( \
                    + 1. * x[i-1, j-1] \

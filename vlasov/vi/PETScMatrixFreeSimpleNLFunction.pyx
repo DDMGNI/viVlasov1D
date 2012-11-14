@@ -24,36 +24,6 @@ cdef class PETScFunction(object):
     built on top of the SciPy Sparse package.
     '''
     
-    cdef np.uint64_t  nx
-    cdef np.uint64_t  nv
-    
-    cdef np.float64_t ht
-    cdef np.float64_t hx
-    cdef np.float64_t hv
-    
-    cdef np.float64_t hx2
-    cdef np.float64_t hx2_inv
-    
-    cdef np.float64_t poisson_const
-    
-    cdef DA dax
-    cdef DA da1
-    cdef DA da2
-    
-    cdef Vec B
-    cdef Vec X
-    cdef Vec Xh
-    cdef Vec H0
-    cdef Vec F
-    cdef Vec PHI
-    
-    cdef Vec localB
-    cdef Vec localX
-    cdef Vec localXh
-    cdef Vec localH0
-    
-    cdef PETScArakawa arakawa
-    
     
     def __init__(self, DA da1, DA da2, DA dax, Vec H0,
                  np.uint64_t nx, np.uint64_t nv,
@@ -106,24 +76,13 @@ cdef class PETScFunction(object):
         
     
     def update_history(self, Vec X):
-#        X.copy(self.Xh)
-        
-        x  = self.da2.getVecArray(X)
-        xh = self.da2.getVecArray(self.Xh)
-        
-        (xs, xe), (ys, ye) = self.da2.getRanges()
-        
-        xh[xs:xe, ys:ye, :] = x[xs:xe, ys:ye, :]
+        X.copy(self.Xh)
         
     
     def mult(self, Mat mat, Vec X, Vec Y):
         self.matrix_mult(X, Y)
         
     
-    def snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.matrix_mult(X, Y)
-        
-        
 #    @cython.boundscheck(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef np.uint64_t i, j
@@ -165,10 +124,6 @@ cdef class PETScFunction(object):
             iy = i-xs
             
             # Poisson equation
-#            if i == 0:
-#                y[iy, :, 1] = phisum
-#                
-#            else:
             laplace  = (p[ix-1, 0] + p[ix+1, 0] - 2. * p[ix, 0]) * self.hx2_inv
             
             integral = ( \
@@ -185,21 +140,18 @@ cdef class PETScFunction(object):
                 jy = j-ys
             
                 if j == 0 or j == self.nv-1:
-#                     Dirichlet Boundary Conditions
+                    # Dirichlet Boundary Conditions
                     y[iy, jy, 0] = 0.0
-#                    y[iy, jy, 0] = f[ix, jx]
                     
                 else:
                     y[iy, jy, 0] = self.time_derivative(f,  ix, jx) \
                                  - self.time_derivative(fh, ix, jx) \
-                                 + 0.5  * self.arakawa.arakawa(f,  h0 + ph, ix, jx) \
-                                 + 0.5  * self.arakawa.arakawa(fh, h0 + p,  ix, jx)
-#                                 + 0.25 * self.arakawa.arakawa(f,  p,  ix, jx) \
-#                                 + 0.25 * self.arakawa.arakawa(f,  ph, ix, jx) \
-#                                 + 0.25 * self.arakawa.arakawa(fh, p,  ix, jx) \
-#                                 + 0.25 * self.arakawa.arakawa(fh, ph, ix, jx)
-#                                 + self.arakawa.arakawa(fh, h0, ix, jx) \
-#                                 + self.arakawa.arakawa(fh, ph, ix, jx)
+                                 + 0.5  * self.arakawa.arakawa(f,  h0, ix, jx) \
+                                 + 0.25 * self.arakawa.arakawa(f,  p,  ix, jx) \
+                                 + 0.25 * self.arakawa.arakawa(f,  ph, ix, jx) \
+                                 + 0.5  * self.arakawa.arakawa(fh, h0, ix, jx) \
+                                 + 0.25 * self.arakawa.arakawa(fh, p,  ix, jx) \
+                                 + 0.25 * self.arakawa.arakawa(fh, ph, ix, jx)
                     
                     
     

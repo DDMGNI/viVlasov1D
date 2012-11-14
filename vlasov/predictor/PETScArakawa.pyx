@@ -36,7 +36,7 @@ cdef class PETScArakawa(object):
         self.da1 = da1
         
     
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     cdef np.float64_t arakawa(self, np.ndarray[np.float64_t, ndim=2] x,
                                     np.ndarray[np.float64_t, ndim=2] h,
                                     np.uint64_t i, np.uint64_t j):

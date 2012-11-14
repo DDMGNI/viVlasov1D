@@ -30,9 +30,9 @@ class petscVP1D(petscVP1Dbase):
         Constructor
         '''
         
+        # initialise parent object
         petscVP1Dbase.__init__(self, cfgfile)
         
-        self.max_iter_poisson = 1000
         
         # create Matrix object
         self.petsc_mat = PETScSolver(self.da1, self.da2, self.dax, self.day,
@@ -54,15 +54,14 @@ class petscVP1D(petscVP1Dbase):
         
         
         # update solution history
+        self.petsc_mat.calculate_moments(self.x)
+        self.vlasov_mat.calculate_moments(self.f)
+        
         self.petsc_mat.update_history(self.x)
         self.vlasov_mat.update_history(self.f, self.h1)
         
         
-    
-    def __del__(self):
-        del self.hdf5_viewer
         
-    
     
     def run(self):
         for itime in range(1, self.nt+1):
@@ -70,10 +69,6 @@ class petscVP1D(petscVP1Dbase):
                 localtime = time.asctime( time.localtime(time.time()) )
                 print("\nit = %4d,   t = %10.4f,   %s" % (itime, self.ht*itime, localtime) )
                 self.time.setValue(0, self.ht*itime)
-            
-            # build matrix
-            if self.petsc_mat.isSparse():
-                self.petsc_mat.formMat(self.A, self.x)
             
             # build RHS
             self.petsc_mat.formRHS(self.b)
@@ -83,6 +78,11 @@ class petscVP1D(petscVP1Dbase):
             
             # solve
             self.ksp.solve(self.b, self.x)
+            
+            # update data vectors
+            self.copy_x_to_f()
+            self.copy_x_to_p()
+            self.copy_p_to_h()
             
             # update history
             self.petsc_mat.update_history(self.x)
@@ -96,15 +96,13 @@ class petscVP1D(petscVP1Dbase):
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("      Solver:  %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
+                print("     Solver:   %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
                 print("                                   sum(phi) = %24.16E" % (phisum))
                 print
                 
 #            if self.ksp.getIterationNumber() == self.max_iter:
 #                break
             
-        
-    
 #    def initial_guess(self):
 #        self.arakawa_rk4.rk4(self.f, self.h1)
 #        self.copy_f_to_x()
@@ -114,6 +112,7 @@ class petscVP1D(petscVP1Dbase):
 #
 #        # calculate initial guess for potential
 #        self.calculate_potential()
+#        self.vlasov_mat.update_potential(self.h1)
 
     
     

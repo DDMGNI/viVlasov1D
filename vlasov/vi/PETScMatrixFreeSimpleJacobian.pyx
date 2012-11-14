@@ -9,13 +9,9 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from petsc4py import  PETSc
-from petsc4py cimport PETSc
+from petsc4py.PETSc cimport DA, Mat, Vec
 
-from petsc4py.PETSc cimport DA, SNES, Mat, Vec
-
-from vlasov.predictor.PETScArakawa import  PETScArakawa
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.predictor.PETScArakawa import PETScArakawa
 
 
 cdef class PETScJacobian(object):
@@ -83,12 +79,8 @@ cdef class PETScJacobian(object):
         X.copy(self.Xp)
         
     
-    def mult(self, Mat mat, Vec X, Vec Y):
-        self.matrix_mult(X, Y)
-        
-    
 #    @cython.boundscheck(False)
-    def matrix_mult(self, Vec X, Vec Y):
+    def mult(self, Mat mat, Vec X, Vec Y):
         
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
@@ -116,7 +108,6 @@ cdef class PETScJacobian(object):
         cdef np.ndarray[np.float64_t, ndim=2] ph = xh[:,:,1]
         cdef np.ndarray[np.float64_t, ndim=2] fp = xp[:,:,0]
         cdef np.ndarray[np.float64_t, ndim=2] pp = xp[:,:,1]
-        
         
         cdef np.ndarray[np.float64_t, ndim=1] tp = self.dax.getVecArray(self.PHI)[...]
         cdef np.ndarray[np.float64_t, ndim=2] tf = self.da1.getVecArray(self.F)  [...]
@@ -154,11 +145,9 @@ cdef class PETScJacobian(object):
                     
                 else:
                     y[iy, jy, 0] = self.time_derivative(df, ix, jx) \
-                                 + 0.5  * self.arakawa.arakawa(df, h0, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(df, pp, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(df, ph, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(fp, dp, ix, jx) \
-                                 + 0.25 * self.arakawa.arakawa(fh, dp, ix, jx)
+                                 + 0.5 * self.arakawa.arakawa(df, h0, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(df, ph, ix, jx) \
+                                 + 0.5 * self.arakawa.arakawa(fh, dp, ix, jx)
             
         
 
@@ -171,8 +160,6 @@ cdef class PETScJacobian(object):
         '''
         
         cdef np.float64_t result
-        
-#        result = x[i,   j  ] / self.ht
         
         result = ( \
                    + 1. * x[i-1, j-1] \
@@ -187,3 +174,4 @@ cdef class PETScJacobian(object):
                  ) / (16. * self.ht)
         
         return result
+    
