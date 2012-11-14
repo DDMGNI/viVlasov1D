@@ -12,9 +12,9 @@ from petsc4py import PETSc
 from core import Config
 from data import maxwellian
 
-from vlasov.predictor.PETScArakawaRK4   import PETScArakawaRK4
-from vlasov.predictor.PETScPoisson      import PETScPoissonSolver
-from vlasov.predictor.PETScVlasovSolver import PETScVlasovSolver
+from vlasov.predictor.PETScArakawaRK4     import PETScArakawaRK4
+from vlasov.predictor.PETScPoissonSolver  import PETScPoissonSolver
+from vlasov.predictor.PETScVlasovSolver   import PETScVlasovSolver
 
 
 class petscVP1Dbase(object):
@@ -53,7 +53,7 @@ class petscVP1Dbase(object):
             self.time.setValue(0, 0.0)
         
         self.poisson = cfg['solver']['poisson_const']     # Poisson constant
-        self.alpha   = cfg['solver']['alpha']             # collision constant
+        self.alpha   = self.hv * cfg['solver']['alpha']   # collision constant
         
         
         # set some PETSc options
@@ -67,7 +67,7 @@ class petscVP1Dbase(object):
 #        OptDB.setValue('log_summary', '')
         
         
-        # create DA with single dof
+        # create DA for 2d grid (f only)
         self.da1 = PETSc.DA().create(dim=2, dof=1,
                                     sizes=[self.nx, self.nv],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
@@ -75,16 +75,16 @@ class petscVP1Dbase(object):
                                     stencil_width=1,
                                     stencil_type='box')
         
-        # create DA (dof = number of species + 1 for the potential)
-        self.da2 = PETSc.DA().create(dim=2, dof=2,
-                                     sizes=[self.nx, self.nv],
+        # create DA for 2d grid (f and phi)
+        self.da2 = PETSc.DA().create(dim=2, dof=1,
+                                     sizes=[self.nx, self.nv+1],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
                                      boundary_type=('periodic', 'none'),
                                      stencil_width=1,
                                      stencil_type='box')
         
         
-        # create DA for Poisson guess
+        # create DA for x grid
         self.dax = PETSc.DA().create(dim=1, dof=1,
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
@@ -103,9 +103,6 @@ class petscVP1Dbase(object):
         self.da1.setUniformCoordinates(xmin=0.0,  xmax=L,
                                        ymin=vMin, ymax=vMax)
         
-        self.da2.setUniformCoordinates(xmin=0.0,  xmax=L,
-                                       ymin=vMin, ymax=vMax)
-        
         self.dax.setUniformCoordinates(xmin=0.0, xmax=L)
         
         self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
@@ -113,13 +110,13 @@ class petscVP1Dbase(object):
         
         # get coordinate vectors
         coords_x = self.dax.getCoordinates()
-        coords_y = self.day.getCoordinates()
+        coords_v = self.day.getCoordinates()
         
         # save x coordinate arrays
-        scatter, xVec = PETSc.Scatter.toAll(coords_y)
+        scatter, xVec = PETSc.Scatter.toAll(coords_v)
 
-        scatter.begin(coords_y, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-        scatter.end  (coords_y, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.begin(coords_v, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.end  (coords_v, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
                   
         self.xGrid = xVec.getValues(range(0, self.nx)).copy()
         
@@ -127,10 +124,10 @@ class petscVP1Dbase(object):
         xVec.destroy()
         
         # save v coordinate arrays
-        scatter, vVec = PETSc.Scatter.toAll(coords_y)
+        scatter, vVec = PETSc.Scatter.toAll(coords_v)
 
-        scatter.begin(coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-        scatter.end  (coords_y, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.begin(coords_v, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.end  (coords_v, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
                   
         self.vGrid = vVec.getValues(range(0, self.nv)).copy()
         
@@ -166,8 +163,9 @@ class petscVP1Dbase(object):
         
         
         # create Vlasov matrix and solver
-        self.vlasov_mat = PETScVlasovSolver(self.da1, self.h0, 
-                                            self.nx, self.nv, self.ht, self.hx, self.hv)
+        self.vlasov_mat = PETScVlasovSolver(self.da1, self.h0, self.vGrid,
+                                            self.nx, self.nv, self.ht, self.hx, self.hv,
+                                            self.alpha)
         
         self.vlasov_A = PETSc.Mat().createPython([self.f.getSizes(), self.fb.getSizes()], comm=PETSc.COMM_WORLD)
         self.vlasov_A.setPythonContext(self.vlasov_mat)
@@ -225,11 +223,10 @@ class petscVP1Dbase(object):
         
         
         f_arr = self.da1.getVecArray(self.f)
-        x_arr = self.da2.getVecArray(self.x)
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        coords  = self.da2.getCoordinateDA().getVecArray(self.da2.getCoordinates())
+        coords = self.da1.getCoordinateDA().getVecArray(self.da1.getCoordinates())
         
         if cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
@@ -298,10 +295,10 @@ class petscVP1Dbase(object):
         
         # write grid data to hdf5 file
         coords_x.setName('x')
-        coords_y.setName('v')
+        coords_v.setName('v')
 
         self.hdf5_viewer(coords_x)
-        self.hdf5_viewer(coords_y)
+        self.hdf5_viewer(coords_v)
         
         # write initial data to hdf5 file
         self.hdf5_viewer(n0)
@@ -364,7 +361,7 @@ class petscVP1Dbase(object):
     
     
     def calculate_density(self):
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         # copy solution to f and p vectors
         f_arr  = self.da1.getVecArray(self.f)
@@ -379,7 +376,7 @@ class petscVP1Dbase(object):
         x_arr  = self.da2.getVecArray(self.x)
         f_arr  = self.da1.getVecArray(self.f)
         
-        f_arr[xs:xe, ys:ye] = x_arr[xs:xe, ys:ye, 0] 
+        f_arr[xs:xe, :] = x_arr[xs:xe, 0:-1] 
         
     
     def copy_f_to_x(self):
@@ -388,7 +385,7 @@ class petscVP1Dbase(object):
         x_arr  = self.da2.getVecArray(self.x)
         f_arr  = self.da1.getVecArray(self.f)
         
-        x_arr[xs:xe, ys:ye, 0] = f_arr[xs:xe, ys:ye] 
+        x_arr[xs:xe, 0:-1] = f_arr[xs:xe, :] 
     
     
     def copy_x_to_p(self):
@@ -397,7 +394,7 @@ class petscVP1Dbase(object):
         x_arr  = self.da2.getVecArray(self.x)
         p_arr  = self.dax.getVecArray(self.p)
         
-        p_arr[xs:xe] = x_arr[xs:xe, 0, 1]
+        p_arr[xs:xe] = x_arr[xs:xe, -1]
         
     
     def copy_p_to_x(self):
@@ -406,8 +403,7 @@ class petscVP1Dbase(object):
         p_arr  = self.dax.getVecArray(self.p)
         x_arr  = self.da2.getVecArray(self.x)
         
-        for j in range(ys, ye):
-            x_arr [xs:xe, j, 1] = p_arr[xs:xe]
+        x_arr [xs:xe, -1] = p_arr[xs:xe]
         
         
     def copy_p_to_h(self):

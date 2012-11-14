@@ -54,10 +54,7 @@ class petscVP1D(petscVP1Dbase):
         
         
         # update solution history
-        self.petsc_mat.calculate_moments(self.x)
-        self.vlasov_mat.calculate_moments(self.f)
-        
-        self.petsc_mat.update_history(self.x)
+        self.petsc_mat.update_history(self.f, self.h1)
         self.vlasov_mat.update_history(self.f, self.h1)
         
         
@@ -85,7 +82,7 @@ class petscVP1D(petscVP1Dbase):
             self.copy_p_to_h()
             
             # update history
-            self.petsc_mat.update_history(self.x)
+            self.petsc_mat.update_history(self.f, self.h1)
             self.vlasov_mat.update_history(self.f, self.h1)
             
             # save to hdf5
