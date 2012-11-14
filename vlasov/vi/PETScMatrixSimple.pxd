@@ -37,16 +37,21 @@ cdef class PETScMatrix(object):
     cdef DA da1
     cdef DA da2
     
-    cdef Vec VF
     cdef Vec H0
+    cdef Vec H1
+    cdef Vec H1h
+    cdef Vec F
+    cdef Vec Fh
+    cdef Vec VF
+    cdef Vec VFh
     
-    cdef Vec localB
-    cdef Vec localF
-    cdef Vec localFh
-    
-    cdef Vec localVF
     cdef Vec localH0
     cdef Vec localH1
+    cdef Vec localH1h
+    cdef Vec localF
+    cdef Vec localFh
+    cdef Vec localVF
+    cdef Vec localVFh
     
     cdef PETScArakawa arakawa
 

@@ -210,13 +210,13 @@ cdef class PETScSolver(object):
         cdef np.uint64_t ix, iy, jx, jy
         cdef np.uint64_t xs, xe, ys, ye
         
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da1.globalToLocal(self.Fh, self.localFh)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.VFh, self.localVFh)
         
         cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         

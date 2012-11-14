@@ -67,18 +67,33 @@ cdef class PETScMatrix(object):
         # collision parameter
         self.alpha = alpha
         
-        # create working vectors
+        # create work and history vectors
+        self.H1  = self.da1.createGlobalVec()
+        self.H1h = self.da1.createGlobalVec()
+        self.F   = self.da1.createGlobalVec()
+        self.Fh  = self.da1.createGlobalVec()
         self.VF  = self.da1.createGlobalVec()
+        self.VFh = self.da1.createGlobalVec()
         
         # create local vectors
-        self.localB   = da2.createLocalVec()
-        self.localF   = da1.createLocalVec()
         self.localH0  = da1.createLocalVec()
         self.localH1  = da1.createLocalVec()
+        self.localH1h = da1.createLocalVec()
+        self.localF   = da1.createLocalVec()
+        self.localFh  = da1.createLocalVec()
         self.localVF  = da1.createLocalVec()
+        self.localVFh = da1.createLocalVec()
 
         # create Arakawa solver object
         self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
+        
+    
+    def update_history(self, Vec F, Vec H1):
+        F.copy(self.Fh)
+        H1.copy(self.H1h)
+        
+        self.calculate_moments(F)
+        self.VF.copy(self.VFh)
         
     
     @cython.boundscheck(False)
@@ -96,23 +111,18 @@ cdef class PETScMatrix(object):
         
     
 #    @cython.boundscheck(False)
-    def formMat(self, Mat A, Vec F, Vec H1):
+    def formMat(self, Mat A):
         cdef np.int64_t i, j, ix, jx, tj
         cdef np.int64_t xe, xs, ye, ys
         
-        cdef np.float64_t integral
         
-        self.calculate_moments(F)
-        
-        self.da1.globalToLocal(F,       self.localF)
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da1.globalToLocal(H1,      self.localH1)
-        self.da1.globalToLocal(self.VF, self.localVF)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.H1h, self.localH1h)
 
-        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localF) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.da1.getVecArray(self.localH1)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.localVF)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
         
         A.zeroEntries()
@@ -134,66 +144,96 @@ cdef class PETScMatrix(object):
                 jx = j-ys
                 
                 row.index = (i,j)
-                
-                # f
                 row.field = 0
                 
-                if j == 0 or j == self.nv-1:
-                    A.setValueStencil(row, row, 1.0, addv=PETSc.InsertMode.ADD_VALUES)
-#                    self.setValueStencil(A.mat, row, row, 1.0)
+#                print(i,j)
                 
-                else:
+                # Poisson equation
+                if j == self.nv:
+                    
+                    for tj in np.arange(0, self.nv):
+                        
+#                        print(i,j,tj)
+                        
+                        for index, value in [
+                                ((i-1, tj), 1. * poss_fac),
+                                ((i,   tj), 2. * poss_fac),
+                                ((i+1, tj), 1. * poss_fac),
+                            ]:
+                            
+                            col.index = index
+                            col.field = 0
+                            A.setValueStencil(row, col, value)
+                    
+                    
                     for index, value in [
-                            ((i-1, j-1), 1. * time_fac - (h0[ix-1, jx  ] - h0[ix,   jx-1]) * arak_fac \
-                                                       - (h1[ix-1, jx  ] - h1[ix,   jx-1]) * arak_fac),
-                            ((i-1, j  ), 2. * time_fac - (h0[ix,   jx+1] - h0[ix,   jx-1]) * arak_fac \
-                                                       - (h0[ix-1, jx+1] - h0[ix-1, jx-1]) * arak_fac \
-                                                       - (h1[ix,   jx+1] - h1[ix,   jx-1]) * arak_fac \
-                                                       - (h1[ix-1, jx+1] - h1[ix-1, jx-1]) * arak_fac),
-                            ((i-1, j+1), 1. * time_fac - (h0[ix,   jx+1] - h0[ix-1, jx  ]) * arak_fac \
-                                                       - (h1[ix,   jx+1] - h1[ix-1, jx  ]) * arak_fac),
-                            ((i,   j-1), 2. * time_fac + (h0[ix+1, jx  ] - h0[ix-1, jx  ]) * arak_fac \
-                                                       + (h0[ix+1, jx-1] - h0[ix-1, jx-1]) * arak_fac \
-                                                       + (h1[ix+1, jx  ] - h1[ix-1, jx  ]) * arak_fac \
-                                                       + (h1[ix+1, jx-1] - h1[ix-1, jx-1]) * arak_fac),
-                            ((i,   j  ), 4. * time_fac),
-                            ((i,   j+1), 2. * time_fac - (h0[ix+1, jx  ] - h0[ix-1, jx  ]) * arak_fac \
-                                                       - (h0[ix+1, jx+1] - h0[ix-1, jx+1]) * arak_fac \
-                                                       - (h1[ix+1, jx  ] - h1[ix-1, jx  ]) * arak_fac \
-                                                       - (h1[ix+1, jx+1] - h1[ix-1, jx+1]) * arak_fac),
-                            ((i+1, j-1), 1. * time_fac + (h0[ix+1, jx  ] - h0[ix,   jx-1]) * arak_fac \
-                                                       + (h1[ix+1, jx  ] - h1[ix,   jx-1]) * arak_fac),
-                            ((i+1, j  ), 2. * time_fac + (h0[ix,   jx+1] - h0[ix,   jx-1]) * arak_fac \
-                                                       + (h0[ix+1, jx+1] - h0[ix+1, jx-1]) * arak_fac \
-                                                       + (h1[ix,   jx+1] - h1[ix,   jx-1]) * arak_fac \
-                                                       + (h1[ix+1, jx+1] - h1[ix+1, jx-1]) * arak_fac),
-                            ((i+1, j+1), 1. * time_fac + (h0[ix,   jx+1] - h0[ix+1, jx  ]) * arak_fac \
-                                                       + (h1[ix,   jx+1] - h1[ix+1, jx  ]) * arak_fac),
+                            ((i-1, j), -1. * self.hx2_inv),
+                            ((i,   j), +2. * self.hx2_inv),
+                            ((i+1, j), -1. * self.hx2_inv),
                         ]:
                         
                         col.index = index
                         col.field = 0
-                        A.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
-                        
-                                
-                    for index, value in [
-                            ((i-1, j-1), + (fh[ix-1, jx  ] - fh[ix,   jx-1]) * arak_fac),
-                            ((i-1, j  ), + (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
-                                         + (fh[ix-1, jx+1] - fh[ix-1, jx-1]) * arak_fac),
-                            ((i-1, j+1), + (fh[ix,   jx+1] - fh[ix-1, jx  ]) * arak_fac),
-                            ((i,   j-1), - (fh[ix+1, jx  ] - fh[ix-1, jx  ]) * arak_fac \
-                                         - (fh[ix+1, jx-1] - fh[ix-1, jx-1]) * arak_fac),
-                            ((i,   j+1), + (fh[ix+1, jx  ] - fh[ix-1, jx  ]) * arak_fac \
-                                         + (fh[ix+1, jx+1] - fh[ix-1, jx+1]) * arak_fac),
-                            ((i+1, j-1), - (fh[ix+1, jx  ] - fh[ix,   jx-1]) * arak_fac),
-                            ((i+1, j  ), - (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
-                                         - (fh[ix+1, jx+1] - fh[ix+1, jx-1]) * arak_fac),
-                            ((i+1, j+1), - (fh[ix,   jx+1] - fh[ix+1, jx  ]) * arak_fac),
-                        ]:
-                        
-                        col.index = index
-                        col.field = 1
-                        A.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        A.setValueStencil(row, col, value)
+                
+                
+                # Dirichlet boundary conditions of Vlasov equation
+                elif j == 0 or j == self.nv-1:
+#                    A.setValueStencil(row, row, 1.0)
+                    pass
+                    
+                # Vlasov equation
+                else:
+                    pass
+#                    for index, value in [
+#                            ((i-1, j-1), 1. * time_fac - (h0 [ix-1, jx  ] - h0 [ix,   jx-1]) * arak_fac \
+#                                                       - (h1h[ix-1, jx  ] - h1h[ix,   jx-1]) * arak_fac),
+#                            ((i-1, j  ), 2. * time_fac - (h0 [ix,   jx+1] - h0 [ix,   jx-1]) * arak_fac \
+#                                                       - (h0 [ix-1, jx+1] - h0 [ix-1, jx-1]) * arak_fac \
+#                                                       - (h1h[ix,   jx+1] - h1h[ix,   jx-1]) * arak_fac \
+#                                                       - (h1h[ix-1, jx+1] - h1h[ix-1, jx-1]) * arak_fac),
+#                            ((i-1, j+1), 1. * time_fac - (h0 [ix,   jx+1] - h0 [ix-1, jx  ]) * arak_fac \
+#                                                       - (h1h[ix,   jx+1] - h1h[ix-1, jx  ]) * arak_fac),
+#                            ((i,   j-1), 2. * time_fac + (h0 [ix+1, jx  ] - h0 [ix-1, jx  ]) * arak_fac \
+#                                                       + (h0 [ix+1, jx-1] - h0 [ix-1, jx-1]) * arak_fac \
+#                                                       + (h1h[ix+1, jx  ] - h1h[ix-1, jx  ]) * arak_fac \
+#                                                       + (h1h[ix+1, jx-1] - h1h[ix-1, jx-1]) * arak_fac),
+#                            ((i,   j  ), 4. * time_fac),
+#                            ((i,   j+1), 2. * time_fac - (h0 [ix+1, jx  ] - h0 [ix-1, jx  ]) * arak_fac \
+#                                                       - (h0 [ix+1, jx+1] - h0 [ix-1, jx+1]) * arak_fac \
+#                                                       - (h1h[ix+1, jx  ] - h1h[ix-1, jx  ]) * arak_fac \
+#                                                       - (h1h[ix+1, jx+1] - h1h[ix-1, jx+1]) * arak_fac),
+#                            ((i+1, j-1), 1. * time_fac + (h0 [ix+1, jx  ] - h0 [ix,   jx-1]) * arak_fac \
+#                                                       + (h1h[ix+1, jx  ] - h1h[ix,   jx-1]) * arak_fac),
+#                            ((i+1, j  ), 2. * time_fac + (h0 [ix,   jx+1] - h0 [ix,   jx-1]) * arak_fac \
+#                                                       + (h0 [ix+1, jx+1] - h0 [ix+1, jx-1]) * arak_fac \
+#                                                       + (h1h[ix,   jx+1] - h1h[ix,   jx-1]) * arak_fac \
+#                                                       + (h1h[ix+1, jx+1] - h1h[ix+1, jx-1]) * arak_fac),
+#                            ((i+1, j+1), 1. * time_fac + (h0 [ix,   jx+1] - h0 [ix+1, jx  ]) * arak_fac \
+#                                                       + (h1h[ix,   jx+1] - h1h[ix+1, jx  ]) * arak_fac),
+#                        ]:
+#                        
+#                        col.index = index
+#                        col.field = 0
+#                        A.setValueStencil(row, col, value)
+#                        
+#                        
+#                        for index, value in [
+#                                ((i-1, self.nv), + (fh[ix-1, jx  ] - fh[ix,   jx-1]) * arak_fac \
+#                                                 + (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
+#                                                 + (fh[ix-1, jx+1] - fh[ix-1, jx-1]) * arak_fac \
+#                                                 + (fh[ix,   jx+1] - fh[ix-1, jx  ]) * arak_fac),
+#                                ((i,   self.nv), - (fh[ix+1, jx-1] - fh[ix-1, jx-1]) * arak_fac \
+#                                                 + (fh[ix+1, jx+1] - fh[ix-1, jx+1]) * arak_fac),
+#                                ((i+1, self.nv), - (fh[ix+1, jx  ] - fh[ix,   jx-1]) * arak_fac \
+#                                                 - (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
+#                                                 - (fh[ix+1, jx+1] - fh[ix+1, jx-1]) * arak_fac \
+#                                                 - (fh[ix,   jx+1] - fh[ix+1, jx  ]) * arak_fac),
+#                            ]:
+#                            
+#                            col.index = index
+#                            col.field = 0
+#                            A.setValueStencil(row, col, value)
                         
 #                        
 #                        Time Derivative
@@ -232,85 +272,62 @@ cdef class PETScMatrix(object):
 #                        
                 
                 
-                # phi
-                row.field = 1
-                
-                for tj in np.arange(0, self.nv):
-                    
-#                    print(i,j,tj)
-                    
-                    for index, value in [
-                            ((i-1, tj), 1. * poss_fac),
-                            ((i,   tj), 2. * poss_fac),
-                            ((i+1, tj), 1. * poss_fac),
-                        ]:
-                        
-                        col.index = index
-                        col.field = 0
-                        A.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
-                
-                
-                for index, value in [
-                        ((i-1, j), -1. * self.hx2_inv),
-                        ((i,   j), +2. * self.hx2_inv),
-                        ((i+1, j), -1. * self.hx2_inv),
-                    ]:
-                    
-                    col.index = index
-                    col.field = 1
-                    A.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
                 
         A.assemble()
         
+        print("     Matrix")
         
         
 #    @cython.boundscheck(False)
-    def formRHS(self, Vec B, Vec F, Vec H1):
-        cdef np.uint64_t ix, iy, jx, jy
-        cdef np.uint64_t xs, xe, ys, ye
+    def formRHS(self, Vec B):
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xs, xe, ys, ye
         
-        cdef np.float64_t fsum
+        cdef np.float64_t fsum = self.Fh.sum() * self.hv / self.nx
         
-        self.calculate_moments(F)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
+        self.da1.globalToLocal(self.VFh, self.localVFh)
         
-        self.da1.globalToLocal(F,       self.localF)
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da1.globalToLocal(H1,      self.localH1)
-        self.da1.globalToLocal(self.VF, self.localVF)
-        
-        cdef np.ndarray[np.float64_t, ndim=3] b  = self.da2.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localF) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.da1.getVecArray(self.localH1)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.localVF)[...]
-        
-        
-        fsum = F.sum() * self.hv / self.nx
+        cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
         (xs, xe), (ys, ye) = self.da2.getRanges()
+        
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            # Poisson equation
-            b[iy, :, 1] = self.poisson_const * fsum
-            
-            
-            # Vlasov equation
             for j in np.arange(ys, ye):
                 jx = j-ys
                 jy = j-ys
                 
-                if j == 0 or j == self.nv-1:
-                    # Dirichlet boundary conditions
-                    b[iy, jy, 0] = 0.0
+                if j == self.nv:
+                    # Poisson equation
                     
+                    b[iy, jy] = fsum * self.poisson_const
+            
+                
                 else:
-                    b[iy, jy, 0] = self.time_derivative(fh, ix, jx) \
-                                 - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx)
+                    # Vlasov equation
+                
+                    if j == 0 or j == self.nv-1:
+                        # Dirichlet boundary conditions
+                        b[iy, jy] = 0.0
+                        
+                    else:
+                        b[iy, jy] = self.time_derivative(fh, ix, jx) \
+                                  - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx) #\
+#                                  + 0.5 * self.alpha * self.dvdv(fh,  ix, jx) \
+#                                  + 0.5 * self.alpha * self.coll(vfh, ix, jx)
     
+    
+        print("     RHS")
+        
 
 
     @cython.boundscheck(False)

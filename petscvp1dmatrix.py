@@ -47,12 +47,17 @@ class petscVP1D(petscVP1Dbase):
         self.ksp = PETSc.KSP().create()
         self.ksp.setFromOptions()
         self.ksp.setOperators(self.A)
-        self.ksp.setType('gmres')
-        self.ksp.getPC().setType('none')
-        self.ksp.setInitialGuessNonzero(True)
+#        self.ksp.setType('gmres')
+        self.ksp.setType('preonly')
+#        self.ksp.getPC().setType('none')
+        self.ksp.getPC().setType('lu')
+        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
+#        self.ksp.getPC().setFactorSolverPackage('mumps')
+#        self.ksp.setInitialGuessNonzero(True)
         
         
         # update solution history
+        self.petsc_mat.update_history(self.f, self.h1)
         self.vlasov_mat.update_history(self.f, self.h1)
         
         
@@ -65,10 +70,18 @@ class petscVP1D(petscVP1Dbase):
                 self.time.setValue(0, self.ht*itime)
             
             # build matrix
-            self.petsc_mat.formMat(self.A, self.f, self.h1)
+            self.petsc_mat.formMat(self.A)
             
             # build RHS
-            self.petsc_mat.formRHS(self.b, self.f, self.h1)
+            self.petsc_mat.formRHS(self.b)
+            
+            if itime == 1:
+                mat_viewer = PETSc.Viewer().createDraw(size=(800,800), comm=PETSc.COMM_WORLD)
+                mat_viewer(self.A)
+                
+                print
+                raw_input('Hit any key to continue.')
+                print
             
             # calculate initial guess for distribution function
             self.initial_guess()
@@ -82,6 +95,7 @@ class petscVP1D(petscVP1Dbase):
             self.copy_p_to_h()
             
             # update history
+            self.petsc_mat.update_history(self.f, self.h1)
             self.vlasov_mat.update_history(self.f, self.h1)
             
             # save to hdf5
@@ -92,8 +106,7 @@ class petscVP1D(petscVP1Dbase):
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("      Solver:  %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
-                print("                                   sum(phi) = %24.16E" % (phisum))
+                print("     Solver:                       sum(phi) = %24.16E" % (phisum))
                 print
                 
 #            if self.ksp.getIterationNumber() == self.max_iter:
