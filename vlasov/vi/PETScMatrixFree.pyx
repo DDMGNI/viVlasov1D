@@ -29,32 +29,6 @@ cdef class PETScSolver(object):
     built on top of the SciPy Sparse package.
     '''
     
-    cdef np.uint64_t nx
-    cdef np.uint64_t nv
-    
-    cdef np.float64_t ht
-    cdef np.float64_t hx
-    cdef np.float64_t hv
-    
-    cdef np.float64_t eps
-    cdef np.float64_t poisson_const
-    
-    cdef DA da
-    
-    cdef Vec B
-    cdef Vec X
-    cdef Vec X1
-    cdef Vec X2
-    
-    cdef Vec localB
-    cdef Vec localX
-    cdef Vec localX1
-    cdef Vec localX2
-    
-    cdef np.ndarray h0
-    cdef np.ndarray ty
-    
-    
     def __init__(self, DA da, Vec X, Vec B,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
