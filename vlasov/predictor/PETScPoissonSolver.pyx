@@ -20,25 +20,6 @@ cdef class PETScPoissonSolver(object):
     
     '''
     
-    cdef np.uint64_t  nx
-    cdef np.uint64_t  nv
-    
-    cdef np.float64_t hx
-    cdef np.float64_t hv
-    
-    cdef np.float64_t poisson_const
-    
-    cdef DA da1
-    cdef DA dax
-    
-    cdef Vec B
-    cdef Vec X
-    
-    cdef Vec localB
-    cdef Vec localX
-    cdef Vec localF
-    
-    
     def __init__(self, DA da1, DA dax, 
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
