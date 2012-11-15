@@ -71,25 +71,22 @@ cdef class PETScArakawa(object):
                                 np.ndarray[np.float64_t, ndim=2] h1):
         
         cdef np.uint64_t ix, iy, i, j
-        cdef np.uint64_t xs, xe, ys, ye
+        cdef np.uint64_t xs, xe
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
         
-        for j in np.arange(ys, ye):
-            jx = j-ys
-            jy = j-ys
-            
+        for j in np.arange(0, self.nv):
             for i in np.arange(xs, xe):
                 ix = i-xs+1
                 iy = i-xs
                 
                 if j == 0 or j == self.nv-1:
                     # Dirichlet boundary conditions
-                    y[iy, jy] = 0.0
+                    y[iy, j] = 0.0
                     
                 else:
                     # Vlasov equation
-                    y[iy, jy] = - self.arakawa(x, h0 + h1, ix, jx)
+                    y[iy, j] = - self.arakawa(x, h0 + h1, ix, j)
                     
     

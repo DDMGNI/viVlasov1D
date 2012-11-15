@@ -40,6 +40,7 @@ class petscVP1D(petscVP1Dbase):
                                      self.poisson, self.alpha)
         
         self.A = self.da2.createMat()
+#        self.A.setType('seqaij')
         self.A.setType('mpiaij')
         self.A.setUp()
 
@@ -50,9 +51,10 @@ class petscVP1D(petscVP1Dbase):
 #        self.ksp.setType('gmres')
         self.ksp.setType('preonly')
 #        self.ksp.getPC().setType('none')
+#        self.ksp.getPC().setType('svd')
         self.ksp.getPC().setType('lu')
-        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
-#        self.ksp.getPC().setFactorSolverPackage('mumps')
+#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
+        self.ksp.getPC().setFactorSolverPackage('mumps')
 #        self.ksp.setInitialGuessNonzero(True)
         
         
@@ -76,6 +78,10 @@ class petscVP1D(petscVP1Dbase):
             self.petsc_mat.formRHS(self.b)
             
             if itime == 1:
+#                self.A.view()
+#                
+#                self.b.view()
+                
                 mat_viewer = PETSc.Viewer().createDraw(size=(800,800), comm=PETSc.COMM_WORLD)
                 mat_viewer(self.A)
                 
@@ -84,7 +90,7 @@ class petscVP1D(petscVP1Dbase):
                 print
             
             # calculate initial guess for distribution function
-            self.initial_guess()
+#            self.initial_guess()
             
             # solve
             self.ksp.solve(self.b, self.x)
@@ -106,7 +112,8 @@ class petscVP1D(petscVP1Dbase):
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("     Solver:                       sum(phi) = %24.16E" % (phisum))
+                print("     Solver:   %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
+                print("                                   sum(phi) = %24.16E" % (phisum))
                 print
                 
 #            if self.ksp.getIterationNumber() == self.max_iter:
@@ -114,15 +121,15 @@ class petscVP1D(petscVP1Dbase):
             
         
     
-#    def initial_guess(self):
-#        self.arakawa_rk4.rk4(self.f, self.h1)
-#        self.copy_f_to_x()
-#        
-#        if PETSc.COMM_WORLD.getRank() == 0:
-#            print("     RK4")
-#
-#        # calculate initial guess for potential
-#        self.calculate_potential()
+    def initial_guess(self):
+        self.arakawa_rk4.rk4(self.f, self.h1)
+        self.copy_f_to_x()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("     RK4")
+
+        # calculate initial guess for potential
+        self.calculate_potential()
 #        self.vlasov_mat.update_potential(self.h1)
 
     

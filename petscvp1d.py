@@ -9,6 +9,8 @@ petsc4py.init(sys.argv)
 
 from petsc4py import PETSc
 
+import numpy as np
+
 from core import Config
 from data import maxwellian
 
@@ -65,21 +67,23 @@ class petscVP1Dbase(object):
 #        OptDB.setValue('ksp_monitor', '')
 #        OptDB.setValue('log_info', '')
 #        OptDB.setValue('log_summary', '')
+#        OptDB.setValue('ksp_monitor_singular_value', '')
+#        OptDB.setValue('pc_svd_monitor', '')
         
         
         # create DA for 2d grid (f only)
-        self.da1 = PETSc.DA().create(dim=2, dof=1,
-                                    sizes=[self.nx, self.nv],
-                                    proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
-                                    boundary_type=('periodic', 'none'),
+        self.da1 = PETSc.DA().create(dim=1, dof=self.nv,
+                                    sizes=[self.nx],
+                                    proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                    boundary_type=('periodic'),
                                     stencil_width=1,
                                     stencil_type='box')
         
         # create DA for 2d grid (f and phi)
-        self.da2 = PETSc.DA().create(dim=2, dof=1,
-                                     sizes=[self.nx, self.nv+1],
-                                     proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
-                                     boundary_type=('periodic', 'none'),
+        self.da2 = PETSc.DA().create(dim=1, dof=self.nv+1,
+                                     sizes=[self.nx],
+                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                     boundary_type=('periodic'),
                                      stencil_width=1,
                                      stencil_type='box')
         
@@ -113,10 +117,10 @@ class petscVP1Dbase(object):
         coords_v = self.day.getCoordinates()
         
         # save x coordinate arrays
-        scatter, xVec = PETSc.Scatter.toAll(coords_v)
+        scatter, xVec = PETSc.Scatter.toAll(coords_x)
 
-        scatter.begin(coords_v, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-        scatter.end  (coords_v, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.begin(coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        scatter.end  (coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
                   
         self.xGrid = xVec.getValues(range(0, self.nx)).copy()
         
@@ -213,10 +217,19 @@ class petscVP1Dbase(object):
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print
+            print("nt = %i" % (self.nt))
+            print("nx = %i" % (self.nx))
+            print("nv = %i" % (self.nv))
+            print
             print("ht = %e" % (self.ht))
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
-            print("a  = %e" % (self.alpha))
+            print
+            print("Lx   = %e" % (L))
+            print("vMin = %e" % (vMin))
+            print("vMax = %e" % (vMax))
+            print
+            print("alpha  = %e" % (self.alpha))
             print
             print("CFL = %e" % (self.hx / vMax))
             print
@@ -224,19 +237,17 @@ class petscVP1Dbase(object):
         
         f_arr = self.da1.getVecArray(self.f)
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        coords = self.da1.getCoordinateDA().getVecArray(self.da1.getCoordinates())
+        (xs, xe), = self.da1.getRanges()
         
         if cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
             
             for i in range(xs, xe):
-                for j in range(ys, ye):
+                for j in range(0, self.nv):
                     if j == 0 or j == self.nv-1:
                         f_arr[i,j] = 0.0
                     else:
-                        f_arr[i,j] = init_data.distribution(coords[i,j][0], coords[i,j][1]) 
+                        f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
             
             n0_arr[xs:xe] = 0.
             T0_arr[xs:xe] = 0.
@@ -246,7 +257,7 @@ class petscVP1Dbase(object):
                 init_data = __import__("runs." + cfg['initial_data']['density_python'], globals(), locals(), ['distribution'], 0)
                 
                 for i in range(xs, xe):
-                    n0_arr[i] = init_data.density(coords[i,0][0], L) 
+                    n0_arr[i] = init_data.density(self.xGrid[i], L) 
             
             else:
                 n0_arr[xs:xe] = cfg['initial_data']['density']            
@@ -256,21 +267,27 @@ class petscVP1Dbase(object):
                 init_data = __import__("runs." + cfg['initial_data']['temperature_python'], globals(), locals(), ['distribution'], 0)
                 
                 for i in range(xs, xe):
-                    T0_arr[i] = init_data.temperature(coords[i,0][0]) 
+                    T0_arr[i] = init_data.temperature(self.xGrid[i]) 
             
             else:
                 T0_arr[xs:xe] = cfg['initial_data']['temperature']            
             
             
             for i in range(xs, xe):
-                for j in range(ys, ye):
+                for j in range(0, self.nv):
                     if j == 0 or j == self.nv-1:
                         f_arr[i,j] = 0.0
                     else:
-                        f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], coords[i,j][1])
+                        f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
+        
         
         # normalise f to fit density
-        ### TODO (?) ###
+        nave = self.f.sum() * self.hv / self.nx
+        
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
+                f_arr[i,j] /= nave
+        
         
         self.copy_f_to_x()                    # copy distribution function to solution vector
         self.calculate_density()              # calculate density
@@ -281,8 +298,8 @@ class petscVP1Dbase(object):
         h0_arr = self.da1.getVecArray(self.h0)
         
         for i in range(xs, xe):
-            for j in range(ys, ye):
-                h0_arr[i, j] = 0.5 * coords[i,j][1]**2 # * self.mass
+            for j in range(0, self.nv):
+                h0_arr[i, j] = 0.5 * self.vGrid[j]**2 # * self.mass
         
         
         # create HDF5 output file
@@ -306,6 +323,7 @@ class petscVP1Dbase(object):
         
         self.hdf5_viewer.HDF5SetTimestep(0)
         self.save_hdf5_vectors()        
+        
         
     
     def __del__(self):
@@ -340,17 +358,16 @@ class petscVP1Dbase(object):
         
         
     def calculate_potential(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         self.poisson_mat.formRHS(self.f, self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
-        p_arr  = self.dax.getVecArray(self.p)
-        
         phisum = self.p.sum()
         phiave = phisum / self.nx
 
-        p_arr[xs:xe] -= phiave
+        p_arr = self.dax.getVecArray(self.p)[...]
+        
+        p_arr[:] -= phiave
         
         self.copy_p_to_x()
         self.copy_p_to_h()
@@ -361,7 +378,7 @@ class petscVP1Dbase(object):
     
     
     def calculate_density(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
         # copy solution to f and p vectors
         f_arr  = self.da1.getVecArray(self.f)
@@ -371,49 +388,49 @@ class petscVP1Dbase(object):
     
     
     def copy_x_to_f(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+#        (xs, xe), = self.da1.getRanges()
         
-        x_arr  = self.da2.getVecArray(self.x)
-        f_arr  = self.da1.getVecArray(self.f)
+        x_arr = self.da2.getVecArray(self.x)[...]
+        f_arr = self.da1.getVecArray(self.f)[...]
         
-        f_arr[xs:xe, :] = x_arr[xs:xe, 0:-1] 
+        f_arr[:, :] = x_arr[:, 0:-1] 
         
     
     def copy_f_to_x(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+#        (xs, xe), = self.da1.getRanges()
         
-        x_arr  = self.da2.getVecArray(self.x)
-        f_arr  = self.da1.getVecArray(self.f)
+        x_arr = self.da2.getVecArray(self.x)[...]
+        f_arr = self.da1.getVecArray(self.f)[...]
         
-        x_arr[xs:xe, 0:-1] = f_arr[xs:xe, :] 
+        x_arr[:, 0:-1] = f_arr[:, :] 
     
     
     def copy_x_to_p(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+#        (xs, xe), = self.da1.getRanges()
         
-        x_arr  = self.da2.getVecArray(self.x)
-        p_arr  = self.dax.getVecArray(self.p)
+        x_arr = self.da2.getVecArray(self.x)[...]
+        p_arr = self.dax.getVecArray(self.p)[...]
         
-        p_arr[xs:xe] = x_arr[xs:xe, -1]
+        p_arr[:] = x_arr[:, -1]
         
     
     def copy_p_to_x(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+#        (xs, xe), = self.da1.getRanges()
         
-        p_arr  = self.dax.getVecArray(self.p)
-        x_arr  = self.da2.getVecArray(self.x)
+        p_arr = self.dax.getVecArray(self.p)[...]
+        x_arr = self.da2.getVecArray(self.x)[...]
         
-        x_arr [xs:xe, -1] = p_arr[xs:xe]
+        x_arr[:, -1] = p_arr[:]
         
         
     def copy_p_to_h(self):
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+#        (xs, xe), = self.da1.getRanges()
         
-        p_arr  = self.dax.getVecArray(self.p)
-        h1_arr = self.da1.getVecArray(self.h1)
+        p_arr  = self.dax.getVecArray(self.p )[...]
+        h1_arr = self.da1.getVecArray(self.h1)[...]
     
-        for j in range(ys, ye):
-            h1_arr[xs:xe, j] = p_arr[xs:xe]
+        for j in range(0, self.nv):
+            h1_arr[:, j] = p_arr[:]
         
 
     def save_to_hdf5(self, itime):

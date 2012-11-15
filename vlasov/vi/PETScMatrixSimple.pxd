@@ -58,3 +58,9 @@ cdef class PETScMatrix(object):
 
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
                                             np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j)

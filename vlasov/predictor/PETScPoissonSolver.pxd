@@ -28,10 +28,6 @@ cdef class PETScPoissonSolver(object):
     cdef DA da1
     cdef DA dax
     
-    cdef Vec B
-    cdef Vec X
-    
-    cdef Vec localB
     cdef Vec localX
     cdef Vec localF
     

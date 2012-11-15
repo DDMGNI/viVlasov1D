@@ -31,10 +31,6 @@ cdef class PETScMatrix(object):
         Constructor
         '''
         
-        assert dax.getDim() == 1
-        assert da1.getDim() == 2
-        assert da2.getDim() == 2
-        
         # distributed array
         self.dax = dax
         self.day = day
@@ -98,22 +94,22 @@ cdef class PETScMatrix(object):
     
     @cython.boundscheck(False)
     def calculate_moments(self, Vec F):
-        cdef np.uint64_t xe, xs, ye, ys
+        cdef np.int64_t j, xe, xs
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe),  = self.da1.getRanges()
         
         cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
         cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
         
-        for j in np.arange(0, ye-ys):
+        for j in np.arange(0, self.nv):
             vf[:, j] = gf[:, j] * self.v[j]
         
         
     
 #    @cython.boundscheck(False)
     def formMat(self, Mat A):
-        cdef np.int64_t i, j, ix, jx, tj
-        cdef np.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j, ix
+        cdef np.int64_t xe, xs, xep
         
         
         self.da1.globalToLocal(self.Fh,  self.localFh)
@@ -125,116 +121,232 @@ cdef class PETScMatrix(object):
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
         
+        cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
+        cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
+        cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
+        cdef np.float64_t dvdv_fac = 0.5 * self.alpha * 0.25 / self.hv2
+        cdef np.float64_t coll_fac = 0.5 * self.alpha * 0.25 * 0.5 / self.hv 
+         
         A.zeroEntries()
         
         row = Mat.Stencil()
         col = Mat.Stencil()
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), = self.da2.getRanges()
         
         
-        cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
-        cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
-        cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
-         
+        # Poisson constraint
+        row.index = (self.nx-1,)
+        row.field = self.nv
         
-        for i in np.arange(xs, xe):
+        for j in np.arange(xs, xe):
+            col.index = (j,)
+            col.field = self.nv
+            
+            A.setValueStencil(row, col, 1.)
+        
+        
+        # Poisson constraint
+#        if xe == self.nx:
+#            row.index = (self.nx-1,)
+#            row.field = self.nv
+#            
+#            for j in np.arange(0, self.nx):
+#                col.index = (j,)
+#                col.field = self.nv
+#                
+#                A.setValueStencil(row, col, 1.)
+        
+        
+        if xe == self.nx:
+            xep = self.nx-1
+        else:
+            xep = xe
+        
+        for i in np.arange(xs, xep):
             ix = i-xs+1
-            for j in np.arange(ys, ye):
-                jx = j-ys
+            
+            row.index = (i,)
                 
-                row.index = (i,j)
-                row.field = 0
-                
-#                print(i,j)
-                
-                # Poisson equation
-                if j == self.nv:
+            # Poisson equation
+            row.field = self.nv
+            
+#            if i == 0:
+#                for j in np.arange(0, self.nx):
+#                    col.index = (j,)
+#                    col.field = self.nv
+#                    
+#                    print(i,j)
+#                        
+#                    A.setValueStencil(row, col, 1.)
+#                
+#            else:
+            
+            # density: velocity integral of f
+            for index, value in [
+                    ((i-1,), 1. * poss_fac),
+                    ((i,  ), 2. * poss_fac),
+                    ((i+1,), 1. * poss_fac),
+                ]:
                     
-                    for tj in np.arange(0, self.nv):
-                        
-#                        print(i,j,tj)
-                        
-                        for index, value in [
-                                ((i-1, tj), 1. * poss_fac),
-                                ((i,   tj), 2. * poss_fac),
-                                ((i+1, tj), 1. * poss_fac),
-                            ]:
-                            
-                            col.index = index
-                            col.field = 0
-                            A.setValueStencil(row, col, value)
-                    
-                    
-                    for index, value in [
-                            ((i-1, j), -1. * self.hx2_inv),
-                            ((i,   j), +2. * self.hx2_inv),
-                            ((i+1, j), -1. * self.hx2_inv),
-                        ]:
-                        
-                        col.index = index
-                        col.field = 0
-                        A.setValueStencil(row, col, value)
+                col.index = index
                 
+                for j in np.arange(0, self.nv):
+                    col.field = j
+                    A.setValueStencil(row, col, value)
+            
+            # Laplace operator
+            for index, value in [
+                    ((i-1,), -1. * self.hx2_inv),
+                    ((i,  ), +2. * self.hx2_inv),
+                    ((i+1,), -1. * self.hx2_inv),
+                ]:
                 
-                # Dirichlet boundary conditions of Vlasov equation
-                elif j == 0 or j == self.nv-1:
-#                    A.setValueStencil(row, row, 1.0)
-                    pass
+                col.index = index
+                col.field = self.nv
+                A.setValueStencil(row, col, value)
                     
-                # Vlasov equation
+            
+        for i in np.arange(xs, xe):
+            row.index = (i,)
+                
+            # Vlasov equation
+            for j in np.arange(0, self.nv):
+                row.field = j
+                
+                # Dirichlet boundary conditions
+                if j == 0 or j == self.nv-1:
+                    A.setValueStencil(row, row, 1.0)
+                    
                 else:
-                    pass
-#                    for index, value in [
-#                            ((i-1, j-1), 1. * time_fac - (h0 [ix-1, jx  ] - h0 [ix,   jx-1]) * arak_fac \
-#                                                       - (h1h[ix-1, jx  ] - h1h[ix,   jx-1]) * arak_fac),
-#                            ((i-1, j  ), 2. * time_fac - (h0 [ix,   jx+1] - h0 [ix,   jx-1]) * arak_fac \
-#                                                       - (h0 [ix-1, jx+1] - h0 [ix-1, jx-1]) * arak_fac \
-#                                                       - (h1h[ix,   jx+1] - h1h[ix,   jx-1]) * arak_fac \
-#                                                       - (h1h[ix-1, jx+1] - h1h[ix-1, jx-1]) * arak_fac),
-#                            ((i-1, j+1), 1. * time_fac - (h0 [ix,   jx+1] - h0 [ix-1, jx  ]) * arak_fac \
-#                                                       - (h1h[ix,   jx+1] - h1h[ix-1, jx  ]) * arak_fac),
-#                            ((i,   j-1), 2. * time_fac + (h0 [ix+1, jx  ] - h0 [ix-1, jx  ]) * arak_fac \
-#                                                       + (h0 [ix+1, jx-1] - h0 [ix-1, jx-1]) * arak_fac \
-#                                                       + (h1h[ix+1, jx  ] - h1h[ix-1, jx  ]) * arak_fac \
-#                                                       + (h1h[ix+1, jx-1] - h1h[ix-1, jx-1]) * arak_fac),
-#                            ((i,   j  ), 4. * time_fac),
-#                            ((i,   j+1), 2. * time_fac - (h0 [ix+1, jx  ] - h0 [ix-1, jx  ]) * arak_fac \
-#                                                       - (h0 [ix+1, jx+1] - h0 [ix-1, jx+1]) * arak_fac \
-#                                                       - (h1h[ix+1, jx  ] - h1h[ix-1, jx  ]) * arak_fac \
-#                                                       - (h1h[ix+1, jx+1] - h1h[ix-1, jx+1]) * arak_fac),
-#                            ((i+1, j-1), 1. * time_fac + (h0 [ix+1, jx  ] - h0 [ix,   jx-1]) * arak_fac \
-#                                                       + (h1h[ix+1, jx  ] - h1h[ix,   jx-1]) * arak_fac),
-#                            ((i+1, j  ), 2. * time_fac + (h0 [ix,   jx+1] - h0 [ix,   jx-1]) * arak_fac \
-#                                                       + (h0 [ix+1, jx+1] - h0 [ix+1, jx-1]) * arak_fac \
-#                                                       + (h1h[ix,   jx+1] - h1h[ix,   jx-1]) * arak_fac \
-#                                                       + (h1h[ix+1, jx+1] - h1h[ix+1, jx-1]) * arak_fac),
-#                            ((i+1, j+1), 1. * time_fac + (h0 [ix,   jx+1] - h0 [ix+1, jx  ]) * arak_fac \
-#                                                       + (h1h[ix,   jx+1] - h1h[ix+1, jx  ]) * arak_fac),
+                    
+#                    for index, field, value in [
+#                            ((i-1,), j-1, 1. * time_fac),
+#                            ((i-1,), j  , 2. * time_fac),
+#                            ((i-1,), j+1, 1. * time_fac),
+#                            ((i,  ), j-1, 2. * time_fac),
+#                            ((i,  ), j  , 4. * time_fac),
+#                            ((i,  ), j+1, 2. * time_fac),
+#                            ((i+1,), j-1, 1. * time_fac),
+#                            ((i+1,), j  , 2. * time_fac),
+#                            ((i+1,), j+1, 1. * time_fac),
+#                        ]:
+#                                                
+#                    for index, field, value in [
+#                            ((i-1,), j-1, 1. * time_fac - (h0 [ix-1, j  ] - h0 [ix,   j-1]) * arak_fac),
+#                            ((i-1,), j  , 2. * time_fac - (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+#                                                        - (h0 [ix-1, j+1] - h0 [ix-1, j-1]) * arak_fac),
+#                            ((i-1,), j+1, 1. * time_fac - (h0 [ix,   j+1] - h0 [ix-1, j  ]) * arak_fac),
+#                            ((i,  ), j-1, 2. * time_fac + (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+#                                                        + (h0 [ix+1, j-1] - h0 [ix-1, j-1]) * arak_fac),
+#                            ((i,  ), j  , 4. * time_fac),
+#                            ((i,  ), j+1, 2. * time_fac - (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+#                                                        - (h0 [ix+1, j+1] - h0 [ix-1, j+1]) * arak_fac),
+#                            ((i+1,), j-1, 1. * time_fac + (h0 [ix+1, j  ] - h0 [ix,   j-1]) * arak_fac),
+#                            ((i+1,), j  , 2. * time_fac + (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+#                                                        + (h0 [ix+1, j+1] - h0 [ix+1, j-1]) * arak_fac),
+#                            ((i+1,), j+1, 1. * time_fac + (h0 [ix,   j+1] - h0 [ix+1, j  ]) * arak_fac),
+#                        ]:
+#
+                    for index, field, value in [
+                            ((i-1,), j-1, 1. * time_fac - (h0 [ix-1, j  ] - h0 [ix,   j-1]) * arak_fac \
+                                                        - (h1h[ix-1, j  ] - h1h[ix,   j-1]) * arak_fac),
+                            ((i-1,), j  , 2. * time_fac - (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+                                                        - (h0 [ix-1, j+1] - h0 [ix-1, j-1]) * arak_fac \
+                                                        - (h1h[ix,   j+1] - h1h[ix,   j-1]) * arak_fac \
+                                                        - (h1h[ix-1, j+1] - h1h[ix-1, j-1]) * arak_fac),
+                            ((i-1,), j+1, 1. * time_fac - (h0 [ix,   j+1] - h0 [ix-1, j  ]) * arak_fac \
+                                                        - (h1h[ix,   j+1] - h1h[ix-1, j  ]) * arak_fac),
+                            ((i,  ), j-1, 2. * time_fac + (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+                                                        + (h0 [ix+1, j-1] - h0 [ix-1, j-1]) * arak_fac \
+                                                        + (h1h[ix+1, j  ] - h1h[ix-1, j  ]) * arak_fac \
+                                                        + (h1h[ix+1, j-1] - h1h[ix-1, j-1]) * arak_fac),
+                            ((i,  ), j  , 4. * time_fac),
+                            ((i,  ), j+1, 2. * time_fac - (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+                                                        - (h0 [ix+1, j+1] - h0 [ix-1, j+1]) * arak_fac \
+                                                        - (h1h[ix+1, j  ] - h1h[ix-1, j  ]) * arak_fac \
+                                                        - (h1h[ix+1, j+1] - h1h[ix-1, j+1]) * arak_fac),
+                            ((i+1,), j-1, 1. * time_fac + (h0 [ix+1, j  ] - h0 [ix,   j-1]) * arak_fac \
+                                                        + (h1h[ix+1, j  ] - h1h[ix,   j-1]) * arak_fac),
+                            ((i+1,), j  , 2. * time_fac + (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+                                                        + (h0 [ix+1, j+1] - h0 [ix+1, j-1]) * arak_fac \
+                                                        + (h1h[ix,   j+1] - h1h[ix,   j-1]) * arak_fac \
+                                                        + (h1h[ix+1, j+1] - h1h[ix+1, j-1]) * arak_fac),
+                            ((i+1,), j+1, 1. * time_fac + (h0 [ix,   j+1] - h0 [ix+1, j  ]) * arak_fac \
+                                                        + (h1h[ix,   j+1] - h1h[ix+1, j  ]) * arak_fac),
+                            ((i-1,), self.nv, + (fh[ix-1, j  ] - fh[ix,   j-1]) * arak_fac \
+                                              + (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac \
+                                              + (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac \
+                                              + (fh[ix,   j+1] - fh[ix-1, j  ]) * arak_fac),
+                            ((i,  ), self.nv, - (fh[ix+1, j-1] - fh[ix-1, j-1]) * arak_fac \
+                                              + (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac),
+                            ((i+1,), self.nv, - (fh[ix+1, j  ] - fh[ix,   j-1]) * arak_fac \
+                                              - (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac \
+                                              - (fh[ix+1, j+1] - fh[ix+1, j-1]) * arak_fac \
+                                              - (fh[ix,   j+1] - fh[ix+1, j  ]) * arak_fac),
+                        ]:
+#                        
+#
+#                    for index, field, value in [
+#                            ((i-1,), j-1, 1. * time_fac - (h0 [ix-1, j  ] - h0 [ix,   j-1]) * arak_fac \
+#                                                        - (h1h[ix-1, j  ] - h1h[ix,   j-1]) * arak_fac \
+#                                                        - 1. * dvdv_fac \
+#                                                        + 1. * coll_fac),
+#                            ((i-1,), j  , 2. * time_fac - (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+#                                                        - (h0 [ix-1, j+1] - h0 [ix-1, j-1]) * arak_fac \
+#                                                        - (h1h[ix,   j+1] - h1h[ix,   j-1]) * arak_fac \
+#                                                        - (h1h[ix-1, j+1] - h1h[ix-1, j-1]) * arak_fac \
+#                                                        + 2. * dvdv_fac),
+#                            ((i-1,), j+1, 1. * time_fac - (h0 [ix,   j+1] - h0 [ix-1, j  ]) * arak_fac \
+#                                                        - (h1h[ix,   j+1] - h1h[ix-1, j  ]) * arak_fac \
+#                                                        - 1. * dvdv_fac \
+#                                                        - 1. * coll_fac),
+#                            ((i,  ), j-1, 2. * time_fac + (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+#                                                        + (h0 [ix+1, j-1] - h0 [ix-1, j-1]) * arak_fac \
+#                                                        + (h1h[ix+1, j  ] - h1h[ix-1, j  ]) * arak_fac \
+#                                                        + (h1h[ix+1, j-1] - h1h[ix-1, j-1]) * arak_fac \
+#                                                        - 2. * dvdv_fac \
+#                                                        + 2. * coll_fac),
+#                            ((i,  ), j  , 4. * time_fac \
+#                                                        + 4. * dvdv_fac),
+#                            ((i,  ), j+1, 2. * time_fac - (h0 [ix+1, j  ] - h0 [ix-1, j  ]) * arak_fac \
+#                                                        - (h0 [ix+1, j+1] - h0 [ix-1, j+1]) * arak_fac \
+#                                                        - (h1h[ix+1, j  ] - h1h[ix-1, j  ]) * arak_fac \
+#                                                        - (h1h[ix+1, j+1] - h1h[ix-1, j+1]) * arak_fac \
+#                                                        - 2. * dvdv_fac \
+#                                                        - 2. * coll_fac),
+#                            ((i+1,), j-1, 1. * time_fac + (h0 [ix+1, j  ] - h0 [ix,   j-1]) * arak_fac \
+#                                                        + (h1h[ix+1, j  ] - h1h[ix,   j-1]) * arak_fac \
+#                                                        - 1. * dvdv_fac \
+#                                                        + 1. * coll_fac),
+#                            ((i+1,), j  , 2. * time_fac + (h0 [ix,   j+1] - h0 [ix,   j-1]) * arak_fac \
+#                                                        + (h0 [ix+1, j+1] - h0 [ix+1, j-1]) * arak_fac \
+#                                                        + (h1h[ix,   j+1] - h1h[ix,   j-1]) * arak_fac \
+#                                                        + (h1h[ix+1, j+1] - h1h[ix+1, j-1]) * arak_fac \
+#                                                        + 2. * dvdv_fac),
+#                            ((i+1,), j+1, 1. * time_fac + (h0 [ix,   j+1] - h0 [ix+1, j  ]) * arak_fac \
+#                                                        + (h1h[ix,   j+1] - h1h[ix+1, j  ]) * arak_fac \
+#                                                        - 1. * dvdv_fac \
+#                                                        - 1. * coll_fac),
+#                            ((i-1,), self.nv, + (fh[ix-1, j  ] - fh[ix,   j-1]) * arak_fac \
+#                                              + (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac \
+#                                              + (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac \
+#                                              + (fh[ix,   j+1] - fh[ix-1, j  ]) * arak_fac),
+#                            ((i,  ), self.nv, - (fh[ix+1, j-1] - fh[ix-1, j-1]) * arak_fac \
+#                                              + (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac),
+#                            ((i+1,), self.nv, - (fh[ix+1, j  ] - fh[ix,   j-1]) * arak_fac \
+#                                              - (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac \
+#                                              - (fh[ix+1, j+1] - fh[ix+1, j-1]) * arak_fac \
+#                                              - (fh[ix,   j+1] - fh[ix+1, j  ]) * arak_fac),
 #                        ]:
 #                        
-#                        col.index = index
-#                        col.field = 0
-#                        A.setValueStencil(row, col, value)
-#                        
-#                        
-#                        for index, value in [
-#                                ((i-1, self.nv), + (fh[ix-1, jx  ] - fh[ix,   jx-1]) * arak_fac \
-#                                                 + (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
-#                                                 + (fh[ix-1, jx+1] - fh[ix-1, jx-1]) * arak_fac \
-#                                                 + (fh[ix,   jx+1] - fh[ix-1, jx  ]) * arak_fac),
-#                                ((i,   self.nv), - (fh[ix+1, jx-1] - fh[ix-1, jx-1]) * arak_fac \
-#                                                 + (fh[ix+1, jx+1] - fh[ix-1, jx+1]) * arak_fac),
-#                                ((i+1, self.nv), - (fh[ix+1, jx  ] - fh[ix,   jx-1]) * arak_fac \
-#                                                 - (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac \
-#                                                 - (fh[ix+1, jx+1] - fh[ix+1, jx-1]) * arak_fac \
-#                                                 - (fh[ix,   jx+1] - fh[ix+1, jx  ]) * arak_fac),
-#                            ]:
-#                            
-#                            col.index = index
-#                            col.field = 0
-#                            A.setValueStencil(row, col, value)
                         
+                        
+                        col.index = index
+                        col.field = field
+                        A.setValueStencil(row, col, value)
+
+                    
 #                        
 #                        Time Derivative
 #                        
@@ -253,80 +365,119 @@ cdef class PETScMatrix(object):
 #                        
 #                        Arakawa Stencil
 #                        
-#                        jpp = + x[i+1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
-#                              - x[i-1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
-#                              - x[i,   j+1] * (h[i+1, j  ] - h[i-1, j  ]) \
-#                              + x[i,   j-1] * (h[i+1, j  ] - h[i-1, j  ])
+#                        jpp = + f[i+1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
+#                              - f[i-1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
+#                              - f[i,   j+1] * (h[i+1, j  ] - h[i-1, j  ]) \
+#                              + f[i,   j-1] * (h[i+1, j  ] - h[i-1, j  ])
 #                        
-#                        jpc = + x[i+1, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
-#                              - x[i-1, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
-#                              - x[i,   j+1] * (h[i+1, j+1] - h[i-1, j+1]) \
-#                              + x[i,   j-1] * (h[i+1, j-1] - h[i-1, j-1])
+#                        jpc = + f[i+1, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
+#                              - f[i-1, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
+#                              - f[i,   j+1] * (h[i+1, j+1] - h[i-1, j+1]) \
+#                              + f[i,   j-1] * (h[i+1, j-1] - h[i-1, j-1])
 #                        
-#                        jcp = + x[i+1, j+1] * (h[i,   j+1] - h[i+1, j  ]) \
-#                              - x[i-1, j-1] * (h[i-1, j  ] - h[i,   j-1]) \
-#                              - x[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
-#                              + x[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
+#                        jcp = + f[i+1, j+1] * (h[i,   j+1] - h[i+1, j  ]) \
+#                              - f[i-1, j-1] * (h[i-1, j  ] - h[i,   j-1]) \
+#                              - f[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
+#                              + f[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
 #                        
 #                        result = (jpp + jpc + jcp) / (12. * self.hx * self.hv)
 #                        
-                
+#                        
+#                        res = - p[i+1] * (f[i,   j+1] - f[i,   j-1]) \
+#                              - p[i+1] * (f[i,   j+1] - f[i+1, j  ]) \
+#                              - p[i+1] * (f[i+1, j+1] - f[i+1, j-1]) \
+#                              - p[i+1] * (f[i+1, j  ] - f[i,   j-1])
+#                              + p[i  ] * (f[i+1, j+1] - f[i-1, j+1]) \
+#                              - p[i  ] * (f[i+1, j-1] - f[i-1, j-1])
+#                              + p[i-1] * (f[i,   j+1] - f[i,   j-1])
+#                              + p[i-1] * (f[i,   j+1] - f[i-1, j  ]) \
+#                              + p[i-1] * (f[i-1, j+1] - f[i-1, j-1]) \
+#                              + p[i-1] * (f[i-1, j  ] - f[i,   j-1]) \
+#                        
+#                        result = res / (12. * self.hx * self.hv)
+#                        
+#                        
+#                        dvdv
+#                        
+#                        result = ( \
+#                                     + 1. * x[i-1, j-1] \
+#                                     + 1. * x[i-1, j+1] \
+#                                     - 2. * x[i-1, j  ] \
+#                                     + 1. * x[i+1, j-1] \
+#                                     + 1. * x[i+1, j+1] \
+#                                     - 2. * x[i+1, j  ] \
+#                                     + 2. * x[i,   j-1] \
+#                                     + 2. * x[i,   j+1] \
+#                                     - 4. * x[i,   j  ] \
+#                                 ) * 0.25 * self.hv2_inv
+#                        
+#                        coll
+#                
+#                        result = ( \
+#                                   + 1. * x[i-1, j+1] \
+#                                   - 1. * x[i-1, j-1] \
+#                                   + 2. * x[i,   j+1] \
+#                                   - 2. * x[i,   j-1] \
+#                                   + 1. * x[i+1, j+1] \
+#                                   - 1. * x[i+1, j-1] \
+#                                 ) * 0.25 / (2. * self.hv)
+#                        
                 
                 
         A.assemble()
         
-        print("     Matrix")
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("     Matrix")
         
         
 #    @cython.boundscheck(False)
     def formRHS(self, Vec B):
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xs, xe, ys, ye
+        cdef np.int64_t i, j, ix, jx, xs, xe
         
         cdef np.float64_t fsum = self.Fh.sum() * self.hv / self.nx
         
         self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.VFh, self.localVFh)
         
         cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), = self.da2.getRanges()
         
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            for j in np.arange(ys, ye):
-                jx = j-ys
-                jy = j-ys
-                
-                if j == self.nv:
-                    # Poisson equation
-                    
-                    b[iy, jy] = fsum * self.poisson_const
+            # Poisson equation
+            if i == self.nx-1:
+                b[iy, self.nv] = 0.
+            else:
+                b[iy, self.nv] = fsum * self.poisson_const
             
-                
+            
+            # Vlasov equation
+            for j in np.arange(0, self.nv):
+                if j == 0 or j == self.nv-1:
+                    # Dirichlet boundary conditions
+                    b[iy, j] = 0.0
+                    
                 else:
-                    # Vlasov equation
-                
-                    if j == 0 or j == self.nv-1:
-                        # Dirichlet boundary conditions
-                        b[iy, jy] = 0.0
-                        
-                    else:
-                        b[iy, jy] = self.time_derivative(fh, ix, jx) \
-                                  - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx) #\
-#                                  + 0.5 * self.alpha * self.dvdv(fh,  ix, jx) \
-#                                  + 0.5 * self.alpha * self.coll(vfh, ix, jx)
+                    b[iy, j] = self.time_derivative(fh, ix, j) \
+                             - 0.5 * self.arakawa.arakawa(fh, h0, ix, j) #\
+#                             + 0.5 * self.alpha * self.dvdv(fh,  ix, j) \
+#                             + 0.5 * self.alpha * self.coll(vfh, ix, j)
+#                             - 0.5 * self.arakawa.arakawa(fh, h1h, ix, j) #\
     
     
-        print("     RHS")
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("     RHS")
         
 
 
@@ -354,8 +505,47 @@ cdef class PETScMatrix(object):
         return result
     
     
-#    cdef setValueStencil(self, PetscMat matrix, PetscMatStencil row, PetscMatStencil col, PetscScalar value):
-#        cdef _Mat_Stencil r = row, c = col
-#        cdef PetscInsertMode im = insertmode(None)
-#        matsetvaluestencil(matrix, r, c, value, im, 0)
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( \
+                     + 1. * x[i-1, j-1] \
+                     + 1. * x[i-1, j+1] \
+                     - 2. * x[i-1, j  ] \
+                     + 1. * x[i+1, j-1] \
+                     + 1. * x[i+1, j+1] \
+                     - 2. * x[i+1, j  ] \
+                     + 2. * x[i,   j-1] \
+                     + 2. * x[i,   j+1] \
+                     - 4. * x[i,   j  ] \
+                 ) * 0.25 * self.hv2_inv
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( \
+                   + 1. * ( x[i-1, j+1] - x[i-1, j-1] ) \
+                   + 2. * ( x[i,   j+1] - x[i,   j-1] ) \
+                   + 1. * ( x[i+1, j+1] - x[i+1, j-1] ) \
+                 ) * 0.25 / (2. * self.hv)
+        
+        return result
+    
     

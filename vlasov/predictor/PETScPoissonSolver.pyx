@@ -28,9 +28,6 @@ cdef class PETScPoissonSolver(object):
         Constructor
         '''
         
-        assert da1.getDim() == 2
-        assert dax.getDim() == 1
-        
         # disstributed array
         self.da1 = da1
         self.dax = dax
@@ -46,7 +43,6 @@ cdef class PETScPoissonSolver(object):
         self.poisson_const = poisson_const
         
         # create local vectors
-        self.localB = dax.createLocalVec()
         self.localX = dax.createLocalVec()
         self.localF = da1.createLocalVec()
         
@@ -72,10 +68,6 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-#            if i == 0:
-#                y[iy] = phisum
-#            else:            
-#                y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) / self.hx**2
             y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1])
         
     
@@ -99,11 +91,6 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-#            if i == 0:
-#                # impose constraint
-#                b[iy] = 0.
-#            
-#            else:
             integral = ( \
                          + 1. * f[ix-1, :].sum() \
                          + 2. * f[ix,   :].sum() \

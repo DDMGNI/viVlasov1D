@@ -29,8 +29,6 @@ cdef class PETScVlasovSolver(object):
         Constructor
         '''
         
-        assert da1.getDim() == 2
-        
         # distributed array
         self.da1 = da1
         
@@ -93,25 +91,25 @@ cdef class PETScVlasovSolver(object):
     
     @cython.boundscheck(False)
     def calculate_moments(self, Vec F):
-        cdef np.uint64_t xe, xs, ye, ys
+        cdef np.int64_t j, xe, xs
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
         cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
         cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
         
-        for j in np.arange(0, ye-ys):
+        for j in np.arange(0, self.nv):
             vf[:, j] = gf[:, j] * self.v[j]
         
         
     
     @cython.boundscheck(False)
     def mult(self, Mat mat, Vec F, Vec Y):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t ix, iy, jx, jy
-        cdef np.uint64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, jx
+        cdef np.int64_t xe, xs
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
         self.da1.globalToLocal(F,        self.localF)
         self.da1.globalToLocal(self.Fh,  self.localFh)
@@ -122,47 +120,48 @@ cdef class PETScVlasovSolver(object):
         self.da1.globalToLocal(self.H1h, self.localH1h)
         
         cdef np.ndarray[np.float64_t, ndim=2] y   = self.da1.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF)  [...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF  )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf  = self.da1.getVecArray(self.localVF)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] vf  = self.da1.getVecArray(self.localVF )[...]
         
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            for j in np.arange(ys, ye):
-                jx = j-ys
-                jy = j-ys
+            for j in np.arange(0, self.nv):
             
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
-                    y[iy, jy] = f[ix, jx]
+                    y[iy, j] = f[ix, j]
                     
                 else:
-                    y[iy, jy] = self.time_derivative(f, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(f,  h0 + h1h, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(fh, h0 + h1,  ix, jx) \
-                              - 0.5 * self.alpha * self.dvdv(f,  ix, jx) \
-                              - 0.5 * self.alpha * self.coll(vf, ix, jx)
+                    y[iy, j] = self.time_derivative(f, ix, j) \
+                             + 0.5 * self.arakawa.arakawa(f,  h0,  ix, j) \
+                             + 0.5 * self.arakawa.arakawa(f,  h1h, ix, j) \
+                             + 0.5 * self.arakawa.arakawa(fh, h1,  ix, j) \
+                             - 0.5 * self.alpha * self.dvdv(f,  ix, j) \
+                             - 0.5 * self.alpha * self.coll(vf, ix, j)
                     
         
     
     @cython.boundscheck(False)
     def formRHS(self, Vec B):
-        cdef np.uint64_t ix, iy, jx, jy
-        cdef np.uint64_t xs, xe, ys, ye
+        cdef np.int64_t i, j, ix, jx
+        cdef np.int64_t xs, xe
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
+        self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.VFh, self.localVFh)
         
         cdef np.ndarray[np.float64_t, ndim=2] b   = self.da1.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
@@ -170,18 +169,17 @@ cdef class PETScVlasovSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-            for j in np.arange(ys, ye):
-                jx = j-ys
-                jy = j-ys
+            for j in np.arange(0, self.nv):
                 
                 if j == 0 or j == self.nv-1:
                     # Dirichlet boundary conditions
-                    b[iy, jy] = 0.0
+                    b[iy, j] = 0.0
                     
                 else:
-                    b[iy, jy] = self.time_derivative(fh, ix, jx) \
-                              + 0.5 * self.alpha * self.dvdv(fh, ix, jx) \
-                              + 0.5 * self.alpha * self.coll(vfh, ix, jx)
+                    b[iy, j] = self.time_derivative(fh, ix, j) \
+                             - 0.5 * self.arakawa.arakawa(fh, h0,  ix, j) \
+                             + 0.5 * self.alpha * self.dvdv(fh,  ix, j) \
+                             + 0.5 * self.alpha * self.coll(vfh, ix, j)
     
 
 
