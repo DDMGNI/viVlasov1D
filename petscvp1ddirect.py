@@ -106,6 +106,8 @@ class petscVP1D(petscVP1Dbase):
         
         phisum = self.p.sum()
         
+        self.remove_average_from_potential()
+        
         self.copy_p_to_x()
         self.copy_p_to_h()
         
@@ -154,6 +156,10 @@ class petscVP1D(petscVP1Dbase):
             # update data vectors
             self.copy_x_to_f()
             self.copy_x_to_p()
+            
+            self.remove_average_from_potential()
+        
+            self.copy_p_to_x()
             self.copy_p_to_h()
             
             

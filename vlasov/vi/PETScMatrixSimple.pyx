@@ -142,29 +142,36 @@ cdef class PETScMatrix(object):
             row.field = self.nv
             
             
-            # density: velocity integral of f
-            for index, value in [
-                    ((i-1,), 1. * poss_fac),
-                    ((i,  ), 2. * poss_fac),
-                    ((i+1,), 1. * poss_fac),
-                ]:
-                    
-                col.index = index
-                
-                for j in np.arange(0, self.nv):
-                    col.field = j
-                    A.setValueStencil(row, col, value)
-            
-            # Laplace operator
-            for index, value in [
-                    ((i-1,), self.eps - 1. * self.hx2_inv),
-                    ((i,  ), self.eps + 2. * self.hx2_inv),
-                    ((i+1,), self.eps - 1. * self.hx2_inv),
-                ]:
-                
-                col.index = index
+            if i == 0:
+                col.index = (i,)
                 col.field = self.nv
+                value     = 1.
                 A.setValueStencil(row, col, value)
+                
+            else:
+                # density: velocity integral of f
+                for index, value in [
+                        ((i-1,), 1. * poss_fac),
+                        ((i,  ), 2. * poss_fac),
+                        ((i+1,), 1. * poss_fac),
+                    ]:
+                        
+                    col.index = index
+                    
+                    for j in np.arange(0, self.nv):
+                        col.field = j
+                        A.setValueStencil(row, col, value)
+                
+                # Laplace operator
+                for index, value in [
+                        ((i-1,), self.eps - 1. * self.hx2_inv),
+                        ((i,  ), self.eps + 2. * self.hx2_inv),
+                        ((i+1,), self.eps - 1. * self.hx2_inv),
+                    ]:
+                    
+                    col.index = index
+                    col.field = self.nv
+                    A.setValueStencil(row, col, value)
                     
             
         for i in np.arange(xs, xe):
@@ -427,7 +434,11 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            b[iy, self.nv] = fsum * self.poisson_const
+            if i == 0:
+                b[iy, self.nv] = 0.
+                
+            else:
+                b[iy, self.nv] = fsum * self.poisson_const
             
             
             # Vlasov equation

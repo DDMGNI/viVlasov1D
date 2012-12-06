@@ -72,15 +72,22 @@ cdef class PETScPoissonMatrix(object):
             row.index = (i,)
             row.field = 0
             
-            for index, value in [
-                    ((i-1,), self.eps - 1. * self.hx2_inv),
-                    ((i,  ), self.eps + 2. * self.hx2_inv),
-                    ((i+1,), self.eps - 1. * self.hx2_inv),
-                ]:
-                
-                col.index = index
+            if i == 0:
+                col.index = (i,)
                 col.field = 0
+                value     = 1.
                 A.setValueStencil(row, col, value)
+                
+            else:
+                for index, value in [
+                        ((i-1,), self.eps - 1. * self.hx2_inv),
+                        ((i,  ), self.eps + 2. * self.hx2_inv),
+                        ((i+1,), self.eps - 1. * self.hx2_inv),
+                    ]:
+                    
+                    col.index = index
+                    col.field = 0
+                    A.setValueStencil(row, col, value)
             
         
         A.assemble()
@@ -105,11 +112,15 @@ cdef class PETScPoissonMatrix(object):
             ix = i-xs+1
             iy = i-xs
             
-            integral = ( \
-                         + 1. * f[ix-1, :].sum() \
-                         + 2. * f[ix,   :].sum() \
-                         + 1. * f[ix+1, :].sum() \
-                       ) * 0.25 * self.hv
-            
-            b[iy] = - (integral - fsum) * self.poisson_const
+            if i == 0:
+                b[iy] = 0.
+                
+            else:
+                integral = ( \
+                             + 1. * f[ix-1, :].sum() \
+                             + 2. * f[ix,   :].sum() \
+                             + 1. * f[ix+1, :].sum() \
+                           ) * 0.25 * self.hv
+                
+                b[iy] = - (integral - fsum) * self.poisson_const
         
