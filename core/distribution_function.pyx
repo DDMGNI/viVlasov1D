@@ -72,9 +72,9 @@ class DistributionFunction(object):
             
             self.set_hdf5_file(hdf5_in)
             
-            self.f0   = hdf5_in['f'][0,:,:].T
-            self.fMin = hdf5_in['f'][:,:,:].T.min()
-            self.fMax = hdf5_in['f'][:,:,:].T.max()
+            self.f0   = hdf5_in['f'][0,:,:]
+            self.fMin = hdf5_in['f'][:,:,:].min()
+            self.fMax = hdf5_in['f'][:,:,:].max()
             
             self.update_integrals(self.f0)
             self.read_from_hdf5(0)
@@ -95,13 +95,13 @@ class DistributionFunction(object):
 #                nt = len(hdf5_in['grid']['t'][:]) - 1
                 nt = len(hdf5_in['t'][:]) - 1
                 
-                self.f[:,:]  = hdf5_in['f'][nt,:,:].T
+                self.f[:,:]  = hdf5_in['f'][nt,:,:]
                 
                 for ih in range(0, self.nhist):
-                    self.history[:,:,ih] = hdf5_in['f'][nt-ih,:,:].T
+                    self.history[:,:,ih] = hdf5_in['f'][nt-ih,:,:]
                 
-                f0 = hdf5_in['f'][0,:,:].T
-                n0 = hdf5_in['n'][0,:].T
+                f0 = hdf5_in['f'][0,:,:]
+                n0 = hdf5_in['n'][0,:]
                 
                 self.f0[:,:] = f0
                 
@@ -392,7 +392,7 @@ class DistributionFunction(object):
         
     
     def read_from_hdf5(self, iTime):
-        self.f = self.hdf5_f[iTime,:,:].T
+        self.f = self.hdf5_f[iTime,:,:]
         
         self.update_integrals()
         

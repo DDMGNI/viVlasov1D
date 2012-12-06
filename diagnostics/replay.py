@@ -4,7 +4,7 @@ Created on Apr 06, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-import StringIO
+#import StringIO
 import argparse
 import numpy as np
 import h5py
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     pyvp = replay(args.hdf5_file, args.np, args.ns)
     
     print
-    raw_input('Hit any key to start replay.')
+    input('Hit any key to start replay.')
     print
     
     if args.o != None:

@@ -31,6 +31,7 @@ cdef class PETScMatrix(object):
     
     cdef np.float64_t poisson_const
     cdef np.float64_t alpha
+    cdef np.float64_t eps
     
     cdef DA dax
     cdef DA day

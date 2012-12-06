@@ -1,7 +1,7 @@
 '''
-Created on May 24, 2012
+Created on Apr 10, 2012
 
-@author: Michael Kraus (michael.kraus@ipp.mpg.de)
+@author: mkraus
 '''
 
 cimport cython
@@ -9,28 +9,30 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from petsc4py import  PETSc
-from petsc4py cimport PETSc
+from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+
+from vlasov.predictor.PETScArakawa import PETScArakawa
 
 
-cdef class PETScPoissonSolver(object):
+cdef class PETScPoissonMatrix(object):
+    '''
+    The ScipySparse class implements a couple of solvers for the Vlasov-Poisson system
+    built on top of the SciPy Sparse package.
     '''
     
-    '''
-    
-    def __init__(self, DA da1, DA dax, 
+    def __init__(self, DA da1, DA dax,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const):
+                 np.float64_t poisson_const, np.float64_t eps=0.):
         '''
         Constructor
         '''
         
-        # disstributed array
-        self.da1 = da1
+        # distributed array
         self.dax = dax
+        self.da1 = da1
         
         # grid
         self.nx = nx
@@ -39,41 +41,51 @@ cdef class PETScPoissonSolver(object):
         self.hx = hx
         self.hv = hv
         
+        self.hx2     = hx**2
+        self.hx2_inv = 1. / self.hx2 
+        
         # poisson constant
         self.poisson_const = poisson_const
-        self.eps = 1.E-3
+        self.eps = eps
         
         # create local vectors
         self.localX = dax.createLocalVec()
         self.localF = da1.createLocalVec()
+
         
-    
-    def mult(self, Mat mat, Vec X, Vec Y):
-        self.matrix_mult(X, Y)
-    
     
     @cython.boundscheck(False)
-    def matrix_mult(self, Vec X, Vec Y):
-        cdef np.int64_t i, ix, iy
+    def formMat(self, Mat A):
+        cdef np.int64_t i, j
         cdef np.int64_t xe, xs
         
-        cdef np.float64_t phisum
+        A.zeroEntries()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
         
         (xs, xe), = self.dax.getRanges()
         
-        self.dax.globalToLocal(X, self.localX)
         
-        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getVecArray(self.localX)[...]
-        
-        
+        # Laplace operator
         for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
+            row.index = (i,)
+            row.field = 0
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1])
+            for index, value in [
+                    ((i-1,), self.eps - 1. * self.hx2_inv),
+                    ((i,  ), self.eps + 2. * self.hx2_inv),
+                    ((i+1,), self.eps - 1. * self.hx2_inv),
+                ]:
+                
+                col.index = index
+                col.field = 0
+                A.setValueStencil(row, col, value)
+            
         
-    
+        A.assemble()
+        
+        
     @cython.boundscheck(False)
     def formRHS(self, Vec F, Vec B):
         cdef np.int64_t i, ix, iy
@@ -99,5 +111,5 @@ cdef class PETScPoissonSolver(object):
                          + 1. * f[ix+1, :].sum() \
                        ) * 0.25 * self.hv
             
-            b[iy] = - (integral - fsum) * self.poisson_const * self.hx**2
+            b[iy] = - (integral - fsum) * self.poisson_const
         

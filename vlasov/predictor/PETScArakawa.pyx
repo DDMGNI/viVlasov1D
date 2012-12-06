@@ -64,7 +64,7 @@ cdef class PETScArakawa(object):
         return result
     
     
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     cdef arakawa_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                 np.ndarray[np.float64_t, ndim=2] y,
                                 np.ndarray[np.float64_t, ndim=2] h0,

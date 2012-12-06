@@ -209,7 +209,7 @@ class PlotSpecies(object):
         
 #        self.update_boundaries()
 
-        for ckey, cont in self.conts.iteritems():
+        for ckey, cont in self.conts.items():
             for coll in cont.collections:
                 self.axes[ckey].collections.remove(coll)
         

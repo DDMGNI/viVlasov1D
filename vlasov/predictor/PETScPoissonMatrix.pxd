@@ -1,35 +1,36 @@
 '''
-Created on May 24, 2012
+Created on Jul 10, 2012
 
-@author: Michael Kraus (michael.kraus@ipp.mpg.de)
+@author: mkraus
 '''
 
 cimport cython
 
-import  numpy as np
 cimport numpy as np
-
-from petsc4py import  PETSc
-from petsc4py cimport PETSc
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
+from vlasov.predictor.PETScArakawa cimport PETScArakawa
 
-cdef class PETScPoissonSolver(object):
+
+cdef class PETScPoissonMatrix(object):
 
     cdef np.uint64_t  nx
     cdef np.uint64_t  nv
     
+    cdef np.float64_t ht
     cdef np.float64_t hx
     cdef np.float64_t hv
+    
+    cdef np.float64_t hx2
+    cdef np.float64_t hx2_inv
     
     cdef np.float64_t poisson_const
     cdef np.float64_t eps
     
-    cdef DA da1
     cdef DA dax
+    cdef DA da1
     
     cdef Vec localX
     cdef Vec localF
-    
     

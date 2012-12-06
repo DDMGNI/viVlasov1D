@@ -11,7 +11,7 @@ from petsc4py import PETSc
 
 import numpy as np
 
-from core import Config
+from core.config import Config
 from data import maxwellian
 
 from vlasov.predictor.PETScArakawaRK4     import PETScArakawaRK4
@@ -60,6 +60,8 @@ class petscVP1Dbase(object):
         
         # set some PETSc options
         OptDB = PETSc.Options()
+        
+#        OptDB.setValue('ksp_constant_null_space', '')
         
         OptDB.setValue('ksp_rtol', cfg['solver']['petsc_residual'])
         OptDB.setValue('ksp_max_it', cfg['solver']['petsc_max_iter'])
@@ -199,6 +201,9 @@ class petscVP1Dbase(object):
         self.poisson_ksp.getPC().setType('none')
 #        self.poisson_ksp.setInitialGuessNonzero(True)
         
+        self.poisson_nsp = PETSc.NullSpace().create(constant=True)
+        self.poisson_ksp.setNullSpace(self.poisson_nsp)        
+        
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.h0, self.nx, self.nv, self.ht, self.hx, self.hv)
@@ -231,7 +236,7 @@ class petscVP1Dbase(object):
             print
             print("alpha  = %e" % (self.alpha))
             print
-            print("CFL = %e" % (self.hx / vMax))
+            print("CFL    = %e" % (self.hx / vMax))
             print
         
         
@@ -291,7 +296,7 @@ class petscVP1Dbase(object):
         
         self.copy_f_to_x()                    # copy distribution function to solution vector
         self.calculate_density()              # calculate density
-        self.calculate_potential()            # calculate initial potential
+#        self.calculate_potential()            # calculate initial potential
         
         
         # initialise kinetic hamiltonian
@@ -321,8 +326,8 @@ class petscVP1Dbase(object):
         self.hdf5_viewer(n0)
         self.hdf5_viewer(T0)
         
-        self.hdf5_viewer.HDF5SetTimestep(0)
-        self.save_hdf5_vectors()        
+#        self.hdf5_viewer.HDF5SetTimestep(0)
+#        self.save_hdf5_vectors()        
         
         
     
@@ -363,11 +368,7 @@ class petscVP1Dbase(object):
         self.poisson_ksp.solve(self.pb, self.p)
         
         phisum = self.p.sum()
-        phiave = phisum / self.nx
-
-        p_arr = self.dax.getVecArray(self.p)[...]
-        
-        p_arr[:] -= phiave
+#        self.remove_average_from_potential()
         
         self.copy_p_to_x()
         self.copy_p_to_h()
@@ -375,6 +376,15 @@ class petscVP1Dbase(object):
         if PETSc.COMM_WORLD.getRank() == 0:
             print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
             print("                                   sum(phi) = %24.16E" % (phisum))
+    
+    
+    def remove_average_from_potential(self):
+        phisum = self.p.sum()
+        phiave = phisum / self.nx
+
+        p_arr = self.dax.getVecArray(self.p)[...]
+        
+        p_arr[:] -= phiave
     
     
     def calculate_density(self):
@@ -393,7 +403,7 @@ class petscVP1Dbase(object):
         x_arr = self.da2.getVecArray(self.x)[...]
         f_arr = self.da1.getVecArray(self.f)[...]
         
-        f_arr[:, :] = x_arr[:, 0:-1] 
+        f_arr[:, :] = x_arr[:, 0:self.nv] 
         
     
     def copy_f_to_x(self):
@@ -402,7 +412,7 @@ class petscVP1Dbase(object):
         x_arr = self.da2.getVecArray(self.x)[...]
         f_arr = self.da1.getVecArray(self.f)[...]
         
-        x_arr[:, 0:-1] = f_arr[:, :] 
+        x_arr[:, 0:self.nv] = f_arr[:, :] 
     
     
     def copy_x_to_p(self):
@@ -411,7 +421,7 @@ class petscVP1Dbase(object):
         x_arr = self.da2.getVecArray(self.x)[...]
         p_arr = self.dax.getVecArray(self.p)[...]
         
-        p_arr[:] = x_arr[:, -1]
+        p_arr[:] = x_arr[:, self.nv]
         
     
     def copy_p_to_x(self):
@@ -420,7 +430,7 @@ class petscVP1Dbase(object):
         p_arr = self.dax.getVecArray(self.p)[...]
         x_arr = self.da2.getVecArray(self.x)[...]
         
-        x_arr[:, -1] = p_arr[:]
+        x_arr[:, self.nv] = p_arr[:]
         
         
     def copy_p_to_h(self):

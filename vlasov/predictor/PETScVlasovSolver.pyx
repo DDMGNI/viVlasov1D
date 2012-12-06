@@ -86,6 +86,7 @@ cdef class PETScVlasovSolver(object):
         F.copy(self.Fh)
         H1.copy(self.H1h)
         
+        self.calculate_moments(F)
         self.VF.copy(self.VFh)
         
     
@@ -103,8 +104,12 @@ cdef class PETScVlasovSolver(object):
         
         
     
+    def mult(self, Mat mat, Vec X, Vec Y):
+        self.matrix_mult(X, Y)
+    
+    
     @cython.boundscheck(False)
-    def mult(self, Mat mat, Vec F, Vec Y):
+    def matrix_mult(self, Vec F, Vec Y):
         cdef np.int64_t i, j
         cdef np.int64_t ix, jx
         cdef np.int64_t xe, xs

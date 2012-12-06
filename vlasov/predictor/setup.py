@@ -58,6 +58,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScPoissonMatrix",
+                  sources=["PETScPoissonMatrix.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScPoissonSolver",
                   sources=["PETScPoissonSolver.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

@@ -6,7 +6,7 @@ Created on Mar 23, 2012
 
 from numpy import exp, pi, zeros
 
-from boltzmann import boltzmannian
+from .boltzmann import boltzmannian
 
 
 def maxwellian_grid(grid, temperature, vOffset=0.0):

@@ -29,10 +29,6 @@ cdef class PETScSolver(object):
         Constructor
         '''
         
-        assert dax.getDim() == 1
-        assert da1.getDim() == 2
-        assert da2.getDim() == 2
-        
         # distributed array
         self.dax = dax
         self.day = day
@@ -94,15 +90,11 @@ cdef class PETScSolver(object):
         self.VF.copy(self.VFh)
         
     
-    def mult(self, Mat mat, Vec X, Vec Y):
-        self.matrix_mult(X, Y)
-    
-    
     @cython.boundscheck(False)
     def calculate_moments(self, Vec F):
-        cdef np.uint64_t xe, xs, ye, ys
+        cdef np.uint64_t j, xe, xs
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xs, xe), = self.da1.getRanges()
         
         cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
         cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
@@ -112,15 +104,17 @@ cdef class PETScSolver(object):
         
         
     
+    def mult(self, Mat mat, Vec X, Vec Y):
+        self.matrix_mult(X, Y)
+    
+    
     @cython.boundscheck(False)
     def matrix_mult(self, Vec X, Vec Y):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t ix, iy, jx, jy
-        cdef np.uint64_t xe, xs, ye, ys
+        cdef np.int64_t i, j, ix, jx, xe, xs
         
-        cdef np.float64_t laplace, integral, fsum, phisum
+        cdef np.float64_t laplace, integral#, fsum,
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), = self.da2.getRanges()
         
         cdef np.ndarray[np.float64_t, ndim=2] y  = self.da2.getVecArray(Y)[...]
         cdef np.ndarray[np.float64_t, ndim=2] x  = self.da2.getVecArray(X)[...]
@@ -142,7 +136,7 @@ cdef class PETScSolver(object):
             h1[:, j] = x[:, -1]
         
         # calculate average density
-        fsum = self.F.sum() * self.hv / self.nx
+#        fsum = self.F.sum() * self.hv / self.nx
         
         # calculate moments for collision operator
         self.calculate_moments(self.F)
@@ -169,10 +163,7 @@ cdef class PETScSolver(object):
             ix = i-xs+1
             iy = i-xs
             
-            for j in np.arange(ys, ye):
-                jx = j-ys
-                jy = j-ys
-                
+            for j in np.arange(0, self.nv):
                 
                 if j == self.nv:
                     # Poisson equation
@@ -185,7 +176,8 @@ cdef class PETScSolver(object):
                                  + 1. * f[ix+1, :].sum() \
                                ) * 0.25 * self.hv
                     
-                    y[iy, jy] = - laplace + self.poisson_const * (integral-fsum) * self.hx2
+#                    y[iy, j] = - laplace + self.poisson_const * (integral-fsum) * self.hx2
+                    y[iy, j] = - laplace + self.poisson_const * integral * self.hx2
                 
                 
                 else:
@@ -193,22 +185,23 @@ cdef class PETScSolver(object):
                     
                     if j == 0 or j == self.nv-1:
                         # Dirichlet Boundary Conditions
-                        y[iy, jy] = f[ix, jx]
+                        y[iy, j] = f[ix, j]
                         
                     else:
-                        y[iy, jy] = self.time_derivative(f, ix, jx) \
-                                  + 0.5 * self.arakawa.arakawa(f,  h0,  ix, jx) \
-                                  + 0.5 * self.arakawa.arakawa(f,  h1h, ix, jx) \
-                                  + 0.5 * self.arakawa.arakawa(fh, h1,  ix, jx) \
-                                  - 0.5 * self.alpha * self.dvdv(f,  ix, jx) \
-                                  - 0.5 * self.alpha * self.coll(vf, ix, jx)
+                        y[iy, j] = self.time_derivative(f, ix, j) \
+                                 + 0.5 * self.arakawa.arakawa(f,  h0,  ix, j) \
+                                 + 0.5 * self.arakawa.arakawa(f,  h1h, ix, j) \
+                                 + 0.5 * self.arakawa.arakawa(fh, h1,  ix, j) \
+                                 - 0.5 * self.alpha * self.dvdv(f,  ix, j) \
+                                 - 0.5 * self.alpha * self.coll(vf, ix, j)
                     
         
     
     @cython.boundscheck(False)
     def formRHS(self, Vec B):
-        cdef np.uint64_t ix, iy, jx, jy
-        cdef np.uint64_t xs, xe, ys, ye
+        cdef np.int64_t i, j, ix, jx, xs, xe
+        
+        cdef np.float64_t fsum = self.Fh.sum() * self.hv / self.nx
         
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.Fh,  self.localFh)
@@ -220,21 +213,20 @@ cdef class PETScSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
-        (xs, xe), (ys, ye) = self.da2.getRanges()
+        (xs, xe), = self.da2.getRanges()
         
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            for j in np.arange(ys, ye):
-                jx = j-ys
-                jy = j-ys
+            for j in np.arange(0, self.nv):
                 
                 if j == self.nv:
                     # Poisson equation
                     
-                    b[iy, jy] = 0.
+#                    b[iy, j] = 0.
+                    b[iy, j] = fsum * self.poisson_const
             
                 
                 else:
@@ -242,13 +234,13 @@ cdef class PETScSolver(object):
                 
                     if j == 0 or j == self.nv-1:
                         # Dirichlet boundary conditions
-                        b[iy, jy] = 0.0
+                        b[iy, j] = 0.0
                         
                     else:
-                        b[iy, jy] = self.time_derivative(fh, ix, jx) \
-                                  - 0.5 * self.arakawa.arakawa(fh, h0, ix, jx) \
-                                  + 0.5 * self.alpha * self.dvdv(fh,  ix, jx) \
-                                  + 0.5 * self.alpha * self.coll(vfh, ix, jx)
+                        b[iy, j] = self.time_derivative(fh, ix, j) \
+                                 - 0.5 * self.arakawa.arakawa(fh, h0, ix, j) \
+                                 + 0.5 * self.alpha * self.dvdv(fh,  ix, j) \
+                                 + 0.5 * self.alpha * self.coll(vfh, ix, j)
     
 
 

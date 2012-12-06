@@ -267,10 +267,10 @@ class Hamiltonian(object):
         
     
     def read_from_hdf5(self, iTime):
-        self.h0[:,:] = self.hdf5_h0[iTime,:,:].T
-        self.h1[:,:] = self.hdf5_h1[iTime,:,:].T
+        self.h0[:,:] = self.hdf5_h0[iTime,:,:]
+        self.h1[:,:] = self.hdf5_h1[iTime,:,:]
         self.h [:,:] = self.h0 + self.h1
-        self.f  = self.hdf5_f[iTime,:,:].T
+        self.f  = self.hdf5_f[iTime,:,:]
         
         self.calculate_total_energy()
         self.calculate_total_momentum()
