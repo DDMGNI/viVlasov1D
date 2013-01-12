@@ -172,6 +172,26 @@ class PlotSpecies(object):
         
         self.update()
         
+        
+        
+    def save_plots(self):
+        filename = str('F_%06d' % self.iTime) + '.png'
+        extent = self.axes["f"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.figure.savefig(filename, dpi=70, bbox_inches=extent)
+
+        filename = str('N_%06d' % self.iTime) + '.png'
+        extent = self.axes["N"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.figure.savefig(filename, dpi=70, bbox_inches=extent)
+
+        filename = str('L2_%06d' % self.iTime) + '.png'
+        extent = self.axes["L"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.figure.savefig(filename, dpi=70, bbox_inches=extent)
+
+        filename = str('E_%06d' % self.iTime) + '.png'
+        extent = self.axes["E"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.figure.savefig(filename, dpi=70, bbox_inches=extent)
+
+
     
     def update_boundaries(self):
         self.fmin = +1e40
@@ -287,28 +307,17 @@ class PlotSpecies(object):
 #        print("  Epot = %24.16E" % (self.hamiltonian.Epot))
 #        print("  Etot = %24.16E" % (self.hamiltonian.E))
         
-#        E0 = self.hamiltonian.E0
-#        E  = self.hamiltonian.E
+        E0 = self.hamiltonian.E0
+        E  = self.hamiltonian.E
         
+#        E0 = self.hamiltonian.Ekin0 - self.potential.poisson_const * self.potential.E0
+#        E  = self.hamiltonian.Ekin  - self.potential.poisson_const * self.potential.E
         
-        ### FIX ###
-#        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + np.sign(self.potential.poisson.const) * self.potential.E0
-#        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + np.sign(self.potential.poisson.const) * self.potential.E
-        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 - self.potential.E0
-        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  - self.potential.E
-
-#        E0 = self.hamiltonian.Ekin0 - np.sign(self.potential.poisson.const) * self.potential.E0
-#        E  = self.hamiltonian.Ekin  - np.sign(self.potential.poisson.const) * self.potential.E
+#        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + self.potential.E0
+#        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + self.potential.E
         
-#        E0_f = self.hamiltonian.E0
-#        E_f  = self.hamiltonian.E
-#        
-#        E0_p = self.hamiltonian.Ekin0 + self.potential.E0
-#        E_p  = self.hamiltonian.Ekin  + self.potential.E
-        
-        E_error   = E  /E0   - 1.
-#        E_f_error = E_f/E0_f - 1.
-#        E_p_error = E_p/E0_p - 1.
+#        E_error   = E / E0 - 1.
+        E_error   = (E - E0) / E0
         
 #        if E0 != 0.0:
 #            E_error = (E-E0)/E0
@@ -318,11 +327,12 @@ class PlotSpecies(object):
         self.ekin   [self.iTime] = self.hamiltonian.Ekin
         self.epot   [self.iTime] = self.hamiltonian.Epot * 0.5
 #        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
-#        self.epot   [self.iTime] = - self.potential.E
+#        self.epot   [self.iTime] = self.potential.E
         self.energy [self.iTime] = E_error
 #        self.energy_f[self.iTime] = E_f_error
 #        self.energy_p[self.iTime] = E_p_error
         self.partnum  [self.iTime] = self.distribution.N_error
+#        self.partnum  [self.iTime] = self.distribution.L1_error
         self.enstrophy[self.iTime] = self.distribution.L2_error
         self.entropy  [self.iTime] = self.distribution.S_error
         

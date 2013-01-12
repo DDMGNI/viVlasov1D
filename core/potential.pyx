@@ -38,7 +38,7 @@ class Potential(object):
         self.E_error = 0.0
         
         self.poisson = Poisson(grid, poisson_const)
-            
+        self.poisson_const = poisson_const
         
         if hdf5_in != None and replay:
             self.phi = None

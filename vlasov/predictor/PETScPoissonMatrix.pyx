@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+from petsc4py.PETSc cimport DA, Mat, Vec  # , PetscMat, PetscScalar
 
 from vlasov.predictor.PETScArakawa import PETScArakawa
 
@@ -41,12 +41,13 @@ cdef class PETScPoissonMatrix(object):
         self.hx = hx
         self.hv = hv
         
-        self.hx2     = hx**2
+        self.hx2 = hx ** 2
         self.hx2_inv = 1. / self.hx2 
         
         # poisson constant
         self.poisson_const = poisson_const
-        self.eps = eps
+#        self.eps = eps
+        self.eps = 0.
         
         # create local vectors
         self.localX = dax.createLocalVec()
@@ -71,22 +72,23 @@ cdef class PETScPoissonMatrix(object):
         for i in np.arange(xs, xe):
             row.index = (i,)
             row.field = 0
+            col.field = 0
             
             if i == 0:
-                col.index = (i,)
-                col.field = 0
-                value     = 1.
-                A.setValueStencil(row, col, value)
+                A.setValueStencil(row, row, 1.)
                 
+#                for j in np.arange(0, self.nx):
+#                    col.index = (j,)
+#                    A.setValueStencil(row, col, 1.)
+            
             else:
                 for index, value in [
-                        ((i-1,), self.eps - 1. * self.hx2_inv),
-                        ((i,  ), self.eps + 2. * self.hx2_inv),
-                        ((i+1,), self.eps - 1. * self.hx2_inv),
+                        ((i - 1,), -1. * self.hx2_inv),
+                        ((i,), +2. * self.hx2_inv),
+                        ((i + 1,), -1. * self.hx2_inv),
                     ]:
                     
                     col.index = index
-                    col.field = 0
                     A.setValueStencil(row, col, value)
             
         
@@ -102,25 +104,25 @@ cdef class PETScPoissonMatrix(object):
         
         self.da1.globalToLocal(F, self.localF)
         
-        cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getVecArray(self.localF)[...]
+        cdef np.ndarray[np.float64_t, ndim = 1] b = self.dax.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim = 2] f = self.da1.getVecArray(self.localF)[...]
         
         
         (xs, xe), = self.dax.getRanges()
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
+            ix = i - xs + 1
+            iy = i - xs
             
             if i == 0:
                 b[iy] = 0.
                 
             else:
-                integral = ( \
-                             + 1. * f[ix-1, :].sum() \
-                             + 2. * f[ix,   :].sum() \
-                             + 1. * f[ix+1, :].sum() \
+                integral = (\
+                             + 1. * f[ix - 1, :].sum() \
+                             + 2. * f[ix, :].sum() \
+                             + 1. * f[ix + 1, :].sum() \
                            ) * 0.25 * self.hv
                 
-                b[iy] = - (integral - fsum) * self.poisson_const
+                b[iy] = -(integral - fsum) * self.poisson_const
         

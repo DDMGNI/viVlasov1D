@@ -15,7 +15,7 @@ import time
 
 from vlasov.predictor.PETScPoissonMatrix  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixSimple          import PETScMatrix
+from vlasov.vi.PETScSimpleMatrix          import PETScMatrix
 
 from petscvp1d import petscVP1Dbase
 
@@ -58,8 +58,8 @@ class petscVP1D(petscVP1Dbase):
         self.ksp.setOperators(self.A)
         self.ksp.setType('preonly')
         self.ksp.getPC().setType('lu')
-#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
-        self.ksp.getPC().setFactorSolverPackage('mumps')
+        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
+#        self.ksp.getPC().setFactorSolverPackage('mumps')
         
         
         
@@ -76,8 +76,11 @@ class petscVP1D(petscVP1Dbase):
         self.poisson_ksp.setOperators(self.poisson_A)
         self.poisson_ksp.setType('preonly')
         self.poisson_ksp.getPC().setType('lu')
-#        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
-        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
+#        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+        
+        self.poisson_nsp = PETSc.NullSpace().create(constant=True)
+        self.poisson_ksp.setNullSpace(self.poisson_nsp)        
         
         
 #        # vectors for residual calculation

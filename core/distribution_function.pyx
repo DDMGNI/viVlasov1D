@@ -7,7 +7,7 @@ Created on Mar 20, 2012
 import  numpy as np
 cimport numpy as np
 
-from libc.math cimport log, pow
+from libc.math cimport abs, log, pow
 
 from data import boltzmannian_grid, maxwellian_grid
 
@@ -45,6 +45,10 @@ class DistributionFunction(object):
         self.N  = 0.0           # current total particle number (L1 norm)
         self.N0 = 0.0           # initial total particle number
         self.N_error = 0.0      # error in total particle number (N-N0)/N0
+        
+        self.L1   = 0.0         # current L1 norm
+        self.L1_0 = 0.0         # initial L1 norm
+        self.L1_error = 0.0     # error in L1 norm
         
         self.L2   = 0.0         # current L2 norm
         self.L2_0 = 0.0         # initial L2 norm
@@ -237,10 +241,19 @@ class DistributionFunction(object):
     
     def calculate_density(self, f0=None):
         if f0 == None:
-            self.density[:] = self.f.sum(axis=1) * self.grid.hv
+            f = self.f
         else:
-            self.density[:] = f0.sum(axis=1) * self.grid.hv
+            f = f0
         
+#        self.density[:] = f.sum(axis=1) * self.grid.hv
+        
+        for i in range(0, self.grid.nx):
+            im = (i - 1 + self.grid.nx) % self.grid.nx
+            ip = (i + 1) % self.grid.nx
+            
+            self.density[i] = 0.25 * ( f[im].sum() + 2. * f[i].sum() + f[ip].sum() ) * self.grid.hv
+        
+            
     
     def calculate_total_particle_number(self, f0=None):
         cdef np.uint64_t nx = self.grid.nx
@@ -285,10 +298,12 @@ class DistributionFunction(object):
         cdef np.uint64_t nv = self.grid.nv
         
         cdef np.uint64_t ix, ixp, iv
+        cdef np.float64_t L1
         cdef np.float64_t L2
         
         cdef np.ndarray[np.float64_t, ndim=2] f = self.f
         
+        L1 = 0.0
         L2 = 0.0
         
         if f0 == None:
@@ -296,8 +311,10 @@ class DistributionFunction(object):
                 ixp = (ix+1) % nx
                 
                 for iv in np.arange(0, nv-1):
+                    L1 += abs(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
                     L2 += pow(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1], 2)
             
+            self.L1 = 0.25 * (self.grid.hx * self.grid.hv) * L1
             self.L2 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
             
             self.Lmin = f.min() * self.grid.hx * self.grid.hv
@@ -308,8 +325,10 @@ class DistributionFunction(object):
                 ixp = (ix+1) % nx
                 
                 for iv in range(0, self.grid.nv-1):
-                    L2 += (f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1])**2
+                    L1 += abs(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1])
+                    L2 += pow(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1], 2)
             
+            self.L1_0 = 0.25 * (self.grid.hx * self.grid.hv) * L1
             self.L2_0 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
             
             self.Lmin_0 = f0.min() * self.grid.hx * self.grid.hv
@@ -317,6 +336,11 @@ class DistributionFunction(object):
         
     
     def calculate_norm_error(self):
+        if self.L1_0 != 0.0:
+            self.L1_error = (self.L1 - self.L1_0) / self.L1_0
+        else:
+            self.L1_error = 0.0
+        
         if self.L2_0 != 0.0:
             self.L2_error = (self.L2 - self.L2_0) / self.L2_0
         else:

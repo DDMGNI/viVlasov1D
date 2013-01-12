@@ -180,8 +180,10 @@ class Hamiltonian(object):
         cdef np.uint64_t ix, ixp, iv
         cdef np.float64_t Ekin, Epot
         
+        h1_ave = self.h1.mean()
+        
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.h0
-        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1
+        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - h1_ave
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         cdef np.ndarray[np.float64_t, ndim=1] v  = self.grid.vGrid
         
@@ -212,9 +214,18 @@ class Hamiltonian(object):
                             + h1[ix,  iv+1]
                             )
         
-        
         self.Ekin = 0.5 * Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
         self.Epot =       Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
+        
+        
+#        if self.f != None:
+#            for ix in np.arange(0, nx):
+#                for iv in np.arange(0, nv-1):
+#                    Ekin += f[ix, iv] * v[iv] * v[iv]
+#                    Epot += f[ix, iv] * h1[ix, iv]
+#        
+#        self.Ekin = 0.5 * Ekin * self.grid.hx * self.grid.hv
+#        self.Epot =       Epot * self.grid.hx * self.grid.hv
         
         self.E = self.Ekin + 0.5 * self.Epot
         

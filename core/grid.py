@@ -38,7 +38,7 @@ class Grid(object):
             if ntMax > 0 and len(self.tGrid) > ntMax+1:
                  self.tGrid = self.tGrid[:ntMax+1]
             
-            self.ht = self.tGrid[2] - self.tGrid[1]
+            self.ht = self.tGrid[1] - self.tGrid[0]
             self.nt = len(self.tGrid)-1
             
             self.L = (self.xGrid[-1] - self.xGrid[0]) + (self.xGrid[1] - self.xGrid[0])

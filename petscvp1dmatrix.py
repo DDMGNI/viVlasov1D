@@ -109,9 +109,9 @@ class petscVP1D(petscVP1Dbase):
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("     Solver:   %5i iterations,   residual = %24.16E " % (self.ksp.getIterationNumber(), self.ksp.getResidualNorm()) )
                 print("                                   sum(phi) = %24.16E" % (phisum))
-                print("                               res(solver)  = %24.16E" % (res_solver))
-                print("                               res(vlasov)  = %24.16E" % (res_vlasov))
-                print("                               res(poisson) = %24.16E" % (res_poisson))
+#                print("                               res(solver)  = %24.16E" % (res_solver))
+#                print("                               res(vlasov)  = %24.16E" % (res_vlasov))
+#                print("                               res(poisson) = %24.16E" % (res_poisson))
                 print
                 
 #            if self.ksp.getIterationNumber() == self.max_iter:

@@ -51,6 +51,8 @@ class replay(object):
         self.plot = plot.PlotSpecies(self.grid, self.distribution, self.hamiltonian, self.potential,
                                      self.grid.nt, iStart, nPlot)
         
+        self.plot.save_plots()
+        
     
     def __del__(self):
         if self.hdf5 != None:
@@ -140,7 +142,7 @@ if __name__ == '__main__':
     pyvp = replay(args.hdf5_file, args.np, args.ns)
     
     print
-    input('Hit any key to start replay.')
+    raw_input('Hit any key to start replay.')
     print
     
     if args.o != None:
