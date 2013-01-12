@@ -28,6 +28,9 @@ cdef class PETScJacobian(object):
     cdef np.float64_t hv2_inv
     
     cdef np.float64_t poisson_const
+    cdef np.float64_t alpha
+    
+    cdef np.ndarray v
     
     cdef DA dax
     cdef DA da1

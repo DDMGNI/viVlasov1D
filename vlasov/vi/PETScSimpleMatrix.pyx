@@ -26,9 +26,7 @@ cdef class PETScMatrix(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, 
-                 np.float64_t eps=0.,
-                 np.float64_t alpha=0.):
+                 np.float64_t poisson_const, np.float64_t alpha=0.):
         '''
         Constructor
         '''
@@ -58,7 +56,6 @@ cdef class PETScMatrix(object):
         
         # poisson constant
         self.poisson_const = poisson_const
-        self.eps = eps
         
         # collision parameter
         self.alpha = alpha
@@ -69,8 +66,6 @@ cdef class PETScMatrix(object):
         self.H1h = self.da1.createGlobalVec()
         self.F   = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
-        self.VF  = self.da1.createGlobalVec()
-        self.VFh = self.da1.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -78,36 +73,20 @@ cdef class PETScMatrix(object):
         self.localH1h = da1.createLocalVec()
         self.localF   = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
-        self.localVF  = da1.createLocalVec()
-        self.localVFh = da1.createLocalVec()
 
         # kinetic Hamiltonian
         H0.copy(self.H0)
         
         # create Arakawa solver object
-        self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
+        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
         
     
     def update_history(self, Vec F, Vec H1):
         F.copy(self.Fh)
         H1.copy(self.H1h)
         
-        self.calculate_moments(F)
-        self.VF.copy(self.VFh)
-        
     
     @cython.boundscheck(False)
-    def calculate_moments(self, Vec F):
-
-        cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
-        
-        for j in np.arange(0, self.nv):
-            vf[:, j] = gf[:, j] * self.v[j]
-        
-        
-    
-#    @cython.boundscheck(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs
@@ -126,10 +105,10 @@ cdef class PETScMatrix(object):
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
         cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
         cdef np.float64_t dvdv_fac = 0.5 * self.alpha * 0.25 * self.hv2_inv
-#        cdef np.float64_t f_fac    = 1.0 * self.alpha / 16.
-#        cdef np.float64_t coll_fac = 1.0 * self.alpha * 0.25 * 0.25 / self.hv
         cdef np.float64_t f_fac    = 0.5 * self.alpha / 16.
         cdef np.float64_t coll_fac = 0.5 * self.alpha * 0.25 * 0.25 / self.hv
+#        cdef np.float64_t f_fac    = 1.0 * self.alpha / 16.
+#        cdef np.float64_t coll_fac = 1.0 * self.alpha * 0.25 * 0.25 / self.hv
 #        cdef np.float64_t dvdv_fac = 1.0 * self.alpha * 0.25 * self.hv2_inv
         
         A.zeroEntries()
@@ -366,7 +345,7 @@ cdef class PETScMatrix(object):
                                                  + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac),
                             ((i+1,), self.nv,    + 2. * (fh[ix,   j-1] - fh[ix,   j+1]) * arak_fac \
                                                  + 1. * (fh[ix+1, j-1] - fh[ix+1, j+1]) * arak_fac),
-                        ]:                        
+                        ]:
                         
                         col.index = index
                         col.field = field
@@ -493,7 +472,7 @@ cdef class PETScMatrix(object):
             print("     Matrix")
         
         
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     def formRHS(self, Vec B):
         cdef np.int64_t i, j, ix, iy, xs, xe
         

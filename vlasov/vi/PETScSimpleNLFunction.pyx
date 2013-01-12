@@ -26,9 +26,10 @@ cdef class PETScFunction(object):
     
     
     def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+                 np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const):
+                 np.float64_t poisson_const, np.float64_t alpha=0.):
         '''
         Constructor
         '''
@@ -49,8 +50,17 @@ cdef class PETScFunction(object):
         self.hx2     = hx**2
         self.hx2_inv = 1. / self.hx2
         
+        self.hv2     = hv**2
+        self.hv2_inv = 1. / self.hv2
+        
         # poisson constant
         self.poisson_const = poisson_const
+        
+        # collision constant
+        self.alpha = alpha
+        
+        # velocity grid
+        self.v = v.copy()
         
         # create work and history vectors
         self.H0 = self.da1.createGlobalVec()
@@ -144,7 +154,6 @@ cdef class PETScFunction(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (f + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (h + hh)
-#        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h
         cdef np.ndarray[np.float64_t, ndim=1] p_ave = 0.5 * (p + ph)
         
         
@@ -188,7 +197,9 @@ cdef class PETScFunction(object):
                 else:
                     y[iy, j] = self.time_derivative(f,  ix, j) \
                              - self.time_derivative(fh, ix, j) \
-                             + self.arakawa.arakawa(f_ave, h_ave, ix, j)
+                             + self.arakawa.arakawa(f_ave, h_ave, ix, j) \
+                             - self.alpha * self.dvdv(f_ave, ix, j) \
+                             - self.alpha * self.coll(f_ave, ix, j)
                     
                     
     
@@ -228,3 +239,63 @@ cdef class PETScFunction(object):
                  ) / (16. * self.ht)
         
         return result
+
+
+    @cython.boundscheck(False)
+    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( \
+                     + 1. * x[i-1, j-1] \
+                     - 2. * x[i-1, j  ] \
+                     + 1. * x[i-1, j+1] \
+                     + 2. * x[i,   j-1] \
+                     - 4. * x[i,   j  ] \
+                     + 2. * x[i,   j+1] \
+                     + 1. * x[i+1, j-1] \
+                     - 2. * x[i+1, j  ] \
+                     + 1. * x[i+1, j+1] \
+                 ) * 0.25 * self.hv2_inv
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( \
+                   + 1. * x[i-1, j-1] \
+                   + 2. * x[i-1, j  ] \
+                   + 1. * x[i-1, j+1] \
+                   + 2. * x[i,   j-1] \
+                   + 4. * x[i,   j  ] \
+                   + 2. * x[i,   j+1] \
+                   + 1. * x[i+1, j-1] \
+                   + 2. * x[i+1, j  ] \
+                   + 1. * x[i+1, j+1] \
+                 ) / 16. \
+               + ( \
+                   + 1. * ( x[i-1, j  ] - x[i-1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
+                   + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
+                   + 2. * ( x[i,   j  ] - x[i,   j-1] ) * (self.v[j-1] + self.v[j  ]) \
+                   + 2. * ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1]) \
+                   + 1. * ( x[i+1, j  ] - x[i+1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
+                   + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
+                 ) * 0.25 * 0.25 / self.hv
+                 
+        
+        return result
+    
+    

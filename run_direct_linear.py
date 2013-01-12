@@ -29,10 +29,6 @@ class petscVP1D(petscVP1Dbase):
         Constructor
         '''
         
-        self.eps = 0.0
-#        self.eps = 1.0E-3
-        
-        
         # initialise parent object
         petscVP1Dbase.__init__(self, cfgfile)
         

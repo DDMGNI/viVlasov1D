@@ -31,7 +31,6 @@ cdef class PETScMatrix(object):
     
     cdef np.float64_t poisson_const
     cdef np.float64_t alpha
-    cdef np.float64_t eps
     
     cdef DA dax
     cdef DA day
@@ -43,16 +42,12 @@ cdef class PETScMatrix(object):
     cdef Vec H1h
     cdef Vec F
     cdef Vec Fh
-    cdef Vec VF
-    cdef Vec VFh
     
     cdef Vec localH0
     cdef Vec localH1
     cdef Vec localH1h
     cdef Vec localF
     cdef Vec localFh
-    cdef Vec localVF
-    cdef Vec localVFh
     
     cdef PETScArakawa arakawa
 

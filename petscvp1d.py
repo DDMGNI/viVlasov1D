@@ -55,7 +55,8 @@ class petscVP1Dbase(object):
             self.time.setValue(0, 0.0)
         
         self.poisson = cfg['solver']['poisson_const']     # Poisson constant
-        self.alpha   = self.hv * cfg['solver']['alpha']   # collision constant
+        self.alpha   = cfg['solver']['alpha']             # collision constant
+#        self.alpha   = self.hv * cfg['solver']['alpha']   # collision constant
         
         
         # set some PETSc options

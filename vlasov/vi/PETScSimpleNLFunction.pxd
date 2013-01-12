@@ -25,18 +25,21 @@ cdef class PETScFunction(object):
     cdef np.float64_t hx2
     cdef np.float64_t hx2_inv
     
+    cdef np.float64_t hv2
+    cdef np.float64_t hv2_inv
+    
     cdef np.float64_t poisson_const
+    cdef np.float64_t alpha
+    
+    cdef np.ndarray v
     
     cdef DA dax
     cdef DA da1
     cdef DA da2
     
     cdef Vec H0
-#    cdef Vec F
     cdef Vec Fh
-#    cdef Vec H
     cdef Vec Hh
-#    cdef Vec P
     cdef Vec Ph
     
     cdef Vec localH0
@@ -52,3 +55,10 @@ cdef class PETScFunction(object):
 
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
                                             np.uint64_t i, np.uint64_t j)
+
+    
+    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+                                 np.uint64_t i, np.uint64_t j)

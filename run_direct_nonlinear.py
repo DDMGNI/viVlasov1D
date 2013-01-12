@@ -62,13 +62,15 @@ class petscVP1D(petscVP1Dbase):
         self.F  = self.da2.createGlobalVec()
         
         # create Jacobian and Function objects
-        self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax, self.h0, 
+        self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
+                                            self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson)
+                                            self.poisson, self.alpha)
         
-        self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, self.h0, 
+        self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, 
+                                            self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson)
+                                            self.poisson, self.alpha)
         
         
         # initialise Jacobian
