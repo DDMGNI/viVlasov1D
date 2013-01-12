@@ -13,8 +13,8 @@ import os
 import numpy as np
 import h5py
 
-import core
-#import plot
+from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
+from vlasov.plot import PlotMovie
 
 
 class movie(object):
@@ -48,11 +48,11 @@ class movie(object):
 #        cfg     = core.Config(cfg_io)
 #        cfg_io.close()
         
-        self.grid         = core.Grid                (hdf5_in=self.hdf5, replay=True)
-        self.potential    = core.Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
-                                                      poisson_const=-1.)
-        self.hamiltonian  = core.Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
-        self.distribution = core.DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
+        self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
+        self.potential    = Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
+                                                 poisson_const=-1.)
+        self.hamiltonian  = Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
+        self.distribution = DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
         
 #        for ifile in range(1, len(self.hdf5_files)):
 #            self.grid.append_time(self.hdf5_files[ifile]['t'][1:,0,0])

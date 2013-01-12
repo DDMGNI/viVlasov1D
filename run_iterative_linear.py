@@ -12,9 +12,7 @@ from petsc4py import PETSc
 import argparse
 import time
 
-
-#from vlasov.vi.PETScMatrixFree                import PETScSolver
-from vlasov.vi.PETScMatrixFreeSimple          import PETScSolver
+from vlasov.vi.PETScMatrixFreeSimple import PETScSolver
 
 from petscvp1d import petscVP1Dbase
 

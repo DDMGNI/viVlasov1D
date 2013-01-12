@@ -4,19 +4,18 @@ Created on Nov 09, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-import sys, petsc4py
+import os, sys, petsc4py
 petsc4py.init(sys.argv)
 
 from petsc4py import PETSc
 
-import numpy as np
 
-from core.config import Config
-from data import maxwellian
+from vlasov.core.config  import Config
+from vlasov.data.maxwell import maxwellian 
 
-from vlasov.predictor.PETScArakawaRK4     import PETScArakawaRK4
-from vlasov.predictor.PETScPoissonSolver  import PETScPoissonSolver
-from vlasov.predictor.PETScVlasovSolver   import PETScVlasovSolver
+from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
+from vlasov.predictor.PETScPoissonSolver import PETScPoissonSolver
+from vlasov.predictor.PETScVlasovSolver  import PETScVlasovSolver
 
 
 class petscVP1Dbase(object):
@@ -29,6 +28,7 @@ class petscVP1Dbase(object):
         '''
         Constructor
         '''
+
         
         # load run config file
         cfg = Config(cfgfile)

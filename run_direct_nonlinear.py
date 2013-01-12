@@ -14,11 +14,9 @@ import time
 
 import numpy as np
 
-
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
-
-from vlasov.vi.PETScSimpleNLFunction import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobian import PETScJacobian
+from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
 
 from petscvp1d import petscVP1Dbase
 

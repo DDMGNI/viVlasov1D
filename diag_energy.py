@@ -8,8 +8,8 @@ Created on Apr 06, 2012
 import argparse
 import h5py
 
-import core
-import plot
+from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
+from vlasov.plot import PlotEnergy
 
 
 class replay(object):
@@ -34,17 +34,17 @@ class replay(object):
 #        cfg    = core.Config(cfg_io)
 #        cfg_io.close()
         
-        self.grid         = core.Grid                (hdf5_in=self.hdf5, replay=True)
-        self.potential    = core.Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
-                                                      poisson_const=-1.)
-        self.hamiltonian  = core.Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
-        self.distribution = core.DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
+        self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
+        self.potential    = Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
+                                                 poisson_const=-1.)
+        self.hamiltonian  = Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
+        self.distribution = DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
         
         self.potential.read_from_hdf5(0)
         self.distribution.read_from_hdf5(0)
         self.hamiltonian.read_from_hdf5(0)
         
-        self.plot = plot.PlotEnergy(self.grid, self.distribution, self.hamiltonian, self.potential, nPlot)
+        self.plot = PlotEnergy(self.grid, self.distribution, self.hamiltonian, self.potential, nPlot)
         
     
     def __del__(self):

@@ -9,7 +9,7 @@ cimport numpy as np
 
 from libc.math cimport pow
 
-from poisson import Poisson
+#from poisson import Poisson
 
 
 class Potential(object):
@@ -37,7 +37,7 @@ class Potential(object):
         self.E  = 0.0
         self.E_error = 0.0
         
-        self.poisson = Poisson(grid, poisson_const)
+#        self.poisson = Poisson(grid, poisson_const)
         self.poisson_const = poisson_const
         
         if hdf5_in != None and replay:

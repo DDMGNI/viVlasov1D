@@ -6,13 +6,17 @@ Created on Apr 06, 2012
 
 #import StringIO
 import argparse
+import os, sys
 import numpy as np
 import h5py
 
 import matplotlib.animation as animation
 
-import core
-import plot
+sys.path.append(os.getcwd())
+
+
+from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
+from vlasov.plot import PlotSpecies
 
 
 class replay(object):
@@ -38,18 +42,18 @@ class replay(object):
 #        cfg    = core.Config(cfg_io)
 #        cfg_io.close()
         
-        self.grid         = core.Grid                (hdf5_in=self.hdf5, replay=True)
-        self.potential    = core.Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
-                                                      poisson_const=-1.)
-        self.hamiltonian  = core.Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
-        self.distribution = core.DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
+        self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
+        self.potential    = Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
+                                                 poisson_const=-1.)
+        self.hamiltonian  = Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
+        self.distribution = DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
         
         self.potential.read_from_hdf5(iStart)
         self.distribution.read_from_hdf5(iStart)
         self.hamiltonian.read_from_hdf5(iStart)
         
-        self.plot = plot.PlotSpecies(self.grid, self.distribution, self.hamiltonian, self.potential,
-                                     self.grid.nt, iStart, nPlot)
+        self.plot = PlotSpecies(self.grid, self.distribution, self.hamiltonian, self.potential,
+                                self.grid.nt, iStart, nPlot)
         
         self.plot.save_plots()
         
@@ -142,7 +146,7 @@ if __name__ == '__main__':
     pyvp = replay(args.hdf5_file, args.np, args.ns)
     
     print
-    raw_input('Hit any key to start replay.')
+    input('Hit any key to start replay.')
     print
     
     if args.o != None:

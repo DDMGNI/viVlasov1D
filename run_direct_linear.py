@@ -12,9 +12,7 @@ from petsc4py import PETSc
 import argparse
 import time
 
-
 from vlasov.predictor.PETScPoissonMatrix  import PETScPoissonMatrix
-
 from vlasov.vi.PETScSimpleMatrix          import PETScMatrix
 
 from petscvp1d import petscVP1Dbase

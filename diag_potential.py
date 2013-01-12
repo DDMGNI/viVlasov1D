@@ -11,7 +11,7 @@ import h5py
 
 import matplotlib.pyplot as plt
 
-import core
+import vlasov.core
 
 
 class potential(object):

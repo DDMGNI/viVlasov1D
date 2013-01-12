@@ -7,8 +7,8 @@ Created on Mar 20, 2012
 from configobj import ConfigObj
 from validate  import Validator
 
-import numpy as np
-import os
+#import numpy as np
+#import os
 import os.path
 
 
