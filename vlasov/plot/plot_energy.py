@@ -228,7 +228,7 @@ class PlotEnergy(object):
         plt.draw()
         
         
-        plt.show(block=final)
+#        plt.show(block=final)
         
     
     def add_timepoint(self):
