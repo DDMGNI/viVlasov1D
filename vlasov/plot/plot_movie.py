@@ -6,11 +6,9 @@ Created on Mar 21, 2012
 
 import numpy as np
 
-import scipy.ndimage as ndimage
-
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter, ScalarFormatter
+from matplotlib.ticker import ScalarFormatter, MaxNLocator
 
 
 class PlotMovie(object):
@@ -24,6 +22,12 @@ class PlotMovie(object):
         '''
         
         self.prefix = '_pyVlasov1D_'
+        
+        self.grid         = grid
+        self.distribution = distribution
+        self.hamiltonian  = hamiltonian
+        self.potential    = potential
+        
         
         if ntMax == 0:
             ntMax = self.grid.nt
@@ -44,11 +48,6 @@ class PlotMovie(object):
         self.cFac  = cFac
         self.write = write
         
-        self.grid         = grid
-        self.distribution = distribution
-        self.hamiltonian  = hamiltonian
-        self.potential    = potential
-        
         self.partnum   = np.zeros_like(grid.tGrid)
         self.enstrophy = np.zeros_like(grid.tGrid)
         self.entropy   = np.zeros_like(grid.tGrid)
@@ -56,8 +55,6 @@ class PlotMovie(object):
         self.momentum  = np.zeros_like(grid.tGrid)
         
         self.x       = np.zeros(grid.nx+1)
-        self.n       = np.zeros(grid.nx+1)
-        self.phi     = np.zeros(grid.nx+1)
         self.f       = np.zeros((grid.nx+1, grid.nv))
         
         self.x[0:-1] = self.grid.xGrid
@@ -68,7 +65,7 @@ class PlotMovie(object):
         
         # set up plot margins
         plt.subplots_adjust(hspace=0.3, wspace=0.2)
-        plt.subplots_adjust(left=0.04, right=0.96, top=0.94, bottom=0.05)
+        plt.subplots_adjust(left=0.04, right=0.96, top=0.93, bottom=0.05)
         
         # set up plot title
         self.title = self.figure.text(0.5, 0.97, 't = 0.0' % (grid.tGrid[self.iTime]), horizontalalignment='center') 
@@ -92,9 +89,8 @@ class PlotMovie(object):
         
         
         # create subplots
-        gs = gridspec.GridSpec(3, 3,
-                       width_ratios=[5,5,4],
-                       height_ratios=[2.4,1,1]
+        gs = gridspec.GridSpec(3, 2,
+                       height_ratios=[4,1,1]
                        )
         
         self.axes["f"] = plt.subplot(gs[0,0:2])
@@ -103,8 +99,6 @@ class PlotMovie(object):
         self.axes["L"] = plt.subplot(gs[1,1])
 #        self.axes["P"] = plt.subplot(gs[2,1])
         self.axes["S"] = plt.subplot(gs[2,1])
-        self.axes["n"] = plt.subplot(gs[0,2])
-        self.axes["p"] = plt.subplot(gs[1:3,2])
         
 #        self.axes["f"] = plt.subplot2grid((4,4), (0, 0), colspan=2, rowspan=2)
 #        self.axes["N"] = plt.subplot2grid((4,4), (2, 0), colspan=2)
@@ -117,21 +111,6 @@ class PlotMovie(object):
         self.axes ["f"].set_title('$f (x,v)$')
 #        self.cbars["f"] = plt.colorbar(self.conts["f1"], orientation='horizontal')
         
-        # density profile
-        self.lines["n"], = self.axes["n"].plot(self.x, self.n)
-#        self.axes ["n"].axis([self.grid.xMin, self.grid.xMax, self.density_min, self.density_max])
-        self.axes ["n"].set_title('$n (x)$')
-#        self.axes ["n"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["n"].set_xlim((0.0, self.grid.L)) 
-
-        # potential profile
-        self.lines["p"], = self.axes["p"].plot(self.x, self.phi)
-#        self.axes ["p"].axis([self.grid.xMin, self.grid.xMax, self.potential_min, self.potential_max])
-        self.axes ["p"].set_title('$\phi (x)$')
-        self.axes ["p"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["p"].set_xlim((0.0, self.grid.L)) 
-        
-        
         tStart, tEnd, xStart, xEnd = self.get_timerange()
 
         # error in total particle number (time trace)
@@ -139,18 +118,22 @@ class PlotMovie(object):
         self.axes ["N"].set_title('$\Delta N (t)$')
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         self.axes ["N"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["N"].yaxis.set_major_locator(MaxNLocator(4))
+        
         
         # error in total enstrophy (time trace)
         self.lines["L"], = self.axes["L"].plot(self.grid.tGrid[tStart:tEnd], self.enstrophy[tStart:tEnd])
         self.axes ["L"].set_title('$\Delta L_{2} (t)$')
         self.axes ["L"].set_xlim((xStart,xEnd)) 
         self.axes ["L"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["L"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total energy (time trace)
         self.lines["E"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy[tStart:tEnd])
         self.axes ["E"].set_title('$\Delta E (t)$')
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         self.axes ["E"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["E"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total momentum (time trace)
 #        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum[tStart:tEnd])
@@ -163,13 +146,8 @@ class PlotMovie(object):
         self.axes ["S"].set_title('$\Delta S (t)$')
         self.axes ["S"].set_xlim((xStart,xEnd)) 
         self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["S"].yaxis.set_major_locator(MaxNLocator(4))
         
-        
-        
-        # switch off some ticks
-#        plt.setp(self.axes["f"].get_xticklabels(), visible=False)
-#        plt.setp(self.axes["n"].get_xticklabels(), visible=False)
-#        plt.setp(self.axes["N"].get_xticklabels(), visible=False)
         
         self.update()
         
@@ -192,53 +170,24 @@ class PlotMovie(object):
         self.fnorm  = colors.Normalize(vmin=self.fmin, vmax=self.fmax)
         self.crange = np.linspace(0.0, +self.fmax, 100)
         
-        self.density_min   =-1.0
-        self.density_max   = 1.5 * self.distribution.density.max()
-        
-#        self.potential_min = 1.5 * self.potential.phi.min()
-#        self.potential_max = 1.5 * self.potential.phi.max()
-#        
-#        if self.potential_min == self.potential_max:
-#            self.potential_min -= 1.0
-#            self.potential_max += 1.0
-        
     
     def update(self, final=False):
         
         if not (self.iTime == 1 or (self.iTime-1) % self.nPlot == 0):
             return
         
-#        self.update_boundaries()
-
-        for ckey, cont in self.conts.iteritems():
+        for ckey, cont in self.conts.items():
             for coll in cont.collections:
                 self.axes[ckey].collections.remove(coll)
         
         self.f  [0:-1,:] = self.distribution.f[:,:]
         self.f  [  -1,:] = self.distribution.f[0,:]
         
-#        f_filter = ndimage.gaussian_filter(self.f, sigma=1.0, order=0)
-        
-#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, f_filter.T, 100, norm=self.fnorm, extend='neither')
         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
-#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, self.crange)
         
         if self.vMax > 0.0:
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
             
-        self.n  [0:-1] = self.distribution.density
-        self.n  [  -1] = self.distribution.density[0]
-        self.phi[0:-1] = self.potential.phi
-        self.phi[  -1] = self.potential.phi[0]
-        
-        self.lines["n"].set_ydata(self.n)
-        self.axes ["n"].relim()
-        self.axes ["n"].autoscale_view()
-        
-        self.lines["p"].set_ydata(self.phi)
-        self.axes ["p"].relim()
-        self.axes ["p"].autoscale_view()
-        
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
         
@@ -282,26 +231,10 @@ class PlotMovie(object):
     
     
     def add_timepoint(self):
-#        print("  Ekin = %24.16E" % (self.hamiltonian.Ekin))
-#        print("  Epot = %24.16E" % (self.hamiltonian.Epot))
-#        print("  Etot = %24.16E" % (self.hamiltonian.E))
+        E0 = self.hamiltonian.E0
+        E  = self.hamiltonian.E
         
-#        E0 = self.hamiltonian.E0
-#        E  = self.hamiltonian.E
-        
-#        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + np.sign(self.potential.poisson.const) * self.potential.E0
-#        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + np.sign(self.potential.poisson.const) * self.potential.E
-        
-        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 - self.potential.E0
-        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  - self.potential.E
-        
-#        E0 = self.hamiltonian.Ekin0 - np.sign(self.potential.poisson.const) * self.potential.E0
-#        E  = self.hamiltonian.Ekin  - np.sign(self.potential.poisson.const) * self.potential.E
-        
-        if E0 != 0.0:
-            E_error = (E-E0)/E0
-        else:
-            E_error = 0.0
+        E_error   = (E - E0) / E0
         
         
 #        P0 = self.hamiltonian.P0 + self.potential.E0
@@ -326,9 +259,6 @@ class PlotMovie(object):
         
     
     def get_timerange(self):
-        tStart = 0
-        tEnd   = self.grid.nt+1
-        
         tStart = self.iTime - (self.nTime+1)
         if tStart < 0:
             tStart = 0

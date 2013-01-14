@@ -83,7 +83,7 @@ class PlotEnergy(object):
         self.axes["f"] = plt.subplot(1,1,1)
         self.axes ["f"].set_title('$f (x,v)$')
         self.axes ["f"].title.set_y(1.01)
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
+#        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
 #        self.cbars["f"] = plt.colorbar(self.conts["f"], orientation='vertical')
 
 
@@ -174,7 +174,9 @@ class PlotEnergy(object):
         self.fmin = min(self.fmin, self.distribution.f.min() )
         self.fmax = max(self.fmax, self.distribution.f.max() )
 
-        self.fnorm = colors.Normalize(vmin=self.fmin + 0.1 * self.fmax, vmax=1.1*self.fmax)
+        self.fmin += 0.2 * (self.fmax-self.fmin)
+
+        self.fnorm  = colors.Normalize(vmin=self.fmin, vmax=self.fmax)
         
         
     
@@ -187,7 +189,7 @@ class PlotEnergy(object):
             for coll in cont.collections:
                 self.axes[ckey].collections.remove(coll)
         
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
+        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
         
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
