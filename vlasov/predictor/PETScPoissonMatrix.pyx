@@ -25,7 +25,7 @@ cdef class PETScPoissonMatrix(object):
     def __init__(self, DA da1, DA dax,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, np.float64_t eps=0.):
+                 np.float64_t poisson_const):
         '''
         Constructor
         '''
@@ -46,8 +46,6 @@ cdef class PETScPoissonMatrix(object):
         
         # poisson constant
         self.poisson_const = poisson_const
-#        self.eps = eps
-        self.eps = 0.
         
         # create local vectors
         self.localX = dax.createLocalVec()
@@ -83,9 +81,9 @@ cdef class PETScPoissonMatrix(object):
             
             else:
                 for index, value in [
-                        ((i - 1,), -1. * self.hx2_inv),
-                        ((i,), +2. * self.hx2_inv),
-                        ((i + 1,), -1. * self.hx2_inv),
+                        ((i-1,), -1. * self.hx2_inv),
+                        ((i,  ), +2. * self.hx2_inv),
+                        ((i+1,), -1. * self.hx2_inv),
                     ]:
                     
                     col.index = index
@@ -119,9 +117,9 @@ cdef class PETScPoissonMatrix(object):
                 
             else:
                 integral = (\
-                             + 1. * f[ix - 1, :].sum() \
-                             + 2. * f[ix, :].sum() \
-                             + 1. * f[ix + 1, :].sum() \
+                             + 1. * f[ix-1, :].sum() \
+                             + 2. * f[ix,   :].sum() \
+                             + 1. * f[ix+1, :].sum() \
                            ) * 0.25 * self.hv
                 
                 b[iy] = -(integral - fsum) * self.poisson_const

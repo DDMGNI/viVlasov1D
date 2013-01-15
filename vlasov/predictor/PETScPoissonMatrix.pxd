@@ -26,7 +26,7 @@ cdef class PETScPoissonMatrix(object):
     cdef np.float64_t hx2_inv
     
     cdef np.float64_t poisson_const
-    cdef np.float64_t eps
+    
     
     cdef DA dax
     cdef DA da1

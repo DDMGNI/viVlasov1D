@@ -37,7 +37,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_mat = PETScMatrix(self.da1, self.da2, self.dax, self.day,
                                      self.h0, self.vGrid,
                                      self.nx, self.nv, self.ht, self.hx, self.hv,
-                                     self.poisson, self.eps, self.alpha)
+                                     self.poisson, alpha=self.alpha)
         
         self.A = self.da2.createMat()
         self.A.setType('mpiaij')
@@ -52,14 +52,14 @@ class petscVP1D(petscVP1Dbase):
         self.ksp.setOperators(self.A)
         self.ksp.setType('preonly')
         self.ksp.getPC().setType('lu')
-        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
-#        self.ksp.getPC().setFactorSolverPackage('mumps')
+#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
+        self.ksp.getPC().setFactorSolverPackage('mumps')
         
         
         
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
                                               self.nx, self.nv, self.hx, self.hv,
-                                              self.poisson, self.eps)
+                                              self.poisson)
         
         self.poisson_A = self.dax.createMat()
         self.poisson_A.setType('mpiaij')
@@ -70,17 +70,12 @@ class petscVP1D(petscVP1Dbase):
         self.poisson_ksp.setOperators(self.poisson_A)
         self.poisson_ksp.setType('preonly')
         self.poisson_ksp.getPC().setType('lu')
-        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
-#        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+#        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
+        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
         self.poisson_nsp = PETSc.NullSpace().create(constant=True)
         self.poisson_ksp.setNullSpace(self.poisson_nsp)        
         
-        
-#        # vectors for residual calculation
-#        self.y  = self.da2.createGlobalVec()
-#        self.fy = self.da1.createGlobalVec()
-#        self.py = self.dax.createGlobalVec()
         
         # calculate initial potential
         self.calculate_potential()

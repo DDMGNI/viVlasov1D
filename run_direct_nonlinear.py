@@ -65,12 +65,12 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson, self.alpha)
+                                            self.poisson, alpha=self.alpha)
         
         self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, 
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson, self.alpha)
+                                            self.poisson, alpha=self.alpha)
         
         
         # initialise Jacobian
@@ -294,13 +294,13 @@ class petscVP1D(petscVP1Dbase):
                 dF_arr = self.da2.getVecArray(dF)[...][:, tfield]
                 
                 
-                print("Jacobian:")
-                print(Jx_arr)
-                print()
-                
-                print("[F(x+dx) - F(x-dx)] / [2 eps]:")
-                print(dF_arr)
-                print()
+#                print("Jacobian:")
+#                print(Jx_arr)
+#                print()
+#                
+#                print("[F(x+dx) - F(x-dx)] / [2 eps]:")
+#                print(dF_arr)
+#                print()
 #                
 #                print("Difference:")
 #                print(Jx_arr - dF_arr)

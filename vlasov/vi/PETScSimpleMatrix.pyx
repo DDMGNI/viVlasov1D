@@ -147,9 +147,9 @@ cdef class PETScMatrix(object):
                 
                 # Laplace operator
                 for index, value in [
-                        ((i-1,), self.eps - 1. * self.hx2_inv),
-                        ((i,  ), self.eps + 2. * self.hx2_inv),
-                        ((i+1,), self.eps - 1. * self.hx2_inv),
+                        ((i-1,), - 1. * self.hx2_inv),
+                        ((i,  ), + 2. * self.hx2_inv),
+                        ((i+1,), - 1. * self.hx2_inv),
                     ]:
                     
                     col.index = index
@@ -468,8 +468,8 @@ cdef class PETScMatrix(object):
                 
         A.assemble()
         
-        if PETSc.COMM_WORLD.getRank() == 0:
-            print("     Matrix")
+#        if PETSc.COMM_WORLD.getRank() == 0:
+#            print("     Matrix")
         
         
     @cython.boundscheck(False)
@@ -481,13 +481,11 @@ cdef class PETScMatrix(object):
         self.da1.globalToLocal(self.H0,  self.localH0)
 #        self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(self.VFh, self.localVFh)
         
         cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
 #        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
         (xs, xe), = self.da2.getRanges()
@@ -518,8 +516,8 @@ cdef class PETScMatrix(object):
                              + 0.5 * self.alpha * self.coll(fh, ix, j)
     
     
-        if PETSc.COMM_WORLD.getRank() == 0:
-            print("     RHS")
+#        if PETSc.COMM_WORLD.getRank() == 0:
+#            print("     RHS")
         
 
 

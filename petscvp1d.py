@@ -222,23 +222,23 @@ class petscVP1Dbase(object):
         
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print
+            print()
             print("nt = %i" % (self.nt))
             print("nx = %i" % (self.nx))
             print("nv = %i" % (self.nv))
-            print
+            print()
             print("ht = %e" % (self.ht))
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
-            print
+            print()
             print("Lx   = %e" % (L))
             print("vMin = %e" % (vMin))
             print("vMax = %e" % (vMax))
-            print
+            print()
             print("alpha  = %e" % (self.alpha))
-            print
+            print()
             print("CFL    = %e" % (self.hx / vMax))
-            print
+            print()
         
         
         f_arr = self.da1.getVecArray(self.f)
@@ -360,7 +360,7 @@ class petscVP1Dbase(object):
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("     Vlasov:   %5i iterations,   residual = %24.16E " % (self.vlasov_ksp.getIterationNumber(), self.vlasov_ksp.getResidualNorm()) )
-            print
+            print()
         
         
     def calculate_potential(self):
