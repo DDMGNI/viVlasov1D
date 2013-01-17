@@ -57,8 +57,11 @@ cdef class PETScFunction(object):
                                             np.uint64_t i, np.uint64_t j)
 
     
-    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t coll0(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j)
+
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j)
+
+    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j)

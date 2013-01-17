@@ -15,6 +15,7 @@ import time
 import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
+from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
 from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
 from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
 
@@ -51,7 +52,7 @@ class petscVP1D(petscVP1Dbase):
 #        OptDB.setValue('snes_atol', 1E-12)
         OptDB.setValue('snes_stol', 1E-14)
         
-#        OptDB.setValue('ksp_monitor', '')
+        OptDB.setValue('ksp_monitor', '')
         OptDB.setValue('snes_monitor', '')
 #        OptDB.setValue('log_info', '')
 #        OptDB.setValue('log_summary', '')
@@ -61,7 +62,7 @@ class petscVP1D(petscVP1Dbase):
         # create residual vector
         self.F  = self.da2.createGlobalVec()
         
-        # create Jacobian and Function objects
+        # create Jacobian, Function, and linear Matrix objects
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
@@ -72,7 +73,17 @@ class petscVP1D(petscVP1Dbase):
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.poisson, alpha=self.alpha)
         
+        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
+                                        self.h0, self.vGrid,
+                                        self.nx, self.nv, self.ht, self.hx, self.hv,
+                                        self.poisson, alpha=self.alpha)
         
+        
+        # initialise matrix
+        self.A = self.da2.createMat()
+        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.A.setUp()
+
         # initialise Jacobian
         self.J = self.da2.createMat()
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
@@ -85,8 +96,12 @@ class petscVP1D(petscVP1Dbase):
         self.snes.setFromOptions()
         self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
-        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-#        self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
+#        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
+        
+        
+        # create linear sovler space keeper
+        self.ksp = None
         
         
         # create Poisson object
@@ -106,8 +121,8 @@ class petscVP1D(petscVP1Dbase):
         self.poisson_ksp.setOperators(self.poisson_A)
         self.poisson_ksp.setType('preonly')
         self.poisson_ksp.getPC().setType('lu')
-        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
-#        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+#        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
+        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
 #        self.poisson_nsp = PETSc.NullSpace().create(constant=True)
 #        self.poisson_ksp.setNullSpace(self.poisson_nsp)        
@@ -119,6 +134,7 @@ class petscVP1D(petscVP1Dbase):
         # update solution history
         self.petsc_function.update_history(self.f, self.h1, self.p)
         self.petsc_jacobian.update_history(self.f, self.h1)
+        self.petsc_matrix.update_history(self.f, self.h1)
         
         # save to hdf5
         self.hdf5_viewer.HDF5SetTimestep(0)
@@ -143,6 +159,32 @@ class petscVP1D(petscVP1Dbase):
             print("                                   sum(phi) = %24.16E" % (phisum))
     
         
+    def initial_guess(self):
+        self.ksp = PETSc.KSP().create()
+        self.ksp.setFromOptions()
+        self.ksp.setOperators(self.A)
+        self.ksp.setType('preonly')
+        self.ksp.getPC().setType('lu')
+        self.ksp.getPC().setFactorSolverPackage('mumps')
+    
+        # build matrix
+        self.petsc_matrix.formMat(self.A)
+        
+        # build RHS
+        self.petsc_matrix.formRHS(self.b)
+        
+        # solve
+        self.ksp.solve(self.b, self.x)
+        
+        # update data vectors
+        self.copy_x_to_f()
+        self.copy_x_to_p()
+        
+#        self.remove_average_from_potential()
+#    
+#        self.copy_p_to_x()
+#        self.copy_p_to_h()
+        
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
@@ -158,7 +200,7 @@ class petscVP1D(petscVP1Dbase):
                 self.time.setValue(0, self.ht*itime)
             
             # calculate initial guess for distribution function
-#            self.initial_guess()
+            self.initial_guess()
             
             # solve
             self.snes.solve(None, self.x)
@@ -189,6 +231,7 @@ class petscVP1D(petscVP1Dbase):
             # update history
             self.petsc_function.update_history(self.f, self.h1, self.p)
             self.petsc_jacobian.update_history(self.f, self.h1)
+            self.petsc_matrix.update_history(self.f, self.h1)
             
             # save to hdf5
             self.save_to_hdf5(itime)

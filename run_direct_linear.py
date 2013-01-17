@@ -34,16 +34,14 @@ class petscVP1D(petscVP1Dbase):
         
         
         # create Matrix object
-        self.petsc_mat = PETScMatrix(self.da1, self.da2, self.dax, self.day,
+        self.petsc_mat = PETScMatrix(self.da1, self.da2, self.dax,
                                      self.h0, self.vGrid,
                                      self.nx, self.nv, self.ht, self.hx, self.hv,
                                      self.poisson, alpha=self.alpha)
         
         self.A = self.da2.createMat()
-        self.A.setType('mpiaij')
-        self.A.setUp()
-        
         self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.A.setUp()
         
 
         # create linear solver and preconditioner

@@ -22,7 +22,7 @@ cdef class PETScMatrix(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA da2, DA dax, DA day, Vec H0,
+    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
@@ -33,7 +33,6 @@ cdef class PETScMatrix(object):
         
         # distributed array
         self.dax = dax
-        self.day = day
         self.da1 = da1
         self.da2 = da2
         

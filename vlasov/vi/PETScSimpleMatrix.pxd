@@ -33,7 +33,6 @@ cdef class PETScMatrix(object):
     cdef np.float64_t alpha
     
     cdef DA dax
-    cdef DA day
     cdef DA da1
     cdef DA da2
     

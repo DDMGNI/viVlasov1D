@@ -198,8 +198,9 @@ cdef class PETScFunction(object):
                     y[iy, j] = self.time_derivative(f,  ix, j) \
                              - self.time_derivative(fh, ix, j) \
                              + self.arakawa.arakawa(f_ave, h_ave, ix, j) \
-                             - self.alpha * self.dvdv(f_ave, ix, j) \
-                             - self.alpha * self.coll(f_ave, ix, j)
+                             - self.alpha * self.coll2(f_ave, ix, j)
+#                             - self.alpha * self.coll1(f_ave, ix, j) #\
+#                             - self.alpha * self.coll0(f_ave, ix, j) \
                     
                     
     
@@ -242,33 +243,8 @@ cdef class PETScFunction(object):
 
 
     @cython.boundscheck(False)
-    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * x[i-1, j-1] \
-                     - 2. * x[i-1, j  ] \
-                     + 1. * x[i-1, j+1] \
-                     + 2. * x[i,   j-1] \
-                     - 4. * x[i,   j  ] \
-                     + 2. * x[i,   j+1] \
-                     + 1. * x[i+1, j-1] \
-                     - 2. * x[i+1, j  ] \
-                     + 1. * x[i+1, j+1] \
-                 ) * 0.25 * self.hv2_inv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t coll0(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j):
         '''
         Time Derivative
         '''
@@ -285,17 +261,201 @@ cdef class PETScFunction(object):
                    + 1. * x[i+1, j-1] \
                    + 2. * x[i+1, j  ] \
                    + 1. * x[i+1, j+1] \
-                 ) / 16. \
-               + ( \
-                   + 1. * ( x[i-1, j  ] - x[i-1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
-                   + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
-                   + 2. * ( x[i,   j  ] - x[i,   j-1] ) * (self.v[j-1] + self.v[j  ]) \
-                   + 2. * ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1]) \
-                   + 1. * ( x[i+1, j  ] - x[i+1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
-                   + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
-                 ) * 0.25 * 0.25 / self.hv
+                 ) / 16.
                  
+#        result = ( \
+#                   + 1. * x[i,   j-1] \
+#                   + 2. * x[i,   j  ] \
+#                   + 1. * x[i,   j+1] \
+#                 ) * 0.25
         
         return result
+        
+        
+    @cython.boundscheck(False)
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+#        result = 3. * ( \
+#                   + 1. * ( x[i-1, j  ] - x[i-1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
+#                   + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
+#                   + 2. * ( x[i,   j  ] - x[i,   j-1] ) * (self.v[j-1] + self.v[j  ]) \
+#                   + 2. * ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1]) \
+#                   + 1. * ( x[i+1, j  ] - x[i+1, j-1] ) * (self.v[j-1] + self.v[j  ]) \
+#                   + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) * (self.v[j  ] + self.v[j+1]) \
+#                 ) * 0.25 * 0.25 / self.hv
+                 
+#        result = 3. * ( \
+#                   + ( x[i,   j  ] - x[i,   j-1] ) * (self.v[j-1] + self.v[j  ]) \
+#                   + ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1]) \
+#                 ) * 0.25 / self.hv
+        
+#        result = 1. * ( \
+#                   + 1. * ( x[i-1, j+1] * self.v[j+1] - x[i-1, j-1] * self.v[j-1] ) \
+#                   + 2. * ( x[i,   j+1] * self.v[j+1] - x[i,   j-1] * self.v[j-1] ) \
+#                   + 1. * ( x[i+1, j+1] * self.v[j+1] - x[i+1, j-1] * self.v[j-1] ) \
+#                 ) * 0.25 * 0.5 / self.hv
+        
+#        result = 3. * ( \
+#                   + ( x[i,   j+1] * self.v[j+1] - x[i,   j-1] * self.v[j-1] ) \
+#                 ) * 0.5 / self.hv
+        
+        
+        
+#        if j == 1:
+#            result = ( \
+#                       + 1. * ( x[i-1, j  ] + x[i-1, j+1] ) * (self.v[j  ] + self.v[j+1]) \
+#                       + 2. * ( x[i,   j  ] + x[i,   j+1] ) * (self.v[j  ] + self.v[j+1]) \
+#                       + 1. * ( x[i+1, j  ] + x[i+1, j+1] ) * (self.v[j  ] + self.v[j+1]) \
+#                     ) * 0.25 * 0.25 / self.hv
+#
+###            result = ( \
+###                       + 1. * ( x[i-1, j] * self.v[j] - x[i-1, j-1] * self.v[j-1] ) \
+###                       + 2. * ( x[i,   j] * self.v[j] - x[i,   j-1] * self.v[j-1] ) \
+###                       + 1. * ( x[i+1, j] * self.v[j] - x[i+1, j-1] * self.v[j-1] ) \
+###                     ) * 0.25 / self.hv * 0.5
+##        
+##            result = ( \
+##                       + 1. * ( x[i-1, j] * self.v[j] + x[i-1, j+1] * self.v[j+1] ) \
+##                       + 2. * ( x[i,   j] * self.v[j] + x[i,   j+1] * self.v[j+1] ) \
+##                       + 1. * ( x[i+1, j] * self.v[j] + x[i+1, j+1] * self.v[j+1] ) \
+##                     ) * 0.25 / self.hv * 0.5
+#        
+##        if j == 2:
+##
+##            result = ( \
+##                       + 1. * x[i-1, j+1] * self.v[j+1] \
+##                       + 2. * x[i,   j+1] * self.v[j+1] \
+##                       + 1. * x[i+1, j+1] * self.v[j+1] \
+##                     ) * 0.25 / self.hv * 0.5
+#        
+#        elif j == self.nv-2:
+#            result = ( \
+#                       - 1. * ( x[i-1, j-1] + x[i-1, j  ] ) * (self.v[j-1] + self.v[j  ]) \
+#                       - 2. * ( x[i,   j-1] + x[i,   j  ] ) * (self.v[j-1] + self.v[j  ]) \
+#                       - 1. * ( x[i+1, j-1] + x[i+1, j  ] ) * (self.v[j-1] + self.v[j  ]) \
+#                     ) * 0.25 * 0.25 / self.hv
+#
+###            result = ( \
+###                       + 1. * ( x[i-1, j+1] * self.v[j+1] - x[i-1, j] * self.v[j] ) \
+###                       + 2. * ( x[i,   j+1] * self.v[j+1] - x[i,   j] * self.v[j] ) \
+###                       + 1. * ( x[i+1, j+1] * self.v[j+1] - x[i+1, j] * self.v[j] ) \
+###                     ) * 0.25 / self.hv * 0.5
+##        
+##            result = ( \
+##                       - 1. * ( x[i-1, j-1] * self.v[j-1] + x[i-1, j] * self.v[j] ) \
+##                       - 2. * ( x[i,   j-1] * self.v[j-1] + x[i,   j] * self.v[j] ) \
+##                       - 1. * ( x[i+1, j-1] * self.v[j-1] + x[i+1, j] * self.v[j] ) \
+##                     ) * 0.25 / self.hv * 0.5
+#                    
+##        elif j == self.nv-3:
+##            result = ( \
+##                       - 1. * x[i-1, j-1] * self.v[j-1] \
+##                       - 2. * x[i,   j-1] * self.v[j-1] \
+##                       - 1. * x[i+1, j-1] * self.v[j-1] \
+##                     ) * 0.25 / self.hv * 0.5
+#                    
+#        else:
+        result = ( \
+                   + 1. * ( x[i-1, j  ] + x[i-1, j+1] ) * (self.v[j  ] + self.v[j+1]) \
+                   + 2. * ( x[i,   j  ] + x[i,   j+1] ) * (self.v[j  ] + self.v[j+1]) \
+                   + 1. * ( x[i+1, j  ] + x[i+1, j+1] ) * (self.v[j  ] + self.v[j+1]) \
+                   - 1. * ( x[i-1, j-1] + x[i-1, j  ] ) * (self.v[j-1] + self.v[j  ]) \
+                   - 2. * ( x[i,   j-1] + x[i,   j  ] ) * (self.v[j-1] + self.v[j  ]) \
+                   - 1. * ( x[i+1, j-1] + x[i+1, j  ] ) * (self.v[j-1] + self.v[j  ]) \
+                 ) * 0.25 * 0.25 / self.hv
+
+#            result = ( \
+#                       + 1. * ( x[i-1, j+1] * self.v[j+1] - x[i-1, j-1] * self.v[j-1] ) \
+#                       + 2. * ( x[i,   j+1] * self.v[j+1] - x[i,   j-1] * self.v[j-1] ) \
+#                       + 1. * ( x[i+1, j+1] * self.v[j+1] - x[i+1, j-1] * self.v[j-1] ) \
+#                     ) * 0.25 / self.hv * 0.5
+        
+        
+        
+        
+        return result
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] x,
+                                  np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        
+        if j == 1:
+            result = ( \
+                         + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) \
+                         + 2. * ( x[i,   j+1] - x[i,   j  ] ) \
+                         + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) \
+                     ) * 0.25 * self.hv2_inv
+        
+        elif j == self.nv-2:
+            result = ( \
+                         - 1. * ( x[i-1, j  ] - x[i-1, j-1] ) \
+                         - 2. * ( x[i,   j  ] - x[i,   j-1] ) \
+                         - 1. * ( x[i+1, j  ] - x[i+1, j-1] ) \
+                     ) * 0.25 * self.hv2_inv
+
+        else:
+            result = ( \
+                         + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) \
+                         + 2. * ( x[i,   j+1] - x[i,   j  ] ) \
+                         + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) \
+                         - 1. * ( x[i-1, j  ] - x[i-1, j-1] ) \
+                         - 2. * ( x[i,   j  ] - x[i,   j-1] ) \
+                         - 1. * ( x[i+1, j  ] - x[i+1, j-1] ) \
+                     ) * 0.25 * self.hv2_inv
+        
+        
+#        result = ( \
+#                     + 1. * ( x[i-1, j+1] - 2. * x[i-1, j  ] + x[i-1, j-1] ) \
+#                     + 2. * ( x[i,   j+1] - 2. * x[i,   j  ] + x[i,   j-1] ) \
+#                     + 1. * ( x[i+1, j+1] - 2. * x[i+1, j  ] + x[i+1, j-1] ) \
+#                 ) * 0.25 * self.hv2_inv
+        
+#        result = ( \
+#                     + 1. * ( x[i-1, j+1] - x[i-1, j  ] ) * (self.v[j  ] + self.v[j+1])**2 \
+#                     - 1. * ( x[i-1, j  ] - x[i-1, j-1] ) * (self.v[j-1] + self.v[j  ])**2 \
+#                     + 2. * ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1])**2 \
+#                     - 2. * ( x[i,   j  ] - x[i,   j-1] ) * (self.v[j-1] + self.v[j  ])**2 \
+#                     + 1. * ( x[i+1, j+1] - x[i+1, j  ] ) * (self.v[j  ] + self.v[j+1])**2 \
+#                     - 1. * ( x[i+1, j  ] - x[i+1, j-1] ) * (self.v[j-1] + self.v[j  ])**2 \
+#                 ) * 0.25 * 0.25 * self.hv2_inv
+        
+#        result = ( \
+#                     + ( x[i,   j-1] - x[i,   j  ] ) * (self.v[j-1] + self.v[j  ])**2 \
+#                     + ( x[i,   j+1] - x[i,   j  ] ) * (self.v[j  ] + self.v[j+1])**2 \
+#                 ) * 0.25 * self.hv2_inv
+        
+#        result = ( \
+#                     + 1. * x[i-1, j-1] * self.v[j-1]**2 \
+#                     - 2. * x[i-1, j  ] * self.v[j  ]**2 \
+#                     + 1. * x[i-1, j+1] * self.v[j+1]**2 \
+#                     + 2. * x[i,   j-1] * self.v[j-1]**2 \
+#                     - 4. * x[i,   j  ] * self.v[j  ]**2 \
+#                     + 2. * x[i,   j+1] * self.v[j+1]**2 \
+#                     + 1. * x[i+1, j-1] * self.v[j-1]**2 \
+#                     - 2. * x[i+1, j  ] * self.v[j  ]**2 \
+#                     + 1. * x[i+1, j+1] * self.v[j+1]**2 \
+#                 ) * 0.25 * self.hv2_inv
+        
+#        result = ( \
+#                     + 1. * x[i,   j-1] * self.v[j-1]**2 \
+#                     - 2. * x[i,   j  ] * self.v[j  ]**2 \
+#                     + 1. * x[i,   j+1] * self.v[j+1]**2 \
+#                 ) * self.hv2_inv
+        
+        return result
+    
     
     
