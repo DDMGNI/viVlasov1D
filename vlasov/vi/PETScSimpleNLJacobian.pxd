@@ -42,9 +42,21 @@ cdef class PETScJacobian(object):
     cdef Vec Fp
     cdef Vec Fh
     
+    cdef Vec mom_n
+    cdef Vec mom_u
+    cdef Vec mom_e
+    cdef Vec A1
+    cdef Vec A2
+    
     cdef Vec localH0
     cdef Vec localH1p
     cdef Vec localH1h
     cdef Vec localFp
     cdef Vec localFh
+    
+    cdef Vec local_mom_n
+    cdef Vec local_mom_u
+    cdef Vec local_mom_e
+    cdef Vec localA1
+    cdef Vec localA2
     

@@ -42,6 +42,12 @@ cdef class PETScFunction(object):
     cdef Vec Hh
     cdef Vec Ph
     
+    cdef Vec mom_n
+    cdef Vec mom_u
+    cdef Vec mom_e
+    cdef Vec A1
+    cdef Vec A2
+    
     cdef Vec localH0
     cdef Vec localF
     cdef Vec localFh
@@ -50,18 +56,23 @@ cdef class PETScFunction(object):
     cdef Vec localP
     cdef Vec localPh
     
+    cdef Vec local_mom_n
+    cdef Vec local_mom_u
+    cdef Vec local_mom_e
+    cdef Vec localA1
+    cdef Vec localA2
+    
     cdef PETScArakawa arakawa
 
 
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
+    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
                                             np.uint64_t i, np.uint64_t j)
 
     
-    cdef np.float64_t coll0(self, np.ndarray[np.float64_t, ndim=2] x,
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                  np.ndarray[np.float64_t, ndim=1] A1,
+                                  np.ndarray[np.float64_t, ndim=1] A2,
                                   np.uint64_t i, np.uint64_t j)
 
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] x,
-                                  np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] x,
+    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.uint64_t i, np.uint64_t j)
