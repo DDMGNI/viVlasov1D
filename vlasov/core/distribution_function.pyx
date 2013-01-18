@@ -274,11 +274,10 @@ class DistributionFunction(object):
             f = f0
             
         for ix in np.arange(0, nx):
-#            ixp = (ix+1) % nx
+            ixp = (ix+1) % nx
             
             for iv in np.arange(0, nv-1):
-                N += f[ix,iv]
-#                N += (f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
+                N += (f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
             
         
         if f0 == None:

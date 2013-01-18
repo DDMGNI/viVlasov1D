@@ -201,8 +201,11 @@ class Hamiltonian(object):
                             + f[ixp, iv+1]
                             + f[ix,  iv+1]
                             ) \
-                       * pow( v[iv  ]
-                            + v[iv+1], 2)
+                        ) * ( h0[ix,  iv  ]
+                            + h0[ixp, iv  ]
+                            + h0[ixp, iv+1]
+                            + h0[ix,  iv+1]
+                            )
                     
                     Epot += ( f[ix,  iv  ]
                             + f[ixp, iv  ]
@@ -214,8 +217,8 @@ class Hamiltonian(object):
                             + h1[ix,  iv+1]
                             )
         
-        self.Ekin = 0.5 * Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
-        self.Epot =       Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
+        self.Ekin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
+        self.Epot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
         
         
 #        if self.f != None:
