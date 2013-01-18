@@ -185,7 +185,6 @@ class Hamiltonian(object):
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.h0
         cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - h1_ave
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
-        cdef np.ndarray[np.float64_t, ndim=1] v  = self.grid.vGrid
         
         Ekin = 0.0
         Epot = 0.0
@@ -196,22 +195,25 @@ class Hamiltonian(object):
                 
                 for iv in np.arange(0, nv-1):
                     
-                    Ekin += ( f[ix,  iv  ]
+                    Ekin += ( 
+                            + f[ix,  iv  ]
                             + f[ixp, iv  ]
                             + f[ixp, iv+1]
                             + f[ix,  iv+1]
-                            ) \
-                        ) * ( h0[ix,  iv  ]
+                          ) * ( 
+                            + h0[ix,  iv  ]
                             + h0[ixp, iv  ]
                             + h0[ixp, iv+1]
                             + h0[ix,  iv+1]
                             )
                     
-                    Epot += ( f[ix,  iv  ]
+                    Epot += ( 
+                            + f[ix,  iv  ]
                             + f[ixp, iv  ]
                             + f[ixp, iv+1]
                             + f[ix,  iv+1]
-                        ) * ( h1[ix,  iv  ]
+                          ) * ( 
+                            + h1[ix,  iv  ]
                             + h1[ixp, iv  ]
                             + h1[ixp, iv+1]
                             + h1[ix,  iv+1]
@@ -221,14 +223,9 @@ class Hamiltonian(object):
         self.Epot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
         
         
-#        if self.f != None:
-#            for ix in np.arange(0, nx):
-#                for iv in np.arange(0, nv-1):
-#                    Ekin += f[ix, iv] * v[iv] * v[iv]
-#                    Epot += f[ix, iv] * h1[ix, iv]
-#        
-#        self.Ekin = 0.5 * Ekin * self.grid.hx * self.grid.hv
-#        self.Epot =       Epot * self.grid.hx * self.grid.hv
+#        self.Ekin  = (f * h0).sum() * self.grid.hx * self.grid.hv
+#        self.Epot  = (f * h1).sum() * self.grid.hx * self.grid.hv
+        
         
         self.E = self.Ekin + 0.5 * self.Epot
         
