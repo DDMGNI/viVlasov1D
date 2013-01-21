@@ -69,11 +69,10 @@ cdef class PETScFunction(object):
         self.Ph = self.dax.createGlobalVec()
         
         # create moment vectors
-        self.mom_n = self.dax.createGlobalVec()
-        self.mom_u = self.dax.createGlobalVec()
-        self.mom_e = self.dax.createGlobalVec()
-        self.A1    = self.dax.createGlobalVec()
-        self.A2    = self.dax.createGlobalVec()
+        self.A1p   = self.dax.createGlobalVec()
+        self.A2p   = self.dax.createGlobalVec()
+        self.A1h   = self.dax.createGlobalVec()
+        self.A2h   = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -84,11 +83,10 @@ cdef class PETScFunction(object):
         self.localP  = dax.createLocalVec()
         self.localPh = dax.createLocalVec()
         
-        self.local_mom_n = dax.createLocalVec()
-        self.local_mom_u = dax.createLocalVec()
-        self.local_mom_e = dax.createLocalVec()
-        self.localA1     = dax.createLocalVec()
-        self.localA2     = dax.createLocalVec()
+        self.localA1p    = dax.createLocalVec()
+        self.localA2p    = dax.createLocalVec()
+        self.localA1h    = dax.createLocalVec()
+        self.localA2h    = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -158,61 +156,60 @@ cdef class PETScFunction(object):
         self.dax.globalToLocal(self.Ph, self.localPh)
         
         cdef np.ndarray[np.float64_t, ndim=2] y  = self.da2.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getVecArray(self.localF )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getVecArray(self.localF )[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h  = self.da1.getVecArray(self.localH )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hp = self.da1.getVecArray(self.localH )[...]
         cdef np.ndarray[np.float64_t, ndim=2] hh = self.da1.getVecArray(self.localHh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] p  = self.dax.getVecArray(self.localP )[...]
         cdef np.ndarray[np.float64_t, ndim=1] ph = self.dax.getVecArray(self.localPh)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (f + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (h + hh)
-        cdef np.ndarray[np.float64_t, ndim=1] p_ave = 0.5 * (p + ph)
+        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (hp + hh)
+        cdef np.ndarray[np.float64_t, ndim=1] p_ave = 0.5 * (p  + ph)
         
         
         # calculate moments
-        cdef np.ndarray[np.float64_t, ndim=1] mom_n = self.dax.getVecArray(self.mom_n)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] mom_u = self.dax.getVecArray(self.mom_u)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] mom_e = self.dax.getVecArray(self.mom_e)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A1    = self.dax.getVecArray(self.A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2    = self.dax.getVecArray(self.A2)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A1p = self.dax.getVecArray(self.A1p)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A2p = self.dax.getVecArray(self.A2p)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A1h = self.dax.getVecArray(self.A1h)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A2h = self.dax.getVecArray(self.A2h)[...]
+        
+        cdef np.ndarray[np.float64_t, ndim=1] mom_np = np.zeros_like(A1p)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_nh = np.zeros_like(A1h)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_up = np.zeros_like(A1p)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_uh = np.zeros_like(A1h)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_ep = np.zeros_like(A1p)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_eh = np.zeros_like(A1h)
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            mom_n[iy] = 0.
-            mom_u[iy] = 0.
-            mom_e[iy] = 0.
+            mom_np[iy] = fp[ix, :].sum() * self.hv
+            mom_nh[iy] = fh[ix, :].sum() * self.hv
+            mom_up[iy] = ( self.v    * fp[ix, :] ).sum() * self.hv / mom_np[iy]
+            mom_uh[iy] = ( self.v    * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
+            mom_ep[iy] = ( self.v**2 * fp[ix, :] ).sum() * self.hv
+            mom_eh[iy] = ( self.v**2 * fh[ix, :] ).sum() * self.hv
             
-#            for j in np.arange(0, self.nv-1):
-#                mom_n[iy] += f_ave[ix, j] + f_ave[ix, j+1]
-#                mom_u[iy] += ( self.v[j]    + self.v[j+1]   ) * (f_ave[ix, j] + f_ave[ix, j+1])
-#                mom_e[iy] += ( self.v[j]**2 + self.v[j+1]**2) * (f_ave[ix, j] + f_ave[ix, j+1])
-#            
-#            mom_n[iy] *= 0.5  * self.hv
-#            mom_u[iy] *= 0.25 * self.hv / mom_n[iy]
-#            mom_e[iy] *= 0.25 * self.hv
+            denom_p = mom_np[iy] * mom_up[iy]**2 - mom_ep[iy]  
+            denom_h = mom_nh[iy] * mom_uh[iy]**2 - mom_eh[iy]  
             
-            for j in np.arange(0, self.nv):
-                mom_n[iy] += f_ave[ix, j]
-                mom_u[iy] += self.v[j]    * f_ave[ix, j]
-                mom_e[iy] += self.v[j]**2 * f_ave[ix, j]
-                
-            mom_n[iy] *= self.hv
-            mom_u[iy] *= self.hv / mom_n[iy]
-            mom_e[iy] *= self.hv
-            
-            denom = mom_e[iy] - mom_n[iy] * mom_u[iy]**2  
-            
-            self.A1[iy] = + mom_n[iy] * mom_u[iy] / denom
-            self.A2[iy] = - mom_n[iy] / denom
+            A1p[iy] = + mom_np[iy] * mom_up[iy] / denom_p
+            A1h[iy] = + mom_nh[iy] * mom_uh[iy] / denom_h
+            A2p[iy] = - mom_np[iy] / denom_p
+            A2h[iy] = - mom_nh[iy] / denom_h
         
-        self.dax.globalToLocal(self.A1, self.localA1)
-        self.dax.globalToLocal(self.A2, self.localA2)
         
-        A1 = self.dax.getVecArray(self.localA1)[...]
-        A2 = self.dax.getVecArray(self.localA2)[...]
+        self.dax.globalToLocal(self.A1p, self.localA1p)
+        self.dax.globalToLocal(self.A2p, self.localA2p)
+        self.dax.globalToLocal(self.A1h, self.localA1h)
+        self.dax.globalToLocal(self.A2h, self.localA2h)
+        
+        A1p = self.dax.getVecArray(self.localA1p)[...]
+        A2p = self.dax.getVecArray(self.localA2p)[...]
+        A1h = self.dax.getVecArray(self.localA1h)[...]
+        A2h = self.dax.getVecArray(self.localA2h)[...]
         
         
         for i in np.arange(xs, xe):
@@ -232,9 +229,9 @@ cdef class PETScFunction(object):
                 laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
                 
                 integral = ( \
-                             + 1. * f[ix-1, :].sum() \
-                             + 2. * f[ix,   :].sum() \
-                             + 1. * f[ix+1, :].sum() \
+                             + 1. * fp[ix-1, :].sum() \
+                             + 2. * fp[ix,   :].sum() \
+                             + 1. * fp[ix+1, :].sum() \
                            ) * 0.25 * self.hv
 #                integral = ( \
 #                             + 1. * f_ave[ix-1, :].sum() \
@@ -249,18 +246,30 @@ cdef class PETScFunction(object):
             for j in np.arange(0, self.nv):
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = f[ix,j]
+                    y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.time_derivative(f,  ix, j) \
+#                    y[iy, j] = self.time_derivative(fp, ix, j) \
+#                             - self.time_derivative(fh, ix, j) \
+#                             + 0.5 * self.arakawa.arakawa(fp, h,  ix, j) \
+#                             + 0.5 * self.arakawa.arakawa(fh, hh, ix, j) \
+#                             - 0.5 * self.alpha * self.coll0(f, A1p, ix, j) \
+#                             - 0.5 * self.alpha * self.coll1(f, A2p, ix, j) \
+#                             - 0.5 * self.alpha * self.coll2(f, ix, j) \
+#                             - 0.5 * self.alpha * self.coll0(fh, A1h, ix, j) \
+#                             - 0.5 * self.alpha * self.coll1(fh, A2h, ix, j) \
+#                             - 0.5 * self.alpha * self.coll2(fh, ix, j)
+                             
+                    y[iy, j] = self.time_derivative(fp, ix, j) \
                              - self.time_derivative(fh, ix, j) \
                              + self.arakawa.arakawa(f_ave, h_ave, ix, j) \
-                             - self.alpha * self.coll1(f_ave, A1, A2, ix, j) \
-                             - self.alpha * self.coll2(f_ave, ix, j)
-                    
-#                    y[iy, j] = - self.alpha * self.coll1(f_ave, A1, A2, ix, j) \
-#                               - self.alpha * self.coll2(f_ave, ix, j)
-                    
+                             - 0.5 * self.alpha * self.coll0(fp, A1p, ix, j) \
+                             - 0.5 * self.alpha * self.coll0(fh, A1h, ix, j) \
+                             - 0.5 * self.alpha * self.coll1(fp, A2p, ix, j) \
+                             - 0.5 * self.alpha * self.coll1(fh, A2h, ix, j) \
+                             - 0.5 * self.alpha * self.coll2(fp, ix, j) \
+                             - 0.5 * self.alpha * self.coll2(fh, ix, j)
+                             
     
 #    @cython.boundscheck(False)
 #    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
@@ -300,142 +309,102 @@ cdef class PETScFunction(object):
         return result
 
 
+
     @cython.boundscheck(False)
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
+    cdef np.float64_t coll0(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
                                   np.uint64_t i, np.uint64_t j):
         '''
-        Time Derivative
+        Collision Operator
         '''
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
         cdef np.float64_t result = 0.
         
-        # d/dv (A1 * f)
+        # A1 * df/dv
         result += 0.5 * 0.25 * ( \
                             + f[i-1, j+1] - 1. * f[i-1, j-1] \
                             + f[i,   j+1] - 1. * f[i,   j-1] \
                          ) \
                  * 0.5 * ( A1[i-1] + A1[i] ) / self.hv
-                            
+        
         result += 0.5 * 0.25 * ( \
                             + f[i,   j+1] - f[i,   j-1] \
                             + f[i+1, j+1] - f[i+1, j-1]\
                          ) \
                  * 0.5 * ( A1[i] + A1[i+1] ) / self.hv
         
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                  np.ndarray[np.float64_t, ndim=1] A2,
+                                  np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
         
-        # d/dv (A2 * v * f)
-        result += 0.5 * 0.25 * ( \
-                            + 1. * f[i-1, j  ] \
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
+        cdef np.float64_t result = 0.
+        
+        # A2 * f
+        result += 0.5 * 0.125 * ( \
+                            + 1. * f[i-1, j-1] \
+                            + 2. * f[i-1, j  ] \
                             + 1. * f[i-1, j+1] \
-                            + 1. * f[i,   j  ] \
+                            + 1. * f[i,   j-1] \
+                            + 2. * f[i,   j  ] \
                             + 1. * f[i,   j+1] \
+                         ) \
+                 * 0.5 * ( A2[i-1] + A2[i  ] )
+        
+        result += 0.5 * 0.125 * ( \
+                            + 1. * f[i,   j-1] \
+                            + 2. * f[i,   j  ] \
+                            + 1. * f[i,   j+1] \
+                            + 1. * f[i+1, j-1] \
+                            + 2. * f[i+1, j  ] \
+                            + 1. * f[i+1, j+1] \
+                         ) \
+                 * 0.5 * ( A2[i] + A2[i+1] )
+        
+    
+        # v * A2 * df/dv
+        result += 0.25 * 0.5 * ( \
+                            + f[i-1, j+1] - f[i-1, j  ] \
+                            + f[i,   j+1] - f[i,   j  ] \
                          ) \
                  * 0.5 * (  v[j  ] +  v[j+1] ) \
                  * 0.5 * ( A2[i-1] + A2[i  ] ) / self.hv
         
-        result += 0.5 * 0.25 * ( \
-                            + 1. * f[i,   j  ] \
-                            + 1. * f[i,   j+1] \
-                            + 1. * f[i+1, j  ] \
-                            + 1. * f[i+1, j+1] \
+        result += 0.25 * 0.5 * ( \
+                            + f[i,   j+1] - f[i,   j  ] \
+                            + f[i+1, j+1] - f[i+1, j  ]\
                          ) \
                  * 0.5 * (  v[j] +  v[j+1] ) \
                  * 0.5 * ( A2[i] + A2[i+1] ) / self.hv
         
-        result -= 0.5 * 0.25 * ( \
-                            + 1. * f[i-1, j-1] \
-                            + 1. * f[i-1, j  ] \
-                            + 1. * f[i,   j-1] \
-                            + 1. * f[i,   j  ] \
+        result += 0.25 * 0.5 * ( \
+                            + f[i-1, j  ] - f[i-1, j-1] \
+                            + f[i,   j  ] - f[i,   j-1] \
                          ) \
                  * 0.5 * (  v[j-1] +  v[j] ) \
                  * 0.5 * ( A2[i-1] + A2[i] ) / self.hv
         
-        result -= 0.5 * 0.25 * ( \
-                            + 1. * f[i,   j-1] \
-                            + 1. * f[i,   j  ] \
-                            + 1. * f[i+1, j-1] \
-                            + 1. * f[i+1, j  ] \
+        result += 0.25 * 0.5 * ( \
+                            + f[i,   j  ] - f[i,   j-1] \
+                            + f[i+1, j  ] - f[i+1, j-1] \
                          ) \
                  * 0.5 * (  v[j-1] +  v[j  ] ) \
                  * 0.5 * ( A2[i  ] + A2[i+1] ) / self.hv
         
         
-#        # d/dv (A1 * f)
-#        result += 0.5 * 0.25 * ( \
-#                            + 1. * f[i-1, j  ] \
-#                            + 1. * f[i-1, j+1] \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i,   j+1] \
-#                         ) \
-#                 * 0.5 * ( A1[i-1] + A1[i] ) / self.hv
-#                            
-#        result += 0.5 * 0.25 * ( \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i,   j+1] \
-#                            + 1. * f[i+1, j  ] \
-#                            + 1. * f[i+1, j+1] \
-#                         ) \
-#                 * 0.5 * ( A1[i] + A1[i+1] ) / self.hv
-#        
-#        result -= 0.5 * 0.25 * ( \
-#                            + 1. * f[i-1, j-1] \
-#                            + 1. * f[i-1, j  ] \
-#                            + 1. * f[i,   j-1] \
-#                            + 1. * f[i,   j  ] \
-#                         ) \
-#                 * 0.5 * ( A1[i-1] + A1[i] ) / self.hv
-#        
-#        result -= 0.5 * 0.25 * ( \
-#                            + 1. * f[i,   j-1] \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i+1, j-1] \
-#                            + 1. * f[i+1, j  ] \
-#                         ) \
-#                 * 0.5 * ( A1[i] + A1[i+1] ) / self.hv
-#        
-#        # d/dv (A2 * v * f)
-#        result += 0.5 * 0.25 * ( \
-#                            + 1. * f[i-1, j  ] \
-#                            + 1. * f[i-1, j+1] \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i,   j+1] \
-#                         ) \
-#                 * 0.5 * (  v[j  ] +  v[j+1] ) \
-#                 * 0.5 * ( A2[i-1] + A2[i  ] ) / self.hv
-#        
-#        result += 0.5 * 0.25 * ( \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i,   j+1] \
-#                            + 1. * f[i+1, j  ] \
-#                            + 1. * f[i+1, j+1] \
-#                         ) \
-#                 * 0.5 * (  v[j] +  v[j+1] ) \
-#                 * 0.5 * ( A2[i] + A2[i+1] ) / self.hv
-#        
-#        result -= 0.5 * 0.25 * ( \
-#                            + 1. * f[i-1, j-1] \
-#                            + 1. * f[i-1, j  ] \
-#                            + 1. * f[i,   j-1] \
-#                            + 1. * f[i,   j  ] \
-#                         ) \
-#                 * 0.5 * (  v[j-1] +  v[j] ) \
-#                 * 0.5 * ( A2[i-1] + A2[i] ) / self.hv
-#        
-#        result -= 0.5 * 0.25 * ( \
-#                            + 1. * f[i,   j-1] \
-#                            + 1. * f[i,   j  ] \
-#                            + 1. * f[i+1, j-1] \
-#                            + 1. * f[i+1, j  ] \
-#                         ) \
-#                 * 0.5 * (  v[j-1] +  v[j  ] ) \
-#                 * 0.5 * ( A2[i  ] + A2[i+1] ) / self.hv
-#        
         return result
+    
     
     
     @cython.boundscheck(False)
@@ -448,12 +417,9 @@ cdef class PETScFunction(object):
         cdef np.float64_t result
         
         result = ( \
-                     + 1. * ( f[i-1, j+1] - f[i-1, j  ] ) \
-                     + 2. * ( f[i,   j+1] - f[i,   j  ] ) \
-                     + 1. * ( f[i+1, j+1] - f[i+1, j  ] ) \
-                     - 1. * ( f[i-1, j  ] - f[i-1, j-1] ) \
-                     - 2. * ( f[i,   j  ] - f[i,   j-1] ) \
-                     - 1. * ( f[i+1, j  ] - f[i+1, j-1] ) \
+                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
+                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
+                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
                  ) * 0.25 * self.hv2_inv
         
         return result

@@ -42,11 +42,10 @@ cdef class PETScFunction(object):
     cdef Vec Hh
     cdef Vec Ph
     
-    cdef Vec mom_n
-    cdef Vec mom_u
-    cdef Vec mom_e
-    cdef Vec A1
-    cdef Vec A2
+    cdef Vec A1p
+    cdef Vec A2p
+    cdef Vec A1h
+    cdef Vec A2h
     
     cdef Vec localH0
     cdef Vec localF
@@ -56,11 +55,10 @@ cdef class PETScFunction(object):
     cdef Vec localP
     cdef Vec localPh
     
-    cdef Vec local_mom_n
-    cdef Vec local_mom_u
-    cdef Vec local_mom_e
-    cdef Vec localA1
-    cdef Vec localA2
+    cdef Vec localA1p
+    cdef Vec localA2p
+    cdef Vec localA1h
+    cdef Vec localA2h
     
     cdef PETScArakawa arakawa
 
@@ -69,8 +67,11 @@ cdef class PETScFunction(object):
                                             np.uint64_t i, np.uint64_t j)
 
     
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
+    cdef np.float64_t coll0(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.ndarray[np.float64_t, ndim=1] A1,
+                                  np.uint64_t i, np.uint64_t j)
+
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.ndarray[np.float64_t, ndim=1] A2,
                                   np.uint64_t i, np.uint64_t j)
 
