@@ -146,24 +146,16 @@ cdef class PETScJacobian(object):
 #        cdef np.float64_t time_fac = 0.
 #        cdef np.float64_t arak_fac = 0.
 #        cdef np.float64_t poss_fac = 0.
-#        cdef np.float64_t coll0_fac = 0.
-#        cdef np.float64_t coll1_sum_fac = 0.
-#        cdef np.float64_t coll1_der_fac = 0.
+#        cdef np.float64_t coll1_fac = 0.
 #        cdef np.float64_t coll2_fac = 0.
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
         cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
         
-        cdef np.float64_t coll0_fac     = - 0.5 * self.alpha * 0.5  / 8. / self.hv
-        cdef np.float64_t coll1_sum_fac = - 0.5 * self.alpha * 0.25 / 8.
-        cdef np.float64_t coll1_der_fac = - 0.5 * self.alpha * 0.25 / 8. / self.hv
-        cdef np.float64_t coll2_fac     = - 0.5 * self.alpha * 0.25 * self.hv2_inv
-        
-#        cdef np.float64_t coll0_fac     = - 0.5 * self.alpha * 0.5 / self.hv
-#        cdef np.float64_t coll1_sum_fac = - 0.5 * self.alpha * 0.25
-#        cdef np.float64_t coll1_der_fac = - 0.5 * self.alpha * 0.25 / self.hv
-#        cdef np.float64_t coll2_fac     = - 0.5 * self.alpha * self.hv2_inv
+        cdef np.float64_t coll0_fac = - 0.5 * self.alpha / 16.
+        cdef np.float64_t coll1_fac = - 0.5 * self.alpha * 0.25 * 0.25 / self.hv
+        cdef np.float64_t coll2_fac = - 0.5 * self.alpha * 0.5  * 0.25 * self.hv2_inv
 
         
         # calculate moments
@@ -185,19 +177,15 @@ cdef class PETScJacobian(object):
             
             mom_np[iy] = fp[ix, :].sum() * self.hv
             mom_nh[iy] = fh[ix, :].sum() * self.hv
-            mom_up[iy] = ( self.v    * fp[ix, :] ).sum() * self.hv / mom_np[iy]
-            mom_uh[iy] = ( self.v    * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
-            mom_ep[iy] = ( self.v**2 * fp[ix, :] ).sum() * self.hv
-            mom_eh[iy] = ( self.v**2 * fh[ix, :] ).sum() * self.hv
-            
-            denom_p = mom_np[iy] * mom_up[iy]**2 - mom_ep[iy]  
-            denom_h = mom_nh[iy] * mom_uh[iy]**2 - mom_eh[iy]  
-            
-            A1p[iy] = + mom_np[iy] * mom_up[iy] / denom
-            A1h[iy] = + mom_nh[iy] * mom_uh[iy] / denom
-            A2p[iy] = - mom_np[iy] / denom_p
-            A2h[iy] = - mom_nh[iy] / denom_h
-        
+            mom_up[iy] = ( self.v * fp[ix, :] ).sum() * self.hv / mom_np[iy]
+            mom_uh[iy] = ( self.v * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
+            mom_ep[iy] = ( (self.v - mom_up[iy])**2 * fp[ix, :] ).sum() * self.hv
+            mom_eh[iy] = ( (self.v - mom_uh[iy])**2 * fh[ix, :] ).sum() * self.hv
+
+        A1p = mom_up
+        A1h = mom_uh
+        A2p = mom_ep / mom_np
+        A2h = mom_eh / mom_nh
         
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A1h, self.localA1h)
@@ -272,101 +260,61 @@ cdef class PETScJacobian(object):
                     
                 else:
 
-#                    for index, field, value in [
-#                            ((i-1,), j-1, 1. * time_fac - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac),
-#                            ((i-1,), j  , 2. * time_fac - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
-#                                                        - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac),
-#                            ((i-1,), j+1, 1. * time_fac - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac),
-#                            ((i,  ), j-1, 2. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
-#                                                        + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac \
-#                                                        - 1. * coll0_fac * A1[ix] \
-#                                                        + 1. * coll1_sum_fac * A2[ix] \
-#                                                        - 1. * coll1_der_fac * A2[ix] * (  v[j-1] +  v[j  ] ) \
-#                                                        + 1. * coll2_fac),
-#                            ((i,  ), j  , 4. * time_fac \
-#                                                        + 2. * coll1_sum_fac * A2[ix] \
-#                                                        - 1. * coll1_der_fac * A2[ix] * ( v[j  ] + v[j+1] ) \
-#                                                        + 1. * coll1_der_fac * A2[ix] * ( v[j-1] + v[j  ] ) \
-#                                                        - 2. * coll2_fac),
-#                            ((i,  ), j+1, 2. * time_fac - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
-#                                                        - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac \
-#                                                        + 1. * coll0_fac * A1[ix] \
-#                                                        + 1. * coll1_sum_fac * A2[ix] \
-#                                                        + 1. * coll1_der_fac * A2[ix] * ( v[j] + v[j+1] ) \
-#                                                        + 1. * coll2_fac),
-#                            ((i+1,), j-1, 1. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac),
-#                            ((i+1,), j  , 2. * time_fac + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
-#                                                        + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac),
-#                            ((i+1,), j+1, 1. * time_fac + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac),
-#                            ((i-1,), self.nv,    + 2. * (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * arak_fac \
-#                                                 + 1. * (f_ave[ix-1, j+1] - f_ave[ix-1, j-1]) * arak_fac),
-#                            ((i,  ), self.nv,    + 1. * (f_ave[ix-1, j-1] - f_ave[ix+1, j-1]) * arak_fac \
-#                                                 + 1. * (f_ave[ix+1, j+1] - f_ave[ix-1, j+1]) * arak_fac),
-#                            ((i+1,), self.nv,    + 2. * (f_ave[ix,   j-1] - f_ave[ix,   j+1]) * arak_fac \
-#                                                 + 1. * (f_ave[ix+1, j-1] - f_ave[ix+1, j+1]) * arak_fac),
-#                        ]:
-
-
-
                     for index, field, value in [
                             ((i-1,), j-1, 1. * time_fac - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac \
-                                                        - 1. * coll0_fac * (A1[ix-1] + A1[ix  ]) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix-1] + A2[ix] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix-1] + A2[ix] ) * ( v[j-1] + v[j] ) \
-                                                        + 1. * coll2_fac),
+                                                        - coll0_fac * 1. \
+                                                        - coll1_fac * ( v[j-1] + v[j  ] - A1[ix-1] - A1[ix  ] ) \
+                                                        + coll2_fac * ( A2[ix-1] + A2[ix  ] ) ),
                             ((i-1,), j  , 2. * time_fac - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
                                                         - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac \
-                                                        + 2. * coll1_sum_fac * ( A2[ix-1] + A2[ix] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix-1] + A2[ix] ) * ( v[j-1] + v[j  ] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix-1] + A2[ix] ) * ( v[j  ] + v[j+1] ) \
-                                                        - 2. * coll2_fac),
+                                                        - coll0_fac * 2. \
+                                                        + coll1_fac * ( v[j-1] + v[j  ] - A1[ix-1] - A1[ix  ] ) \
+                                                        - coll1_fac * ( v[j  ] + v[j+1] - A1[ix-1] - A1[ix  ] ) \
+                                                        - coll2_fac * ( A2[ix-1] + A2[ix  ] ) \
+                                                        - coll2_fac * ( A2[ix-1] + A2[ix  ] ) ),
                             ((i-1,), j+1, 1. * time_fac - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac \
-                                                        + 1. * coll0_fac * (A1[ix-1] + A1[ix  ]) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix-1] + A2[ix  ] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix-1] + A2[ix  ] ) * ( v[j] + v[j+1] ) \
-                                                        + 1. * coll2_fac),
+                                                        - coll0_fac * 1. \
+                                                        + coll1_fac * ( v[j  ] + v[j+1] - A1[ix-1] - A1[ix  ] ) \
+                                                        + coll2_fac * ( A2[ix-1] + A2[ix  ] ) ),
                             ((i,  ), j-1, 2. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
                                                         + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac \
-                                                        - 1. * coll0_fac * (A1[ix-1] + A1[ix  ]) \
-                                                        - 1. * coll0_fac * (A1[ix  ] + A1[ix+1]) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix-1] + A2[ix  ] ) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix-1] + A2[ix  ] ) * ( v[j-1] + v[j] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j-1] + v[j] ) \
-                                                        + 2. * coll2_fac),
+                                                        - coll0_fac * 2. \
+                                                        - coll1_fac * ( v[j-1] + v[j  ] - A1[ix-1] - A1[ix  ] ) \
+                                                        - coll1_fac * ( v[j-1] + v[j  ] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll2_fac * ( A2[ix-1] + A2[ix  ] ) \
+                                                        + coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i,  ), j  , 4. * time_fac \
-                                                        + 2. * coll1_sum_fac * ( A2[ix-1] + A2[ix  ] ) \
-                                                        + 2. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix-1] + A2[ix  ] ) * ( v[j  ] + v[j+1] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j  ] + v[j+1] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix-1] + A2[ix  ] ) * ( v[j-1] + v[j  ] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j-1] + v[j  ] ) \
-                                                        - 4. * coll2_fac),
+                                                        - coll0_fac * 4. \
+                                                        - coll1_fac * ( v[j  ] + v[j+1] - A1[ix-1] - A1[ix  ] ) \
+                                                        - coll1_fac * ( v[j  ] + v[j+1] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll1_fac * ( v[j-1] + v[j  ] - A1[ix-1] - A1[ix  ] ) \
+                                                        + coll1_fac * ( v[j-1] + v[j  ] - A1[ix  ] - A1[ix+1] ) \
+                                                        - coll2_fac * ( A2[ix-1] + A2[ix  ] ) \
+                                                        - coll2_fac * ( A2[ix-1] + A2[ix  ] ) \
+                                                        - coll2_fac * ( A2[ix  ] + A2[ix+1] ) \
+                                                        - coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i,  ), j+1, 2. * time_fac - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
                                                         - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac \
-                                                        + 1. * coll0_fac * ( A1[ix-1] + A1[ix  ] ) \
-                                                        + 1. * coll0_fac * ( A1[ix  ] + A1[ix+1] ) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix-1] + A2[ix  ] ) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix-1] + A2[ix  ] ) * ( v[j] + v[j+1] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j] + v[j+1] ) \
-                                                        + 2. * coll2_fac),
+                                                        - coll0_fac * 2. \
+                                                        + coll1_fac * ( v[j  ] + v[j+1] - A1[ix-1] - A1[ix  ] ) \
+                                                        + coll1_fac * ( v[j  ] + v[j+1] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll2_fac * ( A2[ix-1] + A2[ix  ] ) \
+                                                        + coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i+1,), j-1, 1. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac \
-                                                        - 1. * coll0_fac * (A1[ix  ] + A1[ix+1]) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j-1] + v[j  ] ) \
-                                                        + 1. * coll2_fac),
+                                                        - coll0_fac * 1. \
+                                                        - coll1_fac * ( v[j-1] + v[j  ] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i+1,), j  , 2. * time_fac + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
                                                         + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac \
-                                                        + 2. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        - 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j  ] + v[j+1] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j-1] + v[j  ] ) \
-                                                        - 2. * coll2_fac),
+                                                        - coll0_fac * 2. \
+                                                        - coll1_fac * ( v[j  ] + v[j+1] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll1_fac * ( v[j-1] + v[j  ] - A1[ix  ] - A1[ix+1] ) \
+                                                        - coll2_fac * ( A2[ix  ] + A2[ix+1] ) \
+                                                        - coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i+1,), j+1, 1. * time_fac + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac \
-                                                        + 1. * coll0_fac * (A1[ix  ] + A1[ix+1]) \
-                                                        + 1. * coll1_sum_fac * ( A2[ix  ] + A2[ix+1] ) \
-                                                        + 1. * coll1_der_fac * ( A2[ix  ] + A2[ix+1] ) * ( v[j] + v[j+1] ) \
-                                                        + 1. * coll2_fac),
+                                                        - coll0_fac * 1. \
+                                                        + coll1_fac * ( v[j  ] + v[j+1] - A1[ix  ] - A1[ix+1] ) \
+                                                        + coll2_fac * ( A2[ix  ] + A2[ix+1] ) ),
                             ((i-1,), self.nv,    + 2. * (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * arak_fac \
                                                  + 1. * (f_ave[ix-1, j+1] - f_ave[ix-1, j-1]) * arak_fac),
                             ((i,  ), self.nv,    + 1. * (f_ave[ix-1, j-1] - f_ave[ix+1, j-1]) * arak_fac \
@@ -374,7 +322,6 @@ cdef class PETScJacobian(object):
                             ((i+1,), self.nv,    + 2. * (f_ave[ix,   j-1] - f_ave[ix,   j+1]) * arak_fac \
                                                  + 1. * (f_ave[ix+1, j-1] - f_ave[ix+1, j+1]) * arak_fac),
                         ]:                        
-                        
                         
                         col.index = index
                         col.field = field
