@@ -185,43 +185,41 @@ cdef class PETScFunction(object):
             ix = i-xs+1
             iy = i-xs
             
-#            mom_np[iy] = 0.
-#            mom_nh[iy] = 0.
-#            mom_up[iy] = 0.
-#            mom_uh[iy] = 0.
-#            mom_ep[iy] = 0.
-#            mom_eh[iy] = 0.
-#            
-#            for j in np.arange(0, (self.nv-1)/2):
-#                mom_np[iy] += fp[ix, j] + fp[ix, self.nv-1-j]
-#                mom_nh[iy] += fh[ix, j] + fh[ix, self.nv-1-j]
-#                mom_up[iy] += self.v[j]    * fp[ix, j]
-#                mom_uh[iy] += self.v[j]    * fh[ix, j]
-#                mom_ep[iy] += self.v[j]**2 * fp[ix, j]
-#                mom_eh[iy] += self.v[j]**2 * fh[ix, j]
-#                mom_up[iy] += self.v[self.nv-1-j]    * fp[ix, self.nv-1-j]
-#                mom_uh[iy] += self.v[self.nv-1-j]    * fh[ix, self.nv-1-j]
-#                mom_ep[iy] += self.v[self.nv-1-j]**2 * fp[ix, self.nv-1-j]
-#                mom_eh[iy] += self.v[self.nv-1-j]**2 * fh[ix, self.nv-1-j]
-#
-#            mom_up[iy] += self.v[(self.nv-1)/2]    * fp[ix, (self.nv-1)/2]
-#            mom_uh[iy] += self.v[(self.nv-1)/2]    * fh[ix, (self.nv-1)/2]
-#            mom_ep[iy] += self.v[(self.nv-1)/2]**2 * fp[ix, (self.nv-1)/2]
-#            mom_eh[iy] += self.v[(self.nv-1)/2]**2 * fh[ix, (self.nv-1)/2]
-#                
-#            mom_np[iy] *= self.hv
-#            mom_nh[iy] *= self.hv
-#            mom_up[iy] *= self.hv / mom_np[iy]
-#            mom_uh[iy] *= self.hv / mom_nh[iy]
-#            mom_ep[iy] *= self.hv
-#            mom_eh[iy] *= self.hv
+            mom_np[iy] = 0.
+            mom_nh[iy] = 0.
+            mom_up[iy] = 0.
+            mom_uh[iy] = 0.
+            mom_ep[iy] = 0.
+            mom_eh[iy] = 0.
             
-            mom_np[iy] = fp[ix, :].sum() * self.hv
-            mom_nh[iy] = fh[ix, :].sum() * self.hv
-            mom_up[iy] = ( self.v    * fp[ix, :] ).sum() * self.hv / mom_np[iy]
-            mom_uh[iy] = ( self.v    * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
-            mom_ep[iy] = ( self.v**2 * fp[ix, :] ).sum() * self.hv
-            mom_eh[iy] = ( self.v**2 * fh[ix, :] ).sum() * self.hv
+            for j in np.arange(0, (self.nv-1)/2):
+                mom_np[iy] += fp[ix, j] + fp[ix, self.nv-1-j]
+                mom_nh[iy] += fh[ix, j] + fh[ix, self.nv-1-j]
+                mom_up[iy] += self.v[j]    * fp[ix, j] + self.v[self.nv-1-j]    * fp[ix, self.nv-1-j]
+                mom_uh[iy] += self.v[j]    * fh[ix, j] + self.v[self.nv-1-j]    * fh[ix, self.nv-1-j]
+                mom_ep[iy] += self.v[j]**2 * fp[ix, j] + self.v[self.nv-1-j]**2 * fp[ix, self.nv-1-j]
+                mom_eh[iy] += self.v[j]**2 * fh[ix, j] + self.v[self.nv-1-j]**2 * fh[ix, self.nv-1-j]
+
+            mom_np[iy] += fp[ix, (self.nv-1)/2]
+            mom_nh[iy] += fh[ix, (self.nv-1)/2]
+            mom_up[iy] += self.v[(self.nv-1)/2]    * fp[ix, (self.nv-1)/2]
+            mom_uh[iy] += self.v[(self.nv-1)/2]    * fh[ix, (self.nv-1)/2]
+            mom_ep[iy] += self.v[(self.nv-1)/2]**2 * fp[ix, (self.nv-1)/2]
+            mom_eh[iy] += self.v[(self.nv-1)/2]**2 * fh[ix, (self.nv-1)/2]
+                
+            mom_np[iy] *= self.hv
+            mom_nh[iy] *= self.hv
+            mom_up[iy] *= self.hv / mom_np[iy]
+            mom_uh[iy] *= self.hv / mom_nh[iy]
+            mom_ep[iy] *= self.hv
+            mom_eh[iy] *= self.hv
+            
+#            mom_np[iy] = fp[ix, :].sum() * self.hv
+#            mom_nh[iy] = fh[ix, :].sum() * self.hv
+#            mom_up[iy] = ( self.v    * fp[ix, :] ).sum() * self.hv / mom_np[iy]
+#            mom_uh[iy] = ( self.v    * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
+#            mom_ep[iy] = ( self.v**2 * fp[ix, :] ).sum() * self.hv
+#            mom_eh[iy] = ( self.v**2 * fh[ix, :] ).sum() * self.hv
             
             denom_p = mom_np[iy] * mom_up[iy]**2 - mom_ep[iy]  
             denom_h = mom_nh[iy] * mom_uh[iy]**2 - mom_eh[iy]  
