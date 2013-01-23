@@ -67,10 +67,8 @@ cdef class PETScJacobian(object):
         self.Fh  = self.da1.createGlobalVec()
         
         # create moment vectors
-        self.A1p = self.dax.createGlobalVec()
-        self.A1h = self.dax.createGlobalVec()
-        self.A2p = self.dax.createGlobalVec()
-        self.A2h = self.dax.createGlobalVec()
+        self.A1 = self.dax.createGlobalVec()
+        self.A2 = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -79,10 +77,8 @@ cdef class PETScJacobian(object):
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
 
-        self.localA1p = dax.createLocalVec()
-        self.localA1h = dax.createLocalVec()
-        self.localA2p = dax.createLocalVec()
-        self.localA2h = dax.createLocalVec()
+        self.localA1 = dax.createLocalVec()
+        self.localA2 = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -163,69 +159,43 @@ cdef class PETScJacobian(object):
 
         
         # calculate moments
-        cdef np.ndarray[np.float64_t, ndim=1] A1p = self.dax.getVecArray(self.A1p)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A1h = self.dax.getVecArray(self.A1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2p = self.dax.getVecArray(self.A2p)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2h = self.dax.getVecArray(self.A2h)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.A1)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.A2)[...]
 
-        cdef np.ndarray[np.float64_t, ndim=1] mom_np = np.zeros_like(A1p)
-        cdef np.ndarray[np.float64_t, ndim=1] mom_nh = np.zeros_like(A1h)
-        cdef np.ndarray[np.float64_t, ndim=1] mom_up = np.zeros_like(A1p)
-        cdef np.ndarray[np.float64_t, ndim=1] mom_uh = np.zeros_like(A1h)
-        cdef np.ndarray[np.float64_t, ndim=1] mom_ep = np.zeros_like(A1p)
-        cdef np.ndarray[np.float64_t, ndim=1] mom_eh = np.zeros_like(A1h)
+        cdef np.ndarray[np.float64_t, ndim=1] mom_n = np.zeros_like(A1)         # density
+        cdef np.ndarray[np.float64_t, ndim=1] mom_u = np.zeros_like(A1)         # mean velocity
+        cdef np.ndarray[np.float64_t, ndim=1] mom_e = np.zeros_like(A1)         # energy
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
-            mom_np[iy] = 0.
-            mom_nh[iy] = 0.
-            mom_up[iy] = 0.
-            mom_uh[iy] = 0.
-            mom_ep[iy] = 0.
-            mom_eh[iy] = 0.
+            mom_n[iy] = 0.
+            mom_u[iy] = 0.
+            mom_e[iy] = 0.
             
             for j in np.arange(0, (self.nv-1)/2):
-                mom_np[iy] += fp[ix, j] + fp[ix, self.nv-1-j]
-                mom_nh[iy] += fh[ix, j] + fh[ix, self.nv-1-j]
-                mom_up[iy] += self.v[j]    * fp[ix, j] + self.v[self.nv-1-j]    * fp[ix, self.nv-1-j]
-                mom_uh[iy] += self.v[j]    * fh[ix, j] + self.v[self.nv-1-j]    * fh[ix, self.nv-1-j]
-                mom_ep[iy] += self.v[j]**2 * fp[ix, j] + self.v[self.nv-1-j]**2 * fp[ix, self.nv-1-j]
-                mom_eh[iy] += self.v[j]**2 * fh[ix, j] + self.v[self.nv-1-j]**2 * fh[ix, self.nv-1-j]
+                mom_n[iy] += fp[ix, j] + fp[ix, self.nv-1-j]
+                mom_u[iy] += self.v[j]    * fp[ix, j] + self.v[self.nv-1-j]    * fp[ix, self.nv-1-j]
+                mom_e[iy] += self.v[j]**2 * fp[ix, j] + self.v[self.nv-1-j]**2 * fp[ix, self.nv-1-j]
 
-            mom_np[iy] += fp[ix, (self.nv-1)/2]
-            mom_nh[iy] += fh[ix, (self.nv-1)/2]
-            mom_up[iy] += self.v[(self.nv-1)/2]    * fp[ix, (self.nv-1)/2]
-            mom_uh[iy] += self.v[(self.nv-1)/2]    * fh[ix, (self.nv-1)/2]
-            mom_ep[iy] += self.v[(self.nv-1)/2]**2 * fp[ix, (self.nv-1)/2]
-            mom_eh[iy] += self.v[(self.nv-1)/2]**2 * fh[ix, (self.nv-1)/2]
+            mom_n[iy] += fp[ix, (self.nv-1)/2]
+            mom_u[iy] += self.v[(self.nv-1)/2]    * fp[ix, (self.nv-1)/2]
+            mom_e[iy] += self.v[(self.nv-1)/2]**2 * fp[ix, (self.nv-1)/2]
                 
-            mom_np[iy] *= self.hv
-            mom_nh[iy] *= self.hv
-            mom_up[iy] *= self.hv / mom_np[iy]
-            mom_uh[iy] *= self.hv / mom_nh[iy]
-            mom_ep[iy] *= self.hv / mom_np[iy]
-            mom_eh[iy] *= self.hv / mom_nh[iy]
+            mom_n[iy] *= self.hv
+            mom_u[iy] *= self.hv / mom_n[iy]
+            mom_e[iy] *= self.hv / mom_n[iy]
             
-            A1p[iy] = mom_up[iy]
-            A1h[iy] = mom_uh[iy]
-            A2p[iy] = 1. / ( mom_up[iy]**2 - mom_ep[iy] )
-            A2h[iy] = 1. / ( mom_uh[iy]**2 - mom_eh[iy] )
+            A1[iy] = mom_u[iy]
+            A2[iy] = 1. / ( mom_u[iy]**2 - mom_e[iy] )
         
         
-        self.dax.globalToLocal(self.A1p, self.localA1p)
-        self.dax.globalToLocal(self.A1h, self.localA1h)
-        self.dax.globalToLocal(self.A2p, self.localA2p)
-        self.dax.globalToLocal(self.A2h, self.localA2h)
+        self.dax.globalToLocal(self.A1, self.localA1)
+        self.dax.globalToLocal(self.A2, self.localA2)
         
-        A1p = self.dax.getVecArray(self.localA1p)[...]
-        A1h = self.dax.getVecArray(self.localA1h)[...]
-        A2p = self.dax.getVecArray(self.localA2p)[...]
-        A2h = self.dax.getVecArray(self.localA2h)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] A1 = A1p
-        cdef np.ndarray[np.float64_t, ndim=1] A2 = A2p
+        A1 = self.dax.getVecArray(self.localA1)[...]
+        A2 = self.dax.getVecArray(self.localA2)[...]
         
         
         A.zeroEntries()
@@ -294,21 +264,14 @@ cdef class PETScJacobian(object):
 #                            ((i-1,), j+1, 1. * time_fac - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac),
 #                            ((i,  ), j-1, 2. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
 #                                                        + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac \
-#                                                        - 1. * coll0_fac * A1[ix] \
-#                                                        + 1. * coll1_sum_fac * A2[ix] \
-#                                                        - 1. * coll1_der_fac * A2[ix] * (  v[j-1] +  v[j  ] ) \
-#                                                        + 1. * coll2_fac),
+#                                                        - coll1_fac * ( A1[ix] - v[j-1] ) * A2[ix] \
+#                                                        + coll2_fac),
 #                            ((i,  ), j  , 4. * time_fac \
-#                                                        + 2. * coll1_sum_fac * A2[ix] \
-#                                                        - 1. * coll1_der_fac * A2[ix] * ( v[j  ] + v[j+1] ) \
-#                                                        + 1. * coll1_der_fac * A2[ix] * ( v[j-1] + v[j  ] ) \
 #                                                        - 2. * coll2_fac),
 #                            ((i,  ), j+1, 2. * time_fac - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
 #                                                        - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac \
-#                                                        + 1. * coll0_fac * A1[ix] \
-#                                                        + 1. * coll1_sum_fac * A2[ix] \
-#                                                        + 1. * coll1_der_fac * A2[ix] * ( v[j] + v[j+1] ) \
-#                                                        + 1. * coll2_fac),
+#                                                        + coll1_fac * ( A1[ix] - v[j+1] ) * A2[ix] \
+#                                                        + coll2_fac),
 #                            ((i+1,), j-1, 1. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac),
 #                            ((i+1,), j  , 2. * time_fac + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
 #                                                        + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac),

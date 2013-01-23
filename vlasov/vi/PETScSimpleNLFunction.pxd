@@ -66,7 +66,6 @@ cdef class PETScFunction(object):
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
                                             np.uint64_t i, np.uint64_t j)
 
-    
     cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.ndarray[np.float64_t, ndim=1] A1,
                                   np.ndarray[np.float64_t, ndim=1] A2,

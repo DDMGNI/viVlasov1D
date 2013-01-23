@@ -65,6 +65,7 @@ class petscVP1Dbase(object):
 #        OptDB.setValue('ksp_constant_null_space', '')
         
         OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
+        OptDB.setValue('ksp_atol',   self.cfg['solver']['petsc_ksp_atol'])
         OptDB.setValue('ksp_max_it', self.cfg['solver']['petsc_ksp_max_iter'])
 
 #        OptDB.setValue('ksp_monitor', '')
