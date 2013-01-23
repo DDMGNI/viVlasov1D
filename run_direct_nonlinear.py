@@ -203,7 +203,7 @@ class petscVP1D(petscVP1Dbase):
                 self.time.setValue(0, self.ht*itime)
             
             # calculate initial guess for distribution function
-#            self.initial_guess()
+            self.initial_guess()
             
             # solve
             self.snes.solve(None, self.x)
