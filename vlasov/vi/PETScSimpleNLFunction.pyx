@@ -211,23 +211,16 @@ cdef class PETScFunction(object):
             mom_nh[iy] *= self.hv
             mom_up[iy] *= self.hv / mom_np[iy]
             mom_uh[iy] *= self.hv / mom_nh[iy]
-            mom_ep[iy] *= self.hv
-            mom_eh[iy] *= self.hv
+            mom_ep[iy] *= self.hv / mom_np[iy]
+            mom_eh[iy] *= self.hv / mom_nh[iy]
             
-#            mom_np[iy] = fp[ix, :].sum() * self.hv
-#            mom_nh[iy] = fh[ix, :].sum() * self.hv
-#            mom_up[iy] = ( self.v    * fp[ix, :] ).sum() * self.hv / mom_np[iy]
-#            mom_uh[iy] = ( self.v    * fh[ix, :] ).sum() * self.hv / mom_nh[iy]
-#            mom_ep[iy] = ( self.v**2 * fp[ix, :] ).sum() * self.hv
-#            mom_eh[iy] = ( self.v**2 * fh[ix, :] ).sum() * self.hv
+            denom_p = mom_up[iy]**2 - mom_ep[iy]  
+            denom_h = mom_uh[iy]**2 - mom_eh[iy]  
             
-            denom_p = mom_np[iy] * mom_up[iy]**2 - mom_ep[iy]  
-            denom_h = mom_nh[iy] * mom_uh[iy]**2 - mom_eh[iy]  
-            
-            A1p[iy] = + mom_np[iy] * mom_up[iy] / denom_p
-            A1h[iy] = + mom_nh[iy] * mom_uh[iy] / denom_h
-            A2p[iy] = - mom_np[iy] / denom_p
-            A2h[iy] = - mom_nh[iy] / denom_h
+            A1p[iy] = + mom_up[iy] / denom_p
+            A1h[iy] = + mom_uh[iy] / denom_h
+            A2p[iy] = - 1. / denom_p
+            A2h[iy] = - 1. / denom_h
         
         
         self.dax.globalToLocal(self.A1p, self.localA1p)
