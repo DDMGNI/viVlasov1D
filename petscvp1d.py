@@ -31,19 +31,19 @@ class petscVP1Dbase(object):
 
         
         # load run config file
-        cfg = Config(cfgfile)
+        self.cfg = Config(cfgfile)
         
         # timestep setup
-        self.ht    = cfg['grid']['ht']              # timestep size
-        self.nt    = cfg['grid']['nt']              # number of timesteps
-        self.nsave = cfg['io']['nsave']             # save only every nsave'th timestep
+        self.ht    = self.cfg['grid']['ht']              # timestep size
+        self.nt    = self.cfg['grid']['nt']              # number of timesteps
+        self.nsave = self.cfg['io']['nsave']             # save only every nsave'th timestep
         
         # grid setup
-        self.nx = cfg['grid']['nx']                 # number of points in x
-        self.nv = cfg['grid']['nv']                 # number of points in v
-        L       = cfg['grid']['L']
-        vMin    = cfg['grid']['vmin']
-        vMax    = cfg['grid']['vmax']
+        self.nx = self.cfg['grid']['nx']                 # number of points in x
+        self.nv = self.cfg['grid']['nv']                 # number of points in v
+        L       = self.cfg['grid']['L']
+        vMin    = self.cfg['grid']['vmin']
+        vMax    = self.cfg['grid']['vmax']
         
         self.hx = L / self.nx                       # gridstep size in x
         self.hv = (vMax - vMin) / (self.nv-1)       # gridstep size in v
@@ -54,9 +54,9 @@ class petscVP1Dbase(object):
         if PETSc.COMM_WORLD.getRank() == 0:
             self.time.setValue(0, 0.0)
         
-        self.poisson = cfg['solver']['poisson_const']     # Poisson constant
-        self.alpha   = cfg['solver']['alpha']             # collision constant
-#        self.alpha   = self.hv * cfg['solver']['alpha']   # collision constant
+        self.poisson = self.cfg['solver']['poisson_const']     # Poisson constant
+        self.alpha   = self.cfg['solver']['alpha']             # collision constant
+#        self.alpha   = self.hv * self.cfg['solver']['alpha']   # collision constant
         
         
         # set some PETSc options
@@ -64,8 +64,8 @@ class petscVP1Dbase(object):
         
 #        OptDB.setValue('ksp_constant_null_space', '')
         
-        OptDB.setValue('ksp_rtol', cfg['solver']['petsc_residual'])
-        OptDB.setValue('ksp_max_it', cfg['solver']['petsc_max_iter'])
+        OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
+        OptDB.setValue('ksp_max_it', self.cfg['solver']['petsc_ksp_max_iter'])
 
 #        OptDB.setValue('ksp_monitor', '')
 #        OptDB.setValue('log_info', '')
@@ -224,7 +224,7 @@ class petscVP1Dbase(object):
         if PETSc.COMM_WORLD.getRank() == 0:
             print()
             print("Config File: %s" % cfgfile)
-            print("Output File: %s" % cfg['io']['hdf5_output'])
+            print("Output File: %s" % self.cfg['io']['hdf5_output'])
             print()
             print("nt = %i" % (self.nt))
             print("nx = %i" % (self.nx))
@@ -248,8 +248,8 @@ class petscVP1Dbase(object):
         
         (xs, xe), = self.da1.getRanges()
         
-        if cfg['initial_data']['distribution_python'] != None:
-            init_data = __import__("runs." + cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
+        if self.cfg['initial_data']['distribution_python'] != None:
+            init_data = __import__("runs." + self.cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
@@ -262,24 +262,24 @@ class petscVP1Dbase(object):
             T0_arr[xs:xe] = 0.
         
         else:
-            if cfg['initial_data']['density_python'] != None:
-                init_data = __import__("runs." + cfg['initial_data']['density_python'], globals(), locals(), ['distribution'], 0)
+            if self.cfg['initial_data']['density_python'] != None:
+                init_data = __import__("runs." + self.cfg['initial_data']['density_python'], globals(), locals(), ['distribution'], 0)
                 
                 for i in range(xs, xe):
                     n0_arr[i] = init_data.density(self.xGrid[i], L) 
             
             else:
-                n0_arr[xs:xe] = cfg['initial_data']['density']            
+                n0_arr[xs:xe] = self.cfg['initial_data']['density']            
             
             
-            if cfg['initial_data']['temperature_python'] != None:
-                init_data = __import__("runs." + cfg['initial_data']['temperature_python'], globals(), locals(), ['distribution'], 0)
+            if self.cfg['initial_data']['temperature_python'] != None:
+                init_data = __import__("runs." + self.cfg['initial_data']['temperature_python'], globals(), locals(), ['distribution'], 0)
                 
                 for i in range(xs, xe):
                     T0_arr[i] = init_data.temperature(self.xGrid[i]) 
             
             else:
-                T0_arr[xs:xe] = cfg['initial_data']['temperature']            
+                T0_arr[xs:xe] = self.cfg['initial_data']['temperature']            
             
             
             for i in range(xs, xe):
@@ -312,7 +312,7 @@ class petscVP1Dbase(object):
         
         
         # create HDF5 output file
-        self.hdf5_viewer = PETSc.Viewer().createHDF5(cfg['io']['hdf5_output'],
+        self.hdf5_viewer = PETSc.Viewer().createHDF5(self.cfg['io']['hdf5_output'],
                                           mode=PETSc.Viewer.Mode.WRITE,
                                           comm=PETSc.COMM_WORLD)
         

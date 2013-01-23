@@ -16,8 +16,12 @@ import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
+
 from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
 from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
+
+#from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
 
 from petscvp1d import petscVP1Dbase
 
@@ -40,21 +44,15 @@ class petscVP1D(petscVP1Dbase):
         # set some PETSc options
         OptDB = PETSc.Options()
         
-        OptDB.setValue('snes_rtol', 1E-20)
-#        OptDB.setValue('snes_atol', 1E-12)
-#        OptDB.setValue('snes_atol', 1E-1)
-#        OptDB.setValue('snes_atol', 1E-3)
-#        OptDB.setValue('snes_atol', 1E-4)
-#        OptDB.setValue('snes_atol', 1E-5)
-#        OptDB.setValue('snes_atol', 1E-6)
-#        OptDB.setValue('snes_atol', 1E-10)
-        OptDB.setValue('snes_atol', 1E-11)
-#        OptDB.setValue('snes_atol', 1E-12)
-        OptDB.setValue('snes_stol', 1E-14)
+        OptDB.setValue('snes_rtol',   self.cfg['solver']['petsc_snes_rtol'])
+        OptDB.setValue('snes_atol',   self.cfg['solver']['petsc_snes_atol'])
+        OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
+        OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-        OptDB.setValue('ksp_monitor', '')
+        OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
-#        OptDB.setValue('log_info', '')
+        
+#        OptDB.setValue('log_info',    '')
 #        OptDB.setValue('log_summary', '')
 
 
@@ -73,10 +71,15 @@ class petscVP1D(petscVP1Dbase):
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.poisson, alpha=self.alpha)
         
+#        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
+#                                        self.h0, self.vGrid,
+#                                        self.nx, self.nv, self.ht, self.hx, self.hv,
+#                                        self.poisson, alpha=self.alpha)
+        
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.poisson, alpha=self.alpha)
+                                        self.poisson)
         
         
         # initialise matrix
@@ -200,7 +203,7 @@ class petscVP1D(petscVP1Dbase):
                 self.time.setValue(0, self.ht*itime)
             
             # calculate initial guess for distribution function
-            self.initial_guess()
+#            self.initial_guess()
             
             # solve
             self.snes.solve(None, self.x)

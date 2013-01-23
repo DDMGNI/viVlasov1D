@@ -12,19 +12,24 @@ L = 0.0
 vmin = -5.0
 vmax = 5.0
 
-boundary_condition = None
-
 
 [solver]
 
-solver_module = vlasov.vi.sbs_sym_arakawa.scipy_sparse
-solver_method = newton
+petsc_ksp_type = gmres
+petsc_ksp_rtol = 1e-07
+petsc_ksp_max_iter = 100
+
+petsc_pc_type = none
+
+petsc_snes_rtol = 1e-20
+petsc_snes_atol = 1e-11
+petsc_snes_stol = 1e-14
+
 poisson_const = 1.0
+alpha = 0.0
 
 
 [initial_data]
-
-evolve = False
 
 mass = 1.0
 
@@ -54,14 +59,3 @@ potential_python = None
 hdf5_input = None
 hdf5_output = None
 nsave = 1
-
-
-[mode]
-
-interactive = False
-
-
-[plot]
-
-nplot = 1
-ntime = 0
