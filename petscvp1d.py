@@ -223,6 +223,9 @@ class petscVP1Dbase(object):
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print()
+            print("Config File: %s" % cfgfile)
+            print("Output File: %s" % cfg['io']['hdf5_output'])
+            print()
             print("nt = %i" % (self.nt))
             print("nx = %i" % (self.nx))
             print("nv = %i" % (self.nv))
