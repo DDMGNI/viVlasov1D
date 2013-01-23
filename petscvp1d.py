@@ -54,10 +54,10 @@ class petscVP1Dbase(object):
         if PETSc.COMM_WORLD.getRank() == 0:
             self.time.setValue(0, 0.0)
         
-        self.poisson = self.cfg['solver']['poisson_const']     # Poisson constant
-        self.alpha   = self.cfg['solver']['alpha']             # collision constant
-#        self.alpha   = self.hv * self.cfg['solver']['alpha']   # collision constant
+        self.coll_freq = self.cfg['solver']['coll_freq']             # collision frequency
         
+        self.charge = self.cfg['initial_data']['charge']
+        self.mass   = self.cfg['initial_data']['mass']
         
         # set some PETSc options
         OptDB = PETSc.Options()
@@ -173,7 +173,7 @@ class petscVP1Dbase(object):
         # create Vlasov matrix and solver
         self.vlasov_mat = PETScVlasovSolver(self.da1, self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.alpha)
+                                            self.coll_freq)
         
         self.vlasov_A = PETSc.Mat().createPython([self.f.getSizes(), self.fb.getSizes()], comm=PETSc.COMM_WORLD)
         self.vlasov_A.setPythonContext(self.vlasov_mat)
@@ -190,7 +190,7 @@ class petscVP1Dbase(object):
         # create Poisson matrix and solver
         self.poisson_mat = PETScPoissonSolver(self.da1, self.dax, 
                                               self.nx, self.nv, self.hx, self.hv,
-                                              self.poisson)
+                                              self.charge)
         
         self.poisson_A = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], comm=PETSc.COMM_WORLD)
         self.poisson_A.setPythonContext(self.poisson_mat)
@@ -239,9 +239,10 @@ class petscVP1Dbase(object):
             print("vMin = %e" % (vMin))
             print("vMax = %e" % (vMax))
             print()
-            print("alpha  = %e" % (self.alpha))
+            print("nu   = %e" % (self.coll_freq))
             print()
-            print("CFL    = %e" % (self.hx / vMax))
+            print("CFL  = %e" % (self.hx / vMax))
+            print()
             print()
         
         

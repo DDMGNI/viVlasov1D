@@ -64,22 +64,22 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson, alpha=self.alpha)
+                                            self.charge, alpha=self.coll_freq)
         
         self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, 
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.poisson, alpha=self.alpha)
+                                            self.charge, alpha=self.coll_freq)
         
 #        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
 #                                        self.h0, self.vGrid,
 #                                        self.nx, self.nv, self.ht, self.hx, self.hv,
-#                                        self.poisson, alpha=self.alpha)
+#                                        self.charge, alpha=self.coll_freq)
         
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.poisson)
+                                        self.charge)
         
         
         # initialise matrix
@@ -97,6 +97,8 @@ class petscVP1D(petscVP1Dbase):
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
+#        self.snes.getKSP().setType('gmres')
+#        self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
@@ -110,12 +112,11 @@ class petscVP1D(petscVP1Dbase):
         # create Poisson object
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
                                               self.nx, self.nv, self.hx, self.hv,
-                                              self.poisson)
+                                              self.charge)
         
         # initialise Poisson matrix
         self.poisson_A = self.dax.createMat()
         self.poisson_A.setOption(self.poisson_A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-#        self.poisson_A.setType('mpiaij')
         self.poisson_A.setUp()
         
         # create linear Poisson solver
@@ -168,6 +169,7 @@ class petscVP1D(petscVP1Dbase):
         self.ksp.setOperators(self.A)
         self.ksp.setType('preonly')
         self.ksp.getPC().setType('lu')
+#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.ksp.getPC().setFactorSolverPackage('mumps')
     
         # build matrix

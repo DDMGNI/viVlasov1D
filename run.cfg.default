@@ -17,21 +17,26 @@ vmax = 5.0
 
 petsc_ksp_type = gmres
 petsc_ksp_rtol = 1e-07
-petsc_ksp_max_iter = 100
+# (relative decrease in the residual norm)
+petsc_ksp_atol = 1e-10
+# (absolute size of the residual norm)
+petsc_ksp_max_iter = 1000
 
 petsc_pc_type = none
 
 petsc_snes_rtol = 1e-20
-petsc_snes_atol = 1e-11
+petsc_snes_atol = 1e-12
 petsc_snes_stol = 1e-14
+# of the norm of the change in the solution between steps
+petsc_snes_max_iter = 20
 
-poisson_const = 1.0
-alpha = 0.0
+coll_freq = 0.0
 
 
 [initial_data]
 
 mass = 1.0
+charge = 1.0
 
 distribution = 0.0
 density = 1.0
