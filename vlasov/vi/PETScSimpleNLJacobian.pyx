@@ -349,7 +349,7 @@ cdef class PETScJacobian(object):
                             ((i,  ), j+1, 2. * time_fac - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac \
                                                         - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac \
                                                         + 2. * coll0_fac * A1[ix] \
-                                                        + 2. * coll1_fac * A2[ix] * v[j] \
+                                                        + 2. * coll1_fac * A2[ix] * v[j-1] \
                                                         + 2. * coll2_fac),
                             ((i+1,), j-1, 1. * time_fac + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac \
                                                         - 1. * coll0_fac * A1[ix+1] \
