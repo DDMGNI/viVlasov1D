@@ -122,7 +122,7 @@ cdef class PETScJacobian(object):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs
         
-        cdef np.float64_t denom
+        cdef np.float64_t denom_p, denom_h
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
@@ -222,8 +222,8 @@ cdef class PETScJacobian(object):
             denom_p = mom_np[iy] * mom_up[iy]**2 - mom_ep[iy]  
             denom_h = mom_nh[iy] * mom_uh[iy]**2 - mom_eh[iy]  
             
-            A1p[iy] = + mom_np[iy] * mom_up[iy] / denom
-            A1h[iy] = + mom_nh[iy] * mom_uh[iy] / denom
+            A1p[iy] = + mom_np[iy] * mom_up[iy] / denom_p
+            A1h[iy] = + mom_nh[iy] * mom_uh[iy] / denom_h
             A2p[iy] = - mom_np[iy] / denom_p
             A2h[iy] = - mom_nh[iy] / denom_h
         

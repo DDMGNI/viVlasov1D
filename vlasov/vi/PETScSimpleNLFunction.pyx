@@ -138,7 +138,7 @@ cdef class PETScFunction(object):
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
-        cdef np.float64_t laplace, integral, nmean, phisum, denom
+        cdef np.float64_t laplace, integral, nmean, phisum, denom_p, denom_h
         
         nmean  = F.sum() * self.hv / self.nx
 #        nmean += self.Fh.sum() * self.hv / self.nx
