@@ -4,6 +4,10 @@ Created on Apr 06, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
+import matplotlib
+#matplotlib.use('AGG')
+matplotlib.use('PDF')
+
 #import StringIO
 import argparse
 import h5py

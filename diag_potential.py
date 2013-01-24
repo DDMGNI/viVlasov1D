@@ -11,7 +11,7 @@ import h5py
 
 import matplotlib.pyplot as plt
 
-import vlasov.core
+from vlasov.core import Grid, Potential
 
 
 class potential(object):
@@ -29,9 +29,9 @@ class potential(object):
         
         self.hdf5 = h5py.File(hdf5_file, 'r')
         
-        self.grid         = core.Grid                (hdf5_in=self.hdf5, replay=True)
-        self.potential    = core.Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
-                                                      poisson_const=-1.)
+        self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
+        self.potential    = Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
+                                                 poisson_const=-1.)
         
         
         self.energy = np.zeros(self.grid.nt+1)
