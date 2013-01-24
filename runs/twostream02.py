@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from data.maxwell import maxwellian
+from vlasov.data.maxwell import maxwellian
 
 
 def distribution(x, v):
