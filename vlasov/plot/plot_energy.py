@@ -153,17 +153,17 @@ class PlotEnergy(object):
         plt.figure(1)
         filename = str('F_%06d' % self.iTime)
         plt.savefig(filename + '.png', dpi=300)
-#        plt.savefig(filename + '.pdf')
+        plt.savefig(filename + '.pdf')
         
         plt.figure(2)
         filename = str('NLE_%06d' % self.iTime)
         plt.savefig(filename + '.png', dpi=300)
-#        plt.savefig(filename + '.pdf')
+        plt.savefig(filename + '.pdf')
 
         plt.figure(3)
         filename = str('E_%06d' % self.iTime)
         plt.savefig(filename + '.png', dpi=300)
-#        plt.savefig(filename + '.pdf')
+        plt.savefig(filename + '.pdf')
 
 
     
