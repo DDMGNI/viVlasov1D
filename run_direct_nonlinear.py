@@ -15,13 +15,14 @@ import time
 import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
-from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
 
-from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
+#from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
 
-#from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
+from vlasov.vi.PETScSimpleMatrixColl     import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
 
 from petscvp1d import petscVP1Dbase
 
@@ -71,15 +72,10 @@ class petscVP1D(petscVP1Dbase):
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.charge, alpha=self.coll_freq)
         
-#        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
-#                                        self.h0, self.vGrid,
-#                                        self.nx, self.nv, self.ht, self.hx, self.hv,
-#                                        self.charge, alpha=self.coll_freq)
-        
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)
+                                        self.charge, alpha=self.coll_freq)
         
         
         # initialise matrix
