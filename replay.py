@@ -10,9 +10,8 @@ import os, sys
 import numpy as np
 import h5py
 
-import matplotlib.animation as animation
 
-sys.path.append(os.getcwd())
+#sys.path.append(os.getcwd())
 
 
 from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
