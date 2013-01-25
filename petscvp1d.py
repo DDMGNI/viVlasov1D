@@ -176,7 +176,7 @@ class petscVP1Dbase(object):
         self.f.setName('f')
         self.n.setName('n')
         self.p.setName('phi')
-        self.p.setName('phi_ext')
+        self.p_ext.setName('phi_ext')
         
         
         # create Vlasov matrix and solver
