@@ -103,10 +103,6 @@ if __name__ == '__main__':
     pyvp = movie(args.hdf5_file, ntMax=args.ntmax, nTime=args.nt, nPlot=args.np,
                  vMax=args.v, cMax=args.cmax, cFac=args.cfac)
     
-    print
-    input('Hit any key to start replay.')
-    print
-    
     pyvp.run()
     
     print
