@@ -14,8 +14,7 @@ from petsc4py cimport PETSc
 
 from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import  PETScArakawa
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.vi.Toolbox import Toolbox
 
 
 cdef class PETScFunction(object):
@@ -29,7 +28,7 @@ cdef class PETScFunction(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, np.float64_t alpha=0.):
+                 np.float64_t charge, np.float64_t coll_freq=0.):
         '''
         Constructor
         '''
@@ -54,10 +53,10 @@ cdef class PETScFunction(object):
         self.hv2_inv = 1. / self.hv2
         
         # poisson constant
-        self.poisson_const = poisson_const
+        self.charge = charge
         
-        # collision constant
-        self.alpha = alpha
+        # collision frequency
+        self.nu = coll_freq
         
         # velocity grid
         self.v = v.copy()
@@ -91,8 +90,8 @@ cdef class PETScFunction(object):
         # kinetic Hamiltonian
         H0.copy(self.H0)
         
-        # create Arakawa solver object
-        self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
     def update_history(self, Vec F, Vec H1, Vec P):
@@ -252,8 +251,8 @@ cdef class PETScFunction(object):
                              + 1. * fp[ix+1, :].sum() \
                            ) * 0.25 * self.hv
                 
-#                y[iy, self.nv] = - laplace + self.poisson_const * (integral - nmean) #* self.hx2
-                y[iy, self.nv] = - laplace + self.poisson_const * (integral - 1.) #* self.hx2
+#                y[iy, self.nv] = - laplace + self.charge * (integral - nmean) #* self.hx2
+                y[iy, self.nv] = - laplace + self.charge * (integral - 1.) #* self.hx2
             
             # Vlasov Equation
             for j in np.arange(0, self.nv):
@@ -262,37 +261,12 @@ cdef class PETScFunction(object):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.time_derivative(fp, ix, j) \
-                             - self.time_derivative(fh, ix, j) \
-                             + self.arakawa.arakawa(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.alpha * self.coll1(fp, A1p, A2p, ix, j) \
-                             - 0.5 * self.alpha * self.coll1(fh, A1h, A2h, ix, j) \
-                             - self.alpha * self.coll2(f_ave, ix, j)
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
-                                            np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * f[i-1, j-1] \
-                   + 2. * f[i-1, j  ] \
-                   + 1. * f[i-1, j+1] \
-                   + 2. * f[i,   j-1] \
-                   + 4. * f[i,   j  ] \
-                   + 2. * f[i,   j+1] \
-                   + 1. * f[i+1, j-1] \
-                   + 2. * f[i+1, j  ] \
-                   + 1. * f[i+1, j+1] \
-                 ) / (16. * self.ht)
-        
-        return result
-
+                    y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
+                             - self.toolbox.time_derivative(fh, ix, j) \
+                             + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
+                             - 0.5 * self.nu * self.coll1(fp, A1p, A2p, ix, j) \
+                             - 0.5 * self.nu * self.coll1(fh, A1h, A2h, ix, j) \
+                             - self.nu * self.coll2(f_ave, ix, j)
 
 
 #    @cython.boundscheck(False)

@@ -11,9 +11,9 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.vi.Toolbox import Toolbox
 
 
 cdef class PETScJacobian(object):
@@ -26,7 +26,7 @@ cdef class PETScJacobian(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, np.float64_t alpha=0.):
+                 np.float64_t charge, np.float64_t coll_freq=0.):
         '''
         Constructor
         '''
@@ -51,10 +51,10 @@ cdef class PETScJacobian(object):
         self.hv2_inv = 1. / self.hv2 
         
         # poisson constant
-        self.poisson_const = poisson_const
+        self.charge = charge
         
-        # collision constant
-        self.alpha = alpha
+        # collision frequency
+        self.nu = coll_freq
         
         # velocity grid
         self.v = v.copy()
@@ -82,6 +82,10 @@ cdef class PETScJacobian(object):
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
+        
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+        
         
     
     def update_history(self, Vec F, Vec H1):
@@ -147,15 +151,15 @@ cdef class PETScJacobian(object):
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
-        cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
+        cdef np.float64_t poss_fac = 0.25 * self.hv * self.charge
         
-        cdef np.float64_t coll0_fac = - 0.5 * self.alpha * 0.25 * 0.5 / self.hv
-        cdef np.float64_t coll1_fac = - 0.5 * self.alpha * 0.25 * 0.5 / self.hv
-        cdef np.float64_t coll2_fac = - 0.5 * self.alpha * 0.25 * self.hv2_inv
+        cdef np.float64_t coll0_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
         
-#        cdef np.float64_t coll0_fac = - 0.5 * self.alpha * 0.5 / self.hv
-#        cdef np.float64_t coll1_fac = - 0.5 * self.alpha * 0.5 / self.hv
-#        cdef np.float64_t coll2_fac = - 0.5 * self.alpha * self.hv2_inv
+#        cdef np.float64_t coll0_fac = - 0.5 * self.nu * 0.5 / self.hv
+#        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.5 / self.hv
+#        cdef np.float64_t coll2_fac = - 0.5 * self.nu * self.hv2_inv
 
         
         # calculate moments

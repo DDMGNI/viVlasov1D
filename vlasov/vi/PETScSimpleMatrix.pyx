@@ -11,9 +11,9 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.vi.Toolbox import Toolbox
 
 
 cdef class PETScMatrix(object):
@@ -26,7 +26,7 @@ cdef class PETScMatrix(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, np.float64_t alpha=0.):
+                 np.float64_t charge, np.float64_t coll_freq=0.):
         '''
         Constructor
         '''
@@ -54,10 +54,10 @@ cdef class PETScMatrix(object):
         self.v = v.copy()
         
         # poisson constant
-        self.poisson_const = poisson_const
+        self.charge = charge
         
-        # collision parameter
-        self.alpha = alpha
+        # collision frequency
+        self.nu = coll_freq
         
         # create work and history vectors
         self.H0  = self.da1.createGlobalVec()
@@ -83,8 +83,8 @@ cdef class PETScMatrix(object):
         # kinetic Hamiltonian
         H0.copy(self.H0)
         
-        # create Arakawa solver object
-        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
     def update_history(self, Vec F, Vec H1):
@@ -109,7 +109,7 @@ cdef class PETScMatrix(object):
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
-        cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
+        cdef np.float64_t poss_fac = 0.25 * self.hv * self.charge
         
         
         A.zeroEntries()
@@ -295,7 +295,7 @@ cdef class PETScMatrix(object):
     def formRHS(self, Vec B):
         cdef np.int64_t i, j, ix, iy, xs, xe
         
-        cdef np.float64_t fsum = self.Fh.sum() * self.hv / self.nx
+        cdef np.float64_t fmean = self.Fh.sum() * self.hv / self.nx
         
         self.da1.globalToLocal(self.H0,  self.localH0)
 #        self.da1.globalToLocal(self.H1h, self.localH1h)
@@ -359,7 +359,7 @@ cdef class PETScMatrix(object):
                 b[iy, self.nv] = 0.
                 
             else:
-                b[iy, self.nv] = fsum * self.poisson_const
+                b[iy, self.nv] = fmean * self.charge
             
             
             # Vlasov equation
@@ -369,38 +369,13 @@ cdef class PETScMatrix(object):
                     b[iy, j] = 0.0
                     
                 else:
-                    b[iy, j] = self.time_derivative(fh, ix, j) \
-                             - 0.5 * self.arakawa.arakawa(fh, h0, ix, j) \
-                             + self.alpha * self.coll1(fh, A1, A2, ix, j) \
-                             + self.alpha * self.coll2(fh, ix, j)
-    
+                    b[iy, j] = self.toolbox.time_derivative(fh, ix, j) \
+                             - 0.5 * self.toolbox.arakawa(fh, h0, ix, j) \
+                             + self.nu * self.coll1(fh, A1, A2, ix, j) \
+                             + self.nu * self.coll2(fh, ix, j)
 
 
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
-                                            np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * x[i-1, j-1] \
-                   + 2. * x[i-1, j  ] \
-                   + 1. * x[i-1, j+1] \
-                   + 2. * x[i,   j-1] \
-                   + 4. * x[i,   j  ] \
-                   + 2. * x[i,   j+1] \
-                   + 1. * x[i+1, j-1] \
-                   + 2. * x[i+1, j  ] \
-                   + 1. * x[i+1, j+1] \
-                 ) / (16. * self.ht)
-        
-        return result
-    
-    
-    
+
     @cython.boundscheck(False)
     cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
                                   np.ndarray[np.float64_t, ndim=1] A1,
@@ -441,4 +416,6 @@ cdef class PETScMatrix(object):
                  ) * 0.25 * self.hv2_inv
         
         return result
+    
+    
     

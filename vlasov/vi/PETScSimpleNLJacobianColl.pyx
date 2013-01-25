@@ -13,7 +13,7 @@ from petsc4py import PETSc
 
 from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.vi.Toolbox import Toolbox
 
 
 cdef class PETScJacobian(object):
@@ -26,7 +26,7 @@ cdef class PETScJacobian(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const, np.float64_t alpha=0.):
+                 np.float64_t charge, np.float64_t coll_freq=0.):
         '''
         Constructor
         '''
@@ -51,10 +51,10 @@ cdef class PETScJacobian(object):
         self.hv2_inv = 1. / self.hv2 
         
         # poisson constant
-        self.poisson_const = poisson_const
+        self.charge = charge
         
-        # collision constant
-        self.alpha = alpha
+        # collision frequency
+        self.nu = coll_freq
         
         # velocity grid
         self.v = v.copy()
@@ -63,8 +63,11 @@ cdef class PETScJacobian(object):
         self.H0  = self.da1.createGlobalVec()
         self.H1p = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
+        self.H2  = self.da1.createGlobalVec()
+        self.H2h = self.da1.createGlobalVec()
         self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
+        self.H2.set(0.)
         
         # create moment vectors
         self.A1 = self.dax.createGlobalVec()
@@ -74,6 +77,8 @@ cdef class PETScJacobian(object):
         self.localH0  = da1.createLocalVec()
         self.localH1p = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
+        self.localH2  = da1.createLocalVec()
+        self.localH2h = da1.createLocalVec()
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
 
@@ -83,6 +88,9 @@ cdef class PETScJacobian(object):
         # kinetic Hamiltonian
         H0.copy(self.H0)
         
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+
     
     def update_history(self, Vec F, Vec H1):
         F.copy(self.Fh)
@@ -113,6 +121,11 @@ cdef class PETScJacobian(object):
         H1.copy(self.H1p)
         
     
+    def update_external(self, Vec Pext):
+        self.H2.copy(self.H2h)
+        self.toolbox.potential_to_hamiltonian(Pext, self.H2)
+        
+    
     @cython.boundscheck(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j, ix
@@ -127,15 +140,19 @@ cdef class PETScJacobian(object):
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1p, self.localH1p)
         self.da1.globalToLocal(self.H1h, self.localH1h)
+        self.da1.globalToLocal(self.H2,  self.localH2 )
+        self.da1.globalToLocal(self.H2h, self.localH2h)
 
         cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp) [...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h)
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2 + h2h)
         
 #        cdef np.float64_t time_fac = 0.
 #        cdef np.float64_t arak_fac = 0.
@@ -147,49 +164,19 @@ cdef class PETScJacobian(object):
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
-        cdef np.float64_t poss_fac = 0.25 * self.hv * self.poisson_const
+        cdef np.float64_t poss_fac = 0.25 * self.hv * self.charge
         
-        cdef np.float64_t coll0_fac = - 0.5 * self.alpha * 0.25 * 0.5 / self.hv
-        cdef np.float64_t coll1_fac = - 0.5 * self.alpha * 0.25 * 0.5 / self.hv
-        cdef np.float64_t coll2_fac = - 0.5 * self.alpha * 0.25 * self.hv2_inv
+        cdef np.float64_t coll0_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
         
-#        cdef np.float64_t coll0_fac = - 0.5 * self.alpha * 0.5 / self.hv
-#        cdef np.float64_t coll1_fac = - 0.5 * self.alpha * 0.5 / self.hv
-#        cdef np.float64_t coll2_fac = - 0.5 * self.alpha * self.hv2_inv
+#        cdef np.float64_t coll0_fac = - 0.5 * self.nu * 0.5 / self.hv
+#        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.5 / self.hv
+#        cdef np.float64_t coll2_fac = - 0.5 * self.nu * self.hv2_inv
 
         
         # calculate moments
-        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.A2)[...]
-
-        cdef np.ndarray[np.float64_t, ndim=1] mom_n = np.zeros_like(A1)         # density
-        cdef np.ndarray[np.float64_t, ndim=1] mom_u = np.zeros_like(A1)         # mean velocity
-        cdef np.ndarray[np.float64_t, ndim=1] mom_e = np.zeros_like(A1)         # energy
-        
-        for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
-            
-            mom_n[iy] = 0.
-            mom_u[iy] = 0.
-            mom_e[iy] = 0.
-            
-            for j in np.arange(0, (self.nv-1)/2):
-                mom_n[iy] += fp[ix, j] + fp[ix, self.nv-1-j]
-                mom_u[iy] += self.v[j]    * fp[ix, j] + self.v[self.nv-1-j]    * fp[ix, self.nv-1-j]
-                mom_e[iy] += self.v[j]**2 * fp[ix, j] + self.v[self.nv-1-j]**2 * fp[ix, self.nv-1-j]
-
-            mom_n[iy] += fp[ix, (self.nv-1)/2]
-            mom_u[iy] += self.v[(self.nv-1)/2]    * fp[ix, (self.nv-1)/2]
-            mom_e[iy] += self.v[(self.nv-1)/2]**2 * fp[ix, (self.nv-1)/2]
-                
-            mom_n[iy] *= self.hv
-            mom_u[iy] *= self.hv / mom_n[iy]
-            mom_e[iy] *= self.hv / mom_n[iy]
-            
-            A1[iy] = mom_u[iy]
-            A2[iy] = mom_e[iy] - mom_u[iy]**2
-        
+        self.toolbox.coll_moments(self.Fp, self.A1, self.A2)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
@@ -211,6 +198,7 @@ cdef class PETScJacobian(object):
             
             
             if i == 0:
+                # pin potential to zero at x[0]
                 col.index = (i,)
                 col.field = self.nv
                 

@@ -10,7 +10,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.vi.Toolbox cimport Toolbox
 
 
 cdef class PETScFunction(object):
@@ -28,8 +28,8 @@ cdef class PETScFunction(object):
     cdef np.float64_t hv2
     cdef np.float64_t hv2_inv
     
-    cdef np.float64_t poisson_const
-    cdef np.float64_t alpha
+    cdef np.float64_t charge
+    cdef np.float64_t nu
     
     cdef np.ndarray v
     
@@ -38,8 +38,10 @@ cdef class PETScFunction(object):
     cdef DA da2
     
     cdef Vec H0
-    cdef Vec Fh
+    cdef Vec H2
+    cdef Vec H2h
     cdef Vec Hh
+    cdef Vec Fh
     cdef Vec Ph
     
     cdef Vec A1p
@@ -48,10 +50,12 @@ cdef class PETScFunction(object):
     cdef Vec A2h
     
     cdef Vec localH0
-    cdef Vec localF
-    cdef Vec localFh
+    cdef Vec localH2
+    cdef Vec localH2h
     cdef Vec localH
     cdef Vec localHh
+    cdef Vec localF
+    cdef Vec localFh
     cdef Vec localP
     cdef Vec localPh
     
@@ -60,16 +64,4 @@ cdef class PETScFunction(object):
     cdef Vec localA1h
     cdef Vec localA2h
     
-    cdef PETScArakawa arakawa
-
-
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
-                                            np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j)
+    cdef Toolbox toolbox

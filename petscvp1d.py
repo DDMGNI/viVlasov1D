@@ -165,6 +165,7 @@ class petscVP1Dbase(object):
         self.f  = self.da1.createGlobalVec()
         self.n  = self.dax.createGlobalVec()
         self.p  = self.dax.createGlobalVec()
+        self.p_ext = self.dax.createGlobalVec()
         
         # set variable names
         self.x.setName('solver_x')
@@ -175,6 +176,7 @@ class petscVP1Dbase(object):
         self.f.setName('f')
         self.n.setName('n')
         self.p.setName('phi')
+        self.p.setName('phi_ext')
         
         
         # create Vlasov matrix and solver
@@ -320,6 +322,25 @@ class petscVP1Dbase(object):
                 h0_arr[i, j] = 0.5 * self.vGrid[j]**2 # * self.mass
         
         
+        # check for external potential
+        self.external = None
+        if self.cfg['initial_data']['external_python'] != None:
+            external_data = __import__("runs." + self.cfg['initial_data']['external_python'], globals(), locals(), ['external'], 0)
+            self.external = external_data.external
+        
+        self.p_ext.set(0.)
+        if self.external != None:
+            p_ext_arr = self.dax.getVecArray(self.p_ext)
+            
+            for i in range(xs, xe):
+                p_ext_arr[i] = self.external(self.xGrid[i], 0.) 
+            
+            # remove average
+            phisum = self.p_ext.sum()
+            phiave = phisum / self.nx
+            self.p_ext.shift(-phiave)
+            
+        
         # create HDF5 output file
         self.hdf5_viewer = PETSc.Viewer().createHDF5(hdf_out_filename,
                                           mode=PETSc.Viewer.Mode.WRITE,
@@ -381,7 +402,7 @@ class petscVP1Dbase(object):
         self.poisson_ksp.solve(self.pb, self.p)
         
         phisum = self.p.sum()
-#        self.remove_average_from_potential()
+        self.remove_average_from_potential()
         
         self.copy_p_to_x()
         self.copy_p_to_h()
@@ -394,10 +415,7 @@ class petscVP1Dbase(object):
     def remove_average_from_potential(self):
         phisum = self.p.sum()
         phiave = phisum / self.nx
-
-        p_arr = self.dax.getVecArray(self.p)[...]
-        
-        p_arr[:] -= phiave
+        self.p.shift(-phiave)
     
     
     def calculate_density(self):

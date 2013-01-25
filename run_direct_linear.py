@@ -37,7 +37,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_mat = PETScMatrix(self.da1, self.da2, self.dax,
                                      self.h0, self.vGrid,
                                      self.nx, self.nv, self.ht, self.hx, self.hv,
-                                     self.charge, alpha=self.coll_freq)
+                                     self.charge, coll_freq=self.coll_freq)
         
         self.A = self.da2.createMat()
         self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)

@@ -10,7 +10,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.vi.Toolbox cimport Toolbox
 
 
 cdef class PETScJacobian(object):
@@ -27,8 +27,8 @@ cdef class PETScJacobian(object):
     cdef np.float64_t hx2_inv
     cdef np.float64_t hv2_inv
     
-    cdef np.float64_t poisson_const
-    cdef np.float64_t alpha
+    cdef np.float64_t charge
+    cdef np.float64_t nu
     
     cdef np.ndarray v
     
@@ -54,3 +54,4 @@ cdef class PETScJacobian(object):
     cdef Vec localA1
     cdef Vec localA2
     
+    cdef Toolbox toolbox

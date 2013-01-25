@@ -65,17 +65,17 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.charge, alpha=self.coll_freq)
+                                            self.charge, coll_freq=self.coll_freq)
         
         self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, 
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
-                                            self.charge, alpha=self.coll_freq)
+                                            self.charge, coll_freq=self.coll_freq)
         
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge, alpha=self.coll_freq)
+                                        self.charge, coll_freq=self.coll_freq)
         
         
         # initialise matrix
@@ -131,6 +131,11 @@ class petscVP1D(petscVP1Dbase):
         # calculate initial potential
         self.calculate_potential()
         
+        # copy external potential
+        self.petsc_function.update_external(self.p_ext)
+        self.petsc_jacobian.update_external(self.p_ext)
+        self.petsc_matrix.update_external(self.p_ext)
+        
         # update solution history
         self.petsc_function.update_history(self.f, self.h1, self.p)
         self.petsc_jacobian.update_history(self.f, self.h1)
@@ -149,7 +154,7 @@ class petscVP1D(petscVP1Dbase):
         
         phisum = self.p.sum()
         
-#        self.remove_average_from_potential()
+        self.remove_average_from_potential()
         
         self.copy_p_to_x()
         self.copy_p_to_h()
@@ -181,10 +186,10 @@ class petscVP1D(petscVP1Dbase):
         self.copy_x_to_f()
         self.copy_x_to_p()
         
-#        self.remove_average_from_potential()
-#    
-#        self.copy_p_to_x()
-#        self.copy_p_to_h()
+        self.remove_average_from_potential()
+    
+        self.copy_p_to_x()
+        self.copy_p_to_h()
         
     
     def updateJacobian(self, snes, X, J, P):
@@ -193,12 +198,32 @@ class petscVP1D(petscVP1Dbase):
     
     
     def run(self):
+        (xs, xe), = self.da1.getRanges()
+        
         for itime in range(1, self.nt+1):
+            current_time = self.ht*itime
+            
             if PETSc.COMM_WORLD.getRank() == 0:
                 localtime = time.asctime( time.localtime(time.time()) )
-                print("\nit = %4d,   t = %10.4f,   %s" % (itime, self.ht*itime, localtime) )
+                print("\nit = %4d,   t = %10.4f,   %s" % (itime, current_time, localtime) )
                 print
-                self.time.setValue(0, self.ht*itime)
+                self.time.setValue(0, current_time)
+            
+            # calculate external field and copy to matrix, jacobian and function 
+            if self.external != None:
+                p_ext_arr = self.dax.getVecArray(self.p_ext)
+                
+                for i in range(xs, xe):
+                    p_ext_arr[i] = self.external(self.xGrid[i], current_time) 
+                
+                phisum = self.p_ext.sum()
+                phiave = phisum / self.nx
+                self.p_ext.shift(-phiave)
+                
+                self.petsc_function.update_external(self.p_ext)
+                self.petsc_jacobian.update_external(self.p_ext)
+                self.petsc_matrix.update_external(self.p_ext)
+            
             
             # calculate initial guess for distribution function
             self.initial_guess()
@@ -224,7 +249,7 @@ class petscVP1D(petscVP1Dbase):
             self.copy_x_to_f()
             self.copy_x_to_p()
             
-#            self.remove_average_from_potential()
+            self.remove_average_from_potential()
         
             self.copy_p_to_x()
             self.copy_p_to_h()
