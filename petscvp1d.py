@@ -59,6 +59,13 @@ class petscVP1Dbase(object):
         self.charge = self.cfg['initial_data']['charge']
         self.mass   = self.cfg['initial_data']['mass']
         
+        
+        hdf_out_filename = self.cfg['io']['hdf5_output']
+        cfg_out_filename = hdf_out_filename.replace('.hdf5', '.cfg') 
+        
+        self.cfg.write_current_config(cfg_out_filename)
+        
+        
         # set some PETSc options
         OptDB = PETSc.Options()
         
@@ -225,7 +232,7 @@ class petscVP1Dbase(object):
         if PETSc.COMM_WORLD.getRank() == 0:
             print()
             print("Config File: %s" % cfgfile)
-            print("Output File: %s" % self.cfg['io']['hdf5_output'])
+            print("Output File: %s" % hdf_out_filename)
             print()
             print("nt = %i" % (self.nt))
             print("nx = %i" % (self.nx))
@@ -314,7 +321,7 @@ class petscVP1Dbase(object):
         
         
         # create HDF5 output file
-        self.hdf5_viewer = PETSc.Viewer().createHDF5(self.cfg['io']['hdf5_output'],
+        self.hdf5_viewer = PETSc.Viewer().createHDF5(hdf_out_filename,
                                           mode=PETSc.Viewer.Mode.WRITE,
                                           comm=PETSc.COMM_WORLD)
         

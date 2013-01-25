@@ -28,7 +28,6 @@ class Config(ConfigObj):
         ConfigObj.__init__(self, infile=infile, configspec=self.runspec, file_error=file_error)
         
         self.validator = Validator()
-#        self.valid     = self.validate(self.validator)
         self.valid     = self.validate(self.validator, copy=True)
         
     
@@ -38,9 +37,14 @@ class Config(ConfigObj):
         configuration file in run.cfg.default.
         '''
         
-#        self.validate(self.validator, copy=True)
         self.write()
         
+    
+    def write_current_config(self, filename):
+        tmp = self.filename
+        self.filename = filename
+        self.write()
+        self.filename = tmp
     
 
 if __name__ == '__main__':
