@@ -6,34 +6,30 @@
 #
 #$ -l h_cpu=24:00:00
 #
-#$ -pe mpich2_tok_devel 8
+#$ -pe mpich2_tok_production 8
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
 #
 #$ -notify
 #
-#$ -N pyVlasov1D
+#$ -N petscVlasov1D
 #
 
 
 RUNID=landau01
 
 
-module load intel/12.1
-module load mkl/10.3
-module load hdf5-serial
-module load python27/python
-module load python27/numpy
-module load python27/scipy
-module load python27/cython
-module load python27/h5py
+module load intel/13.0
+module load mkl/11.0
+module load impi/4.1.0
 
-export OMP_NUM_THREADS=8
-
-export PYTHONPATH=/afs/ipp/home/m/mkraus/Python/code/pyVlasov1D:$PYTHONPATH
+module load python32/all
 
 
-cd /afs/ipp/home/m/mkraus/Python/code/pyVlasov1D
+export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.0/mkl/lib/intel64/libmkl_core.so:/afs/@cell/common/soft/intel/ics13/13.0/mkl/lib/intel64/libmkl_intel_thread.so:/afs/@cell/common/soft/intel/ics13/13.0/compiler/lib/intel64/libiomp5.so
 
-python pyvp1d.py runs/$RUNID.cfg
+
+mpiexec -n 8 python3.2 run_direct_nonlinear.py runs/$RUNID.cfg
+
+
