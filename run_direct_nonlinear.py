@@ -198,8 +198,6 @@ class petscVP1D(petscVP1Dbase):
     
     
     def run(self):
-        (xs, xe), = self.da1.getRanges()
-        
         for itime in range(1, self.nt+1):
             current_time = self.ht*itime
             
@@ -209,20 +207,11 @@ class petscVP1D(petscVP1Dbase):
                 print
                 self.time.setValue(0, current_time)
             
-            # calculate external field and copy to matrix, jacobian and function 
-            if self.external != None:
-                p_ext_arr = self.dax.getVecArray(self.p_ext)
-                
-                for i in range(xs, xe):
-                    p_ext_arr[i] = self.external(self.xGrid[i], current_time) 
-                
-                phisum = self.p_ext.sum()
-                phiave = phisum / self.nx
-                self.p_ext.shift(-phiave)
-                
-                self.petsc_function.update_external(self.p_ext)
-                self.petsc_jacobian.update_external(self.p_ext)
-                self.petsc_matrix.update_external(self.p_ext)
+            # calculate external field and copy to matrix, jacobian and function
+            self.calculate_external(current_time)
+            self.petsc_function.update_external(self.p_ext)
+            self.petsc_jacobian.update_external(self.p_ext)
+            self.petsc_matrix.update_external(self.p_ext)
             
             
             # calculate initial guess for distribution function

@@ -162,9 +162,11 @@ class petscVP1Dbase(object):
         # density and the potential
         self.h0 = self.da1.createGlobalVec()
         self.h1 = self.da1.createGlobalVec()
+        self.h2 = self.da1.createGlobalVec()
         self.f  = self.da1.createGlobalVec()
-        self.n  = self.dax.createGlobalVec()
-        self.p  = self.dax.createGlobalVec()
+        
+        self.n     = self.dax.createGlobalVec()
+        self.p     = self.dax.createGlobalVec()
         self.p_ext = self.dax.createGlobalVec()
         
         # set variable names
@@ -173,6 +175,7 @@ class petscVP1Dbase(object):
         
         self.h0.setName('h0')
         self.h1.setName('h1')
+        self.h2.setName('h2')
         self.f.setName('f')
         self.n.setName('n')
         self.p.setName('phi')
@@ -329,17 +332,8 @@ class petscVP1Dbase(object):
             self.external = external_data.external
         
         self.p_ext.set(0.)
-        if self.external != None:
-            p_ext_arr = self.dax.getVecArray(self.p_ext)
-            
-            for i in range(xs, xe):
-                p_ext_arr[i] = self.external(self.xGrid[i], 0.) 
-            
-            # remove average
-            phisum = self.p_ext.sum()
-            phiave = phisum / self.nx
-            self.p_ext.shift(-phiave)
-            
+        self.calculate_external(0.)
+        
         
         # create HDF5 output file
         self.hdf5_viewer = PETSc.Viewer().createHDF5(hdf_out_filename,
@@ -428,9 +422,24 @@ class petscVP1Dbase(object):
         n_arr[xs:xe] = f_arr[xs:xe, :].sum(axis=1) * self.hv
     
     
-    def copy_x_to_f(self):
-#        (xs, xe), = self.da1.getRanges()
+    def calculate_external(self, t):
+        (xs, xe), = self.da1.getRanges()
         
+        if self.external != None:
+            p_ext_arr = self.dax.getVecArray(self.p_ext)
+            
+            for i in range(xs, xe):
+                p_ext_arr[i] = self.external(self.xGrid[i], t) 
+            
+            # remove average
+            phisum = self.p_ext.sum()
+            phiave = phisum / self.nx
+            self.p_ext.shift(-phiave)
+    
+        self.copy_pext_to_h()
+    
+    
+    def copy_x_to_f(self):
         x_arr = self.da2.getVecArray(self.x)[...]
         f_arr = self.da1.getVecArray(self.f)[...]
         
@@ -438,8 +447,6 @@ class petscVP1Dbase(object):
         
     
     def copy_f_to_x(self):
-#        (xs, xe), = self.da1.getRanges()
-        
         x_arr = self.da2.getVecArray(self.x)[...]
         f_arr = self.da1.getVecArray(self.f)[...]
         
@@ -447,8 +454,6 @@ class petscVP1Dbase(object):
     
     
     def copy_x_to_p(self):
-#        (xs, xe), = self.da1.getRanges()
-        
         x_arr = self.da2.getVecArray(self.x)[...]
         p_arr = self.dax.getVecArray(self.p)[...]
         
@@ -456,8 +461,6 @@ class petscVP1Dbase(object):
         
     
     def copy_p_to_x(self):
-#        (xs, xe), = self.da1.getRanges()
-        
         p_arr = self.dax.getVecArray(self.p)[...]
         x_arr = self.da2.getVecArray(self.x)[...]
         
@@ -465,13 +468,19 @@ class petscVP1Dbase(object):
         
         
     def copy_p_to_h(self):
-#        (xs, xe), = self.da1.getRanges()
-        
-        p_arr  = self.dax.getVecArray(self.p )[...]
-        h1_arr = self.da1.getVecArray(self.h1)[...]
+        p_arr = self.dax.getVecArray(self.p )[...]
+        h_arr = self.da1.getVecArray(self.h1)[...]
     
         for j in range(0, self.nv):
-            h1_arr[:, j] = p_arr[:]
+            h_arr[:, j] = p_arr[:]
+        
+
+    def copy_pext_to_h(self):
+        p_arr = self.dax.getVecArray(self.p_ext)[...]
+        h_arr = self.da1.getVecArray(self.h2   )[...]
+    
+        for j in range(0, self.nv):
+            h_arr[:, j] = p_arr[:]
         
 
     def save_to_hdf5(self, itime):
@@ -486,10 +495,12 @@ class petscVP1Dbase(object):
 
     def save_hdf5_vectors(self):
         self.hdf5_viewer(self.time)
-        self.hdf5_viewer(self.x)
-        self.hdf5_viewer(self.b)
+#        self.hdf5_viewer(self.x)
+#        self.hdf5_viewer(self.b)
         self.hdf5_viewer(self.f)
         self.hdf5_viewer(self.n)
         self.hdf5_viewer(self.p)
+        self.hdf5_viewer(self.p_ext)
         self.hdf5_viewer(self.h0)
         self.hdf5_viewer(self.h1)
+        self.hdf5_viewer(self.h2)

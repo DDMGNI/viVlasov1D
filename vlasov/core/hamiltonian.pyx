@@ -35,6 +35,7 @@ class Hamiltonian(object):
         self.h  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # total hamiltonian
         self.h0 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # kinetic   term
         self.h1 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # potential term
+        self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
         
         self.E0    = 0.0         # initial total energy
         self.Ekin0 = 0.0         # initial kinetic energy
@@ -63,9 +64,12 @@ class Hamiltonian(object):
                 # create HDF5 fields
                 self.hdf5_h0 = hdf5_out.create_dataset('h0', (self.grid.nt+1, self.grid.nx, self.grid.nv), '=f8')
                 self.hdf5_h1 = hdf5_out.create_dataset('h1', (self.grid.nt+1, self.grid.nx, self.grid.nv), '=f8')
+                self.hdf5_h2 = hdf5_out.create_dataset('h2', (self.grid.nt+1, self.grid.nx, self.grid.nv), '=f8')
             
             self.history  = np.zeros( (self.grid.nx, self.grid.nv, self.nhist), dtype=np.float64 )
+            self.history0 = np.zeros( (self.grid.nx, self.grid.nv, self.nhist), dtype=np.float64 )
             self.history1 = np.zeros( (self.grid.nx, self.grid.nv, self.nhist), dtype=np.float64 )
+            self.history2 = np.zeros( (self.grid.nx, self.grid.nv, self.nhist), dtype=np.float64 )
             
             
             if hdf5_in != None:
@@ -73,18 +77,24 @@ class Hamiltonian(object):
                 
                 self.h0[:,:] = hdf5_in['h0'][nt,:,:]
                 self.h1[:,:] = hdf5_in['h1'][nt,:,:]
+                self.h2[:,:] = hdf5_in['h2'][nt,:,:]
                 
-                self.h[:,:] = self.h0 + self.h1
+                self.h[:,:] = self.h0 + self.h1 + self.h2
                 
                 for ih in range(0, self.nhist):
-                    self.history [:,:,ih] = hdf5_in['h0'][nt-ih,:,:] + hdf5_in['h1'][nt-ih,:,:]
+                    self.history0[:,:,ih] = hdf5_in['h0'][nt-ih,:,:]
                     self.history1[:,:,ih] = hdf5_in['h1'][nt-ih,:,:]
+                    self.history2[:,:,ih] = hdf5_in['h2'][nt-ih,:,:]
+                    
+                    self.history[:,:,ih] = self.history0[:,:,ih] + self.history1[:,:,ih] + self.history2[:,:,ih]
                 
                 self.Ekin  = (hdf5_in['f'][nt,:,:] * self.h0).sum() * self.grid.hx * self.grid.hv
-                self.Epot  = (hdf5_in['f'][nt,:,:] * self.h1).sum() * self.grid.hx * self.grid.hv
+                self.Epot  = (hdf5_in['f'][nt,:,:] * self.h1).sum() * self.grid.hx * self.grid.hv \
+                           + (hdf5_in['f'][nt,:,:] * self.h2).sum() * self.grid.hx * self.grid.hv
                 
                 self.Ekin0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h0'][0,:,:]).sum() * self.grid.hx * self.grid.hv
-                self.Epot0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h1'][0,:,:]).sum() * self.grid.hx * self.grid.hv
+                self.Epot0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h1'][0,:,:]).sum() * self.grid.hx * self.grid.hv \
+                           + (hdf5_in['f'][ 0,:,:] * hdf5_in['h2'][0,:,:]).sum() * self.grid.hx * self.grid.hv
                 
                 self.E  = self.Ekin  + 0.5 * self.Epot
                 self.E0 = self.Ekin0 + 0.5 * self.Epot0
@@ -98,6 +108,7 @@ class Hamiltonian(object):
                 if self.hdf5_h0 != None and self.hdf5_h1 != None:
                     self.hdf5_h0[0,:,:] = hdf5_in['h0'][0,:,:]
                     self.hdf5_h1[0,:,:] = hdf5_in['h1'][0,:,:]
+                    self.hdf5_h2[0,:,:] = hdf5_in['h2'][0,:,:]
                 
             else:
                 for iv in range(0, self.grid.nv):
@@ -121,7 +132,9 @@ class Hamiltonian(object):
     def copy_initial_data(self):
         for ih in range(0, self.nhist):
             self.history [:,:,ih] = self.h
+            self.history0[:,:,ih] = self.h0
             self.history1[:,:,ih] = self.h1
+            self.history2[:,:,ih] = self.h2
         
         self.calculate_total_energy()
         self.calculate_total_momentum()
@@ -165,8 +178,14 @@ class Hamiltonian(object):
         self.history[:,:,new_ind] = self.history[:,:,old_ind]
         self.history[:,:,0      ] = self.h[:,:]
         
+        self.history0[:,:,new_ind] = self.history0[:,:,old_ind]
+        self.history0[:,:,0      ] = self.h0[:,:]
+        
         self.history1[:,:,new_ind] = self.history1[:,:,old_ind]
         self.history1[:,:,0      ] = self.h1[:,:]
+        
+        self.history2[:,:,new_ind] = self.history2[:,:,old_ind]
+        self.history2[:,:,0      ] = self.h2[:,:]
         
     
     def calculate_total_energy(self):
@@ -181,9 +200,11 @@ class Hamiltonian(object):
         cdef np.float64_t Ekin, Epot
         
         h1_ave = self.h1.mean()
+        h2_ave = self.h2.mean()
         
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.h0
         cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - h1_ave
+        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.h2 - h2_ave
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         
         Ekin = 0.0
@@ -219,12 +240,25 @@ class Hamiltonian(object):
                             + h1[ix,  iv+1]
                             )
         
+                    Epot += ( 
+                            + f[ix,  iv  ]
+                            + f[ixp, iv  ]
+                            + f[ixp, iv+1]
+                            + f[ix,  iv+1]
+                          ) * ( 
+                            + h2[ix,  iv  ]
+                            + h2[ixp, iv  ]
+                            + h2[ixp, iv+1]
+                            + h2[ix,  iv+1]
+                            )
+        
         self.Ekin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
         self.Epot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
         
         
 #        self.Ekin  = (f * h0).sum() * self.grid.hx * self.grid.hv
-#        self.Epot  = (f * h1).sum() * self.grid.hx * self.grid.hv
+#        self.Epot  = (f * h1).sum() * self.grid.hx * self.grid.hv \
+#                   + (f * h2).sum() * self.grid.hx * self.grid.hv
         
         
         self.E = self.Ekin + 0.5 * self.Epot
@@ -267,20 +301,23 @@ class Hamiltonian(object):
         self.hdf5_f  = hdf5['f']
         self.hdf5_h0 = hdf5['h0']
         self.hdf5_h1 = hdf5['h1']
+        self.hdf5_h2 = hdf5['h2']
         
         
     def save_to_hdf5(self, iTime):
-        if self.hdf5_h0 == None or self.hdf5_h1 == None:
+        if self.hdf5_h0 == None or self.hdf5_h1 == None or self.hdf5_h2 == None:
             return
         
         self.hdf5_h0[iTime,:,:] = self.h0
         self.hdf5_h1[iTime,:,:] = self.h1
+        self.hdf5_h2[iTime,:,:] = self.h2
         
     
     def read_from_hdf5(self, iTime):
         self.h0[:,:] = self.hdf5_h0[iTime,:,:]
         self.h1[:,:] = self.hdf5_h1[iTime,:,:]
-        self.h [:,:] = self.h0 + self.h1
+        self.h2[:,:] = self.hdf5_h2[iTime,:,:]
+        self.h [:,:] = self.h0 + self.h1 + self.h2
         self.f  = self.hdf5_f[iTime,:,:]
         
         self.calculate_total_energy()
