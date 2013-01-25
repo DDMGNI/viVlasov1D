@@ -4,6 +4,11 @@ Created on Apr 06, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
+import matplotlib
+#matplotlib.use('Cairo')
+matplotlib.use('AGG')
+#matplotlib.use('PDF')
+
 import argparse
 import h5py
 
