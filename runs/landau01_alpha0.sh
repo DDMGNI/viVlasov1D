@@ -17,7 +17,7 @@
 #
 
 
-RUNID=landau01
+RUNID=landau01_alpha0
 
 
 module load intel/13.0
