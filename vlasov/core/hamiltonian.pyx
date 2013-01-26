@@ -77,14 +77,20 @@ class Hamiltonian(object):
                 
                 self.h0[:,:] = hdf5_in['h0'][nt,:,:]
                 self.h1[:,:] = hdf5_in['h1'][nt,:,:]
-                self.h2[:,:] = hdf5_in['h2'][nt,:,:]
+                try:
+                    self.h2[:,:] = hdf5_in['h2'][nt,:,:]
+                except KeyError:
+                    self.hdf5_h2 = None
                 
                 self.h[:,:] = self.h0 + self.h1 + self.h2
                 
                 for ih in range(0, self.nhist):
                     self.history0[:,:,ih] = hdf5_in['h0'][nt-ih,:,:]
                     self.history1[:,:,ih] = hdf5_in['h1'][nt-ih,:,:]
-                    self.history2[:,:,ih] = hdf5_in['h2'][nt-ih,:,:]
+                    try:
+                        self.history2[:,:,ih] = hdf5_in['h2'][nt-ih,:,:]
+                    except KeyError:
+                        pass
                     
                     self.history[:,:,ih] = self.history0[:,:,ih] + self.history1[:,:,ih] + self.history2[:,:,ih]
                 
@@ -93,9 +99,12 @@ class Hamiltonian(object):
                            + (hdf5_in['f'][nt,:,:] * self.h2).sum() * self.grid.hx * self.grid.hv
                 
                 self.Ekin0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h0'][0,:,:]).sum() * self.grid.hx * self.grid.hv
-                self.Epot0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h1'][0,:,:]).sum() * self.grid.hx * self.grid.hv \
-                           + (hdf5_in['f'][ 0,:,:] * hdf5_in['h2'][0,:,:]).sum() * self.grid.hx * self.grid.hv
-                
+                self.Epot0 = (hdf5_in['f'][ 0,:,:] * hdf5_in['h1'][0,:,:]).sum() * self.grid.hx * self.grid.hv
+                try:
+                    self.Epot0 += (hdf5_in['f'][ 0,:,:] * hdf5_in['h2'][0,:,:]).sum() * self.grid.hx * self.grid.hv
+                except KeyError:
+                    pass
+                           
                 self.E  = self.Ekin  + 0.5 * self.Epot
                 self.E0 = self.Ekin0 + 0.5 * self.Epot0
                 
@@ -108,7 +117,10 @@ class Hamiltonian(object):
                 if self.hdf5_h0 != None and self.hdf5_h1 != None:
                     self.hdf5_h0[0,:,:] = hdf5_in['h0'][0,:,:]
                     self.hdf5_h1[0,:,:] = hdf5_in['h1'][0,:,:]
-                    self.hdf5_h2[0,:,:] = hdf5_in['h2'][0,:,:]
+                    try:
+                        self.hdf5_h2[0,:,:] = hdf5_in['h2'][0,:,:]
+                    except KeyError:
+                        self.hdf5_h2 = None
                 
             else:
                 for iv in range(0, self.grid.nv):
@@ -301,7 +313,10 @@ class Hamiltonian(object):
         self.hdf5_f  = hdf5['f']
         self.hdf5_h0 = hdf5['h0']
         self.hdf5_h1 = hdf5['h1']
-        self.hdf5_h2 = hdf5['h2']
+        try:
+            self.hdf5_h2 = hdf5['h2']
+        except KeyError:
+            self.hdf5_h2 = None
         
         
     def save_to_hdf5(self, iTime):
@@ -316,7 +331,8 @@ class Hamiltonian(object):
     def read_from_hdf5(self, iTime):
         self.h0[:,:] = self.hdf5_h0[iTime,:,:]
         self.h1[:,:] = self.hdf5_h1[iTime,:,:]
-        self.h2[:,:] = self.hdf5_h2[iTime,:,:]
+        if self.hdf5_h2 != None:
+            self.h2[:,:] = self.hdf5_h2[iTime,:,:]
         self.h [:,:] = self.h0 + self.h1 + self.h2
         self.f  = self.hdf5_f[iTime,:,:]
         
