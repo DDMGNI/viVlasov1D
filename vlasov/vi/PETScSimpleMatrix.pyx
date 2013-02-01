@@ -374,9 +374,9 @@ cdef class PETScMatrix(object):
         
         # d/dv ( v * A2 * f )
         result = 0.25 * ( \
-                          + 1. * ( (A1[i-1] - v[j+1]) * f[i-1, j+1] - (A1[i-1] - v[j-1]) * f[i-1, j-1] ) / A2[i-1] \
-                          + 2. * ( (A1[i  ] - v[j+1]) * f[i,   j+1] - (A1[i  ] - v[j-1]) * f[i,   j-1] ) / A2[i  ] \
-                          + 1. * ( (A1[i+1] - v[j+1]) * f[i+1, j+1] - (A1[i+1] - v[j-1]) * f[i+1, j-1] ) / A2[i+1] \
+                          + 1. * ( (v[j+1] - A1[i-1]) * f[i-1, j+1] - (v[j-1] - A1[i-1]) * f[i-1, j-1] ) / A2[i-1] \
+                          + 2. * ( (v[j+1] - A1[i  ]) * f[i,   j+1] - (v[j-1] - A1[i  ]) * f[i,   j-1] ) / A2[i  ] \
+                          + 1. * ( (v[j+1] - A1[i+1]) * f[i+1, j+1] - (v[j-1] - A1[i+1]) * f[i+1, j-1] ) / A2[i+1] \
                         ) * 0.5 / self.hv
         
         return result
