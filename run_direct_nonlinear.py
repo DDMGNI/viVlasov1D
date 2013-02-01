@@ -16,13 +16,13 @@ import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-#from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
+from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
 
-from vlasov.vi.PETScSimpleMatrixColl     import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
+#from vlasov.vi.PETScSimpleMatrixColl     import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
 
 from petscvp1d import petscVP1Dbase
 

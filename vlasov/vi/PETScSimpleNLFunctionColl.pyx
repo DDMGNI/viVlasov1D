@@ -62,19 +62,19 @@ cdef class PETScFunction(object):
         self.v = v.copy()
         
         # create work and history vectors
-        self.H0 = self.da1.createGlobalVec()
+        self.H0  = self.da1.createGlobalVec()
         self.H2  = self.da1.createGlobalVec()
         self.H2h = self.da1.createGlobalVec()
-        self.Fh = self.da1.createGlobalVec()
-        self.Hh = self.da1.createGlobalVec()
-        self.Ph = self.dax.createGlobalVec()
+        self.Fh  = self.da1.createGlobalVec()
+        self.Hh  = self.da1.createGlobalVec()
+        self.Ph  = self.dax.createGlobalVec()
         self.H2.set(0.)
         
         # create moment vectors
-        self.A1p   = self.dax.createGlobalVec()
-        self.A2p   = self.dax.createGlobalVec()
-        self.A1h   = self.dax.createGlobalVec()
-        self.A2h   = self.dax.createGlobalVec()
+        self.A1p = self.dax.createGlobalVec()
+        self.A2p = self.dax.createGlobalVec()
+        self.A1h = self.dax.createGlobalVec()
+        self.A2h = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()

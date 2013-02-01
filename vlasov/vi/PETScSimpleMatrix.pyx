@@ -63,8 +63,11 @@ cdef class PETScMatrix(object):
         self.H0  = self.da1.createGlobalVec()
         self.H1  = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
+        self.H2  = self.da1.createGlobalVec()
+        self.H2h = self.da1.createGlobalVec()
         self.F   = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
+        self.H2.set(0.)
         
         # create moment vectors
         self.A1 = self.dax.createGlobalVec()
@@ -74,6 +77,8 @@ cdef class PETScMatrix(object):
         self.localH0  = da1.createLocalVec()
         self.localH1  = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
+        self.localH2  = da1.createLocalVec()
+        self.localH2h = da1.createLocalVec()
         self.localF   = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
 
@@ -92,6 +97,11 @@ cdef class PETScMatrix(object):
         H1.copy(self.H1h)
         
     
+    def update_external(self, Vec Pext):
+        self.H2.copy(self.H2h)
+        self.toolbox.potential_to_hamiltonian(Pext, self.H2)
+        
+    
     @cython.boundscheck(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j, ix
@@ -100,12 +110,14 @@ cdef class PETScMatrix(object):
         self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1h, self.localH1h)
+        self.da1.globalToLocal(self.H2h, self.localH2h)
 
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h + h2h
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
@@ -295,53 +307,24 @@ cdef class PETScMatrix(object):
     def formRHS(self, Vec B):
         cdef np.int64_t i, j, ix, iy, xs, xe
         
-        cdef np.float64_t fmean = self.Fh.sum() * self.hv / self.nx
-        
-        self.da1.globalToLocal(self.H0,  self.localH0)
-#        self.da1.globalToLocal(self.H1h, self.localH1h)
-        self.da1.globalToLocal(self.Fh,  self.localFh)
-        
-        cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
-#        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        
-        
         (xs, xe), = self.da2.getRanges()
+        
+        self.da1.globalToLocal(self.H0, self.localH0)
+        self.da1.globalToLocal(self.H2, self.localH2)
+        self.da1.globalToLocal(self.Fh, self.localFh)
+        
+        cdef np.ndarray[np.float64_t, ndim=2] b  = self.da2.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.da1.getVecArray(self.localH2)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
+        
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2
+        
+        cdef np.float64_t fmean = self.Fh.sum() * self.hv / self.nx
         
         
         # calculate moments
-        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.A2)[...]
-
-        cdef np.ndarray[np.float64_t, ndim=1] mom_n = np.zeros_like(A1)         # density
-        cdef np.ndarray[np.float64_t, ndim=1] mom_u = np.zeros_like(A1)         # mean velocity
-        cdef np.ndarray[np.float64_t, ndim=1] mom_e = np.zeros_like(A1)         # energy
-        
-        for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
-            
-            mom_n[iy] = 0.
-            mom_u[iy] = 0.
-            mom_e[iy] = 0.
-            
-            for j in np.arange(0, (self.nv-1)/2):
-                mom_n[iy] += fh[ix, j] + fh[ix, self.nv-1-j]
-                mom_u[iy] += self.v[j]    * fh[ix, j] + self.v[self.nv-1-j]    * fh[ix, self.nv-1-j]
-                mom_e[iy] += self.v[j]**2 * fh[ix, j] + self.v[self.nv-1-j]**2 * fh[ix, self.nv-1-j]
-
-            mom_n[iy] += fh[ix, (self.nv-1)/2]
-            mom_u[iy] += self.v[(self.nv-1)/2]    * fh[ix, (self.nv-1)/2]
-            mom_e[iy] += self.v[(self.nv-1)/2]**2 * fh[ix, (self.nv-1)/2]
-                
-            mom_n[iy] *= self.hv
-            mom_u[iy] *= self.hv / mom_n[iy]
-            mom_e[iy] *= self.hv / mom_n[iy]
-            
-            A1[iy] = mom_u[iy]
-            A2[iy] = 1. / ( mom_u[iy]**2 - mom_e[iy] )
-        
+        self.toolbox.coll_moments(self.Fh, self.A1, self.A2)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
@@ -370,7 +353,7 @@ cdef class PETScMatrix(object):
                     
                 else:
                     b[iy, j] = self.toolbox.time_derivative(fh, ix, j) \
-                             - 0.5 * self.toolbox.arakawa(fh, h0, ix, j) \
+                             - 0.5 * self.toolbox.arakawa(fh, h, ix, j) \
                              + self.nu * self.coll1(fh, A1, A2, ix, j) \
                              + self.nu * self.coll2(fh, ix, j)
 
@@ -391,9 +374,9 @@ cdef class PETScMatrix(object):
         
         # d/dv ( v * A2 * f )
         result = 0.25 * ( \
-                          + 1. * ( (A1[i-1] - v[j+1]) * f[i-1, j+1] - (A1[i-1] - v[j-1]) * f[i-1, j-1] ) * A2[i-1] \
-                          + 2. * ( (A1[i  ] - v[j+1]) * f[i,   j+1] - (A1[i  ] - v[j-1]) * f[i,   j-1] ) * A2[i  ] \
-                          + 1. * ( (A1[i+1] - v[j+1]) * f[i+1, j+1] - (A1[i+1] - v[j-1]) * f[i+1, j-1] ) * A2[i+1] \
+                          + 1. * ( (A1[i-1] - v[j+1]) * f[i-1, j+1] - (A1[i-1] - v[j-1]) * f[i-1, j-1] ) / A2[i-1] \
+                          + 2. * ( (A1[i  ] - v[j+1]) * f[i,   j+1] - (A1[i  ] - v[j-1]) * f[i,   j-1] ) / A2[i  ] \
+                          + 1. * ( (A1[i+1] - v[j+1]) * f[i+1, j+1] - (A1[i+1] - v[j-1]) * f[i+1, j-1] ) / A2[i+1] \
                         ) * 0.5 / self.hv
         
         return result

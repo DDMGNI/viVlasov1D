@@ -40,6 +40,8 @@ cdef class PETScMatrix(object):
     cdef Vec H0
     cdef Vec H1
     cdef Vec H1h
+    cdef Vec H2
+    cdef Vec H2h
     cdef Vec F
     cdef Vec Fh
     
@@ -49,6 +51,8 @@ cdef class PETScMatrix(object):
     cdef Vec localH0
     cdef Vec localH1
     cdef Vec localH1h
+    cdef Vec localH2
+    cdef Vec localH2h
     cdef Vec localF
     cdef Vec localFh
     

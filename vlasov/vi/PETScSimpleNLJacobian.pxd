@@ -39,6 +39,8 @@ cdef class PETScJacobian(object):
     cdef Vec H0
     cdef Vec H1p
     cdef Vec H1h
+    cdef Vec H2
+    cdef Vec H2h
     cdef Vec Fp
     cdef Vec Fh
     
@@ -48,6 +50,8 @@ cdef class PETScJacobian(object):
     cdef Vec localH0
     cdef Vec localH1p
     cdef Vec localH1h
+    cdef Vec localH2
+    cdef Vec localH2h
     cdef Vec localFp
     cdef Vec localFh
     
