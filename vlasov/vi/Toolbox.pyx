@@ -181,18 +181,21 @@ cdef class Toolbox(object):
             for j in np.arange(0, (self.nv-1)/2):
                 mom_n[iy] += f[ix, j] + f[ix, self.nv-1-j]
                 mom_u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
-                mom_e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
 
             mom_n[iy] += f[ix, (self.nv-1)/2]
             mom_u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
-            mom_e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
                 
             mom_n[iy] *= self.hv
             mom_u[iy] *= self.hv / mom_n[iy]
+
+            for j in np.arange(0, (self.nv-1)/2):
+                mom_e[iy] += (self.v[j] - mom_u[iy])**2 * f[ix, j] + (self.v[self.nv-1-j] - mom_u[iy])**2 * f[ix, self.nv-1-j]
+
+            mom_e[iy] += (self.v[(self.nv-1)/2] - mom_u[iy])**2 * f[ix, (self.nv-1)/2]
             mom_e[iy] *= self.hv / mom_n[iy]
             
             a1[iy] = mom_u[iy]
-            a2[iy] = mom_e[iy] - mom_u[iy]**2
+            a2[iy] = mom_e[iy]
 
 
 
