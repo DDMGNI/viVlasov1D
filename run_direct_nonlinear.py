@@ -52,6 +52,9 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
+        OptDB.setValue('snes_type', 'ls')
+        OptDB.setValue('snes_linesearch_type', 'basic')
+        
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
         
@@ -95,8 +98,9 @@ class petscVP1D(petscVP1Dbase):
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.J.setUp()
 
-        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], comm=PETSc.COMM_WORLD)
-        self.Jmf.setPythonContext(self.petsc_jacobian_mf)
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.F.getSizes()], 
+                                            context=self.petsc_jacobian_mf,
+                                            comm=PETSc.COMM_WORLD)
         self.Jmf.setUp()
         
         # create nonlinear solver
@@ -113,8 +117,8 @@ class petscVP1D(petscVP1Dbase):
         
         
         # create linear sovler space keeper
+        # use SNES with type set to KSPONLY = 'ksponly'
         self.ksp = None
-        
         
         # create Poisson object
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
@@ -244,7 +248,7 @@ class petscVP1D(petscVP1Dbase):
             if self.snes.getConvergedReason() < 0:
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print()
-                    print("Solver not converging... quitting!")
+                    print("Solver not converging... quitting!   %i" % (self.snes.getConvergedReason()))
                     print()
                 exit()
            

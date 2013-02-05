@@ -139,6 +139,7 @@ cdef class PETScFunction(object):
         for j in np.arange(0, self.nv):
             h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe]
         
+        H.axpy(1., self.H2)
         
         self.matrix_mult(F, H, P, Y)
         
