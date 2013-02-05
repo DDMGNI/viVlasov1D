@@ -100,15 +100,17 @@ cdef class PETScFunction(object):
         
     
     def update_history(self, Vec F, Vec H1, Vec P):
+        self.H2.copy(self.H2h)
+        
         F.copy(self.Fh)
         P.copy(self.Ph)
         
         self.H0.copy(self.Hh)
         self.Hh.axpy(1., H1)
+        self.Hh.axpy(1., self.H2h)
         
     
     def update_external(self, Vec Pext):
-        self.H2.copy(self.H2h)
         self.toolbox.potential_to_hamiltonian(Pext, self.H2)
         
     
@@ -154,27 +156,23 @@ cdef class PETScFunction(object):
         
         (xs, xe), = self.da2.getRanges()
         
-        self.da1.globalToLocal(F,        self.localF )
-        self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(H,        self.localH )
-        self.da1.globalToLocal(self.Hh,  self.localHh)
-        self.da1.globalToLocal(self.H2,  self.localH2 )
-        self.da1.globalToLocal(self.H2h, self.localH2h)
-        self.dax.globalToLocal(P,        self.localP )
-        self.dax.globalToLocal(self.Ph,  self.localPh)
+        self.da1.globalToLocal(F,       self.localF )
+        self.da1.globalToLocal(self.Fh, self.localFh)
+        self.da1.globalToLocal(H,       self.localH )
+        self.da1.globalToLocal(self.Hh, self.localHh)
+        self.dax.globalToLocal(P,       self.localP )
+        self.dax.globalToLocal(self.Ph, self.localPh)
         
-        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localF  )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hp  = self.da1.getVecArray(self.localH  )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hh  = self.da1.getVecArray(self.localHh )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] p   = self.dax.getVecArray(self.localP  )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] ph  = self.dax.getVecArray(self.localPh )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] y  = self.da2.getVecArray(Y)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getVecArray(self.localF )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hp = self.da1.getVecArray(self.localH )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hh = self.da1.getVecArray(self.localHh)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] p  = self.dax.getVecArray(self.localP )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] ph = self.dax.getVecArray(self.localPh)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (hp + hh + h2 + h2h)
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (hp + hh)
         cdef np.ndarray[np.float64_t, ndim=1] p_ave = 0.5 * (p  + ph)
         
         

@@ -121,6 +121,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScSimpleNLMFJacobianColl",
+                  sources=["PETScSimpleNLMFJacobianColl.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScMatrixFreeSimpleNLJacobian",
                   sources=["PETScMatrixFreeSimpleNLJacobian.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

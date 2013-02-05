@@ -16,13 +16,15 @@ import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
+#from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobian   import PETScJacobianMatrixFree
 
-#from vlasov.vi.PETScSimpleMatrixColl     import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunctionColl import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobianColl import PETScJacobian
+from vlasov.vi.PETScSimpleMatrixColl       import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionColl   import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianColl   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianColl import PETScJacobianMatrixFree
 
 from petscvp1d import petscVP1Dbase
 
@@ -62,6 +64,11 @@ class petscVP1D(petscVP1Dbase):
         self.F  = self.da2.createGlobalVec()
         
         # create Jacobian, Function, and linear Matrix objects
+        self.petsc_jacobian_mf = PETScJacobianMatrixFree(self.da1, self.da2, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht, self.hx, self.hv,
+                                                         self.charge, coll_freq=self.coll_freq)
+        
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
@@ -87,16 +94,20 @@ class petscVP1D(petscVP1Dbase):
         self.J = self.da2.createMat()
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.J.setUp()
+
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], comm=PETSc.COMM_WORLD)
+        self.Jmf.setPythonContext(self.petsc_jacobian_mf)
+        self.Jmf.setUp()
         
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
-        self.snes.setJacobian(self.updateJacobian, self.J)
+        self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
         self.snes.setFromOptions()
-#        self.snes.getKSP().setType('gmres')
-#        self.snes.getKSP().getPC().setType('none')
-        self.snes.getKSP().setType('preonly')
+        self.snes.getKSP().setType('gmres')
+#        self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
+#        self.snes.getKSP().getPC().setType('none')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
         
@@ -193,8 +204,9 @@ class petscVP1D(petscVP1Dbase):
         
     
     def updateJacobian(self, snes, X, J, P):
+        self.petsc_jacobian_mf.update_previous_X(X)
         self.petsc_jacobian.update_previous(X)
-        self.petsc_jacobian.formMat(J)
+        self.petsc_jacobian.formMat(P)
     
     
     def run(self):
