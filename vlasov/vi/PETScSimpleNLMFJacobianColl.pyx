@@ -114,7 +114,7 @@ cdef class PETScJacobianMatrixFree(object):
         
         self.H0.copy(self.Hh)
         self.Hh.axpy(1., H1)
-        self.Hp.axpy(1., self.H2h)
+        self.Hh.axpy(1., self.H2h)
         
     
     def update_previous(self, Vec F, Vec H1, Vec P):
@@ -141,8 +141,6 @@ cdef class PETScJacobianMatrixFree(object):
         h = self.da1.getVecArray(H)
         f = self.da1.getVecArray(F)
         p = self.dax.getVecArray(P)
-        
-        h0 = self.da1.getVecArray(self.H0)
         
         
         f[xs:xe] = x[xs:xe, 0:self.nv]
