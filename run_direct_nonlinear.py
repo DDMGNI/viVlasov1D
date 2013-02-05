@@ -143,13 +143,15 @@ class petscVP1D(petscVP1Dbase):
         self.calculate_potential()
         
         # copy external potential
-        self.petsc_function.update_external(self.p_ext)
+        self.petsc_jacobian_mf.update_external(self.p_ext)
         self.petsc_jacobian.update_external(self.p_ext)
+        self.petsc_function.update_external(self.p_ext)
         self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
-        self.petsc_function.update_history(self.f, self.h1, self.p)
+        self.petsc_jacobian_mf.update_history(self.f, self.h1, self.p)
         self.petsc_jacobian.update_history(self.f, self.h1)
+        self.petsc_function.update_history(self.f, self.h1, self.p)
         self.petsc_matrix.update_history(self.f, self.h1)
         
         # save to hdf5
@@ -221,8 +223,9 @@ class petscVP1D(petscVP1Dbase):
             
             # calculate external field and copy to matrix, jacobian and function
             self.calculate_external(current_time)
-            self.petsc_function.update_external(self.p_ext)
+            self.petsc_jacobian_mf.update_external(self.p_ext)
             self.petsc_jacobian.update_external(self.p_ext)
+            self.petsc_function.update_external(self.p_ext)
             self.petsc_matrix.update_external(self.p_ext)
             
             
@@ -256,8 +259,9 @@ class petscVP1D(petscVP1Dbase):
             self.copy_p_to_h()
             
             # update history
-            self.petsc_function.update_history(self.f, self.h1, self.p)
+            self.petsc_jacobian_mf.update_history(self.f, self.h1, self.p)
             self.petsc_jacobian.update_history(self.f, self.h1)
+            self.petsc_function.update_history(self.f, self.h1, self.p)
             self.petsc_matrix.update_history(self.f, self.h1)
             
             # save to hdf5
