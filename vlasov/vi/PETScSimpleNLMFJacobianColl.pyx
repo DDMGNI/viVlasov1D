@@ -149,7 +149,7 @@ cdef class PETScJacobianMatrixFree(object):
         p[xs:xe] = x[xs:xe,   self.nv]
         
         for j in np.arange(0, self.nv):
-            h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe]
+            h[xs:xe, j] = p[xs:xe]
         
         
         self.update_previous(F, H, P)
