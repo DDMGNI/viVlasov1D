@@ -89,6 +89,9 @@ cdef class PETScJacobian(object):
         self.localA1 = dax.createLocalVec()
         self.localA2 = dax.createLocalVec()
         self.localA3 = dax.createLocalVec()
+        self.localN  = dax.createLocalVec()
+        self.localU  = dax.createLocalVec()
+        self.localE  = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -179,10 +182,16 @@ cdef class PETScJacobian(object):
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
         self.dax.globalToLocal(self.A3, self.localA3)
+        self.dax.globalToLocal(self.N,  self.localN )
+        self.dax.globalToLocal(self.U,  self.localU )
+        self.dax.globalToLocal(self.E,  self.localE )
         
         A1 = self.dax.getVecArray(self.localA1)[...]
         A2 = self.dax.getVecArray(self.localA2)[...]
         A3 = self.dax.getVecArray(self.localA3)[...]
+        N  = self.dax.getVecArray(self.localN )[...]
+        U  = self.dax.getVecArray(self.localU )[...]
+        E  = self.dax.getVecArray(self.localE )[...]
         
         
         A.zeroEntries()
@@ -202,8 +211,8 @@ cdef class PETScJacobian(object):
                 col.index = (i,)
                 col.field = self.nv
                 
-                A.setValueStencil(row, col, 1.)
-#                A.setValueStencil(row, col, 1., PETSc.InsertMode.ADD_VALUES)
+#                A.setValueStencil(row, col, 1.)
+                A.setValueStencil(row, col, 1., PETSc.InsertMode.ADD_VALUES)
                 
             else:
                 # density: velocity integral of f
@@ -217,8 +226,8 @@ cdef class PETScJacobian(object):
                     
                     for j in np.arange(0, self.nv):
                         col.field = j
-                        A.setValueStencil(row, col, value)
-#                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+#                        A.setValueStencil(row, col, value)
+                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                 
                 # Laplace operator
                 for index, value in [
@@ -229,8 +238,8 @@ cdef class PETScJacobian(object):
                     
                     col.index = index
                     col.field = self.nv
-                    A.setValueStencil(row, col, value)
-#                    A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+#                    A.setValueStencil(row, col, value)
+                    A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                     
             
         for i in np.arange(xs, xe):
@@ -244,8 +253,8 @@ cdef class PETScJacobian(object):
                 
                 # Dirichlet boundary conditions
                 if j == 0 or j == self.nv-1:
-                    A.setValueStencil(row, row, 1.0)
-#                    A.setValueStencil(row, row, 1.0, PETSc.InsertMode.ADD_VALUES)
+#                    A.setValueStencil(row, row, 1.0)
+                    A.setValueStencil(row, row, 1.0, PETSc.InsertMode.ADD_VALUES)
                     
                 else:
 
@@ -289,8 +298,35 @@ cdef class PETScJacobian(object):
                         
                         col.index = index
                         col.field = field
-                        A.setValueStencil(row, col, value)
-#                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+#                        A.setValueStencil(row, col, value)
+                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                    
+                    
+                    for tj in range(0, self.nv):
+
+                        col.index = (i-1,)
+                        col.field = tj
+                        value = 0.
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * 2. * N[ix-1] * (v[j+1] * fp[ix-1, j+1] - v[j-1] * fp[ix-1, j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( - v[tj] * N[ix-1] - U[ix-1] ) * (fp[ix-1, j+1] - fp[ix-1, j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( v[tj]**2 * N[ix-1] + E[ix-1] - 2. * v[tj] * U[ix-1] ) * (fp[ix-1, j-1] + fp[ix-1, j+1] - 2. * fp[ix-1, j]) * self.hv2_inv
+                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                        
+                        col.index = (i,)
+                        col.field = tj
+                        value = 0.
+                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * 2. * N[ix  ] * (v[j+1] * fp[ix,   j+1] - v[j-1] * fp[ix,   j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * ( - v[tj] * N[ix  ] - U[ix  ] ) * (fp[ix,   j+1] - fp[ix,   j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * ( v[tj]**2 * N[ix  ] + E[ix  ] - 2. * v[tj] * U[ix  ] ) * (fp[ix,   j-1] + fp[ix,   j+1] - 2. * fp[ix,   j]) * self.hv2_inv
+                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                        
+                        col.index = (i+1,)
+                        col.field = tj
+                        value = 0.
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * 2. * N[ix+1] * (v[j+1] * fp[ix+1, j+1] - v[j-1] * fp[ix+1, j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( - v[tj] * N[ix+1] - U[ix+1] ) * (fp[ix+1, j+1] - fp[ix+1, j-1]) * 0.5 / self.hv
+                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( v[tj]**2 * N[ix+1] + E[ix+1] - 2. * v[tj] * U[ix+1] ) * (fp[ix+1, j-1] + fp[ix+1, j+1] - 2. * fp[ix+1, j]) * self.hv2_inv
+                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                         
         
         A.assemble()

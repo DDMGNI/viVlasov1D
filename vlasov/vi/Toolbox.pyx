@@ -232,11 +232,11 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        result = ( \
+        result =  0.25 * ( \
                      + 1. * ( f[i-1, j+1] + f[i-1, j-1] - 2. * f[i-1, j  ] ) * A3[i-1] \
                      + 2. * ( f[i,   j+1] + f[i,   j-1] - 2. * f[i,   j  ] ) * A3[i  ] \
                      + 1. * ( f[i+1, j+1] + f[i+1, j-1] - 2. * f[i+1, j  ] ) * A3[i+1] \
-                 ) * 0.25 * self.hv2_inv
+                 ) *self.hv2_inv
         
         return result
 
