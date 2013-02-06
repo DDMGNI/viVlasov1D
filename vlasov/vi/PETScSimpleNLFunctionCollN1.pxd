@@ -13,7 +13,7 @@ from petsc4py.PETSc cimport DA, Mat, Vec
 from vlasov.vi.Toolbox cimport Toolbox
 
 
-cdef class PETScJacobianMatrixFree(object):
+cdef class PETScFunction(object):
 
     cdef np.uint64_t  nx
     cdef np.uint64_t  nv
@@ -40,30 +40,39 @@ cdef class PETScJacobianMatrixFree(object):
     cdef Vec H0
     cdef Vec H2
     cdef Vec H2h
-    cdef Vec Hp
     cdef Vec Hh
-    cdef Vec Fp
     cdef Vec Fh
+    cdef Vec Ph
     
-    cdef Vec A1d
-    cdef Vec A2d
     cdef Vec A1p
     cdef Vec A2p
+    cdef Vec A3p
+    cdef Vec A1h
+    cdef Vec A2h
+    cdef Vec A3h
+
+    cdef Vec Np
+    cdef Vec Up
+    cdef Vec Ep
+    cdef Vec Nh
+    cdef Vec Uh
+    cdef Vec Eh
     
     cdef Vec localH0
     cdef Vec localH2
     cdef Vec localH2h
-    cdef Vec localHd
-    cdef Vec localHp
+    cdef Vec localH
     cdef Vec localHh
-    cdef Vec localFd
-    cdef Vec localFp
+    cdef Vec localF
     cdef Vec localFh
-    cdef Vec localPd
+    cdef Vec localP
+    cdef Vec localPh
     
-    cdef Vec localA1d
-    cdef Vec localA2d
     cdef Vec localA1p
     cdef Vec localA2p
+    cdef Vec localA3p
+    cdef Vec localA1h
+    cdef Vec localA2h
+    cdef Vec localA3h
     
     cdef Toolbox toolbox

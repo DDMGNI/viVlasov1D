@@ -17,7 +17,7 @@ from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 from vlasov.vi.Toolbox import Toolbox
 
 
-cdef class PETScJacobianMatrixFree(object):
+cdef class PETScFunction(object):
     '''
     The ScipySparse class implements a couple of solvers for the Vlasov-Poisson system
     built on top of the SciPy Sparse package.
@@ -65,35 +65,43 @@ cdef class PETScJacobianMatrixFree(object):
         self.H0  = self.da1.createGlobalVec()
         self.H2  = self.da1.createGlobalVec()
         self.H2h = self.da1.createGlobalVec()
-        self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
-        self.Hp  = self.da1.createGlobalVec()
         self.Hh  = self.da1.createGlobalVec()
-        
+        self.Ph  = self.dax.createGlobalVec()
         self.H2.set(0.)
         
         # create moment vectors
-        self.A1d = self.dax.createGlobalVec()
-        self.A2d = self.dax.createGlobalVec()
         self.A1p = self.dax.createGlobalVec()
         self.A2p = self.dax.createGlobalVec()
+        self.A3p = self.dax.createGlobalVec()
+        self.A1h = self.dax.createGlobalVec()
+        self.A2h = self.dax.createGlobalVec()
+        self.A3h = self.dax.createGlobalVec()
+        
+        self.Np = self.dax.createGlobalVec()
+        self.Up = self.dax.createGlobalVec()
+        self.Ep = self.dax.createGlobalVec()
+        self.Nh = self.dax.createGlobalVec()
+        self.Uh = self.dax.createGlobalVec()
+        self.Eh = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
         self.localH2  = da1.createLocalVec()
         self.localH2h = da1.createLocalVec()
-        self.localFd  = da1.createLocalVec()
-        self.localFp  = da1.createLocalVec()
-        self.localFh  = da1.createLocalVec()
-        self.localHd  = da1.createLocalVec()
-        self.localHp  = da1.createLocalVec()
-        self.localHh  = da1.createLocalVec()
-        self.localPd  = dax.createLocalVec()
+        self.localF  = da1.createLocalVec()
+        self.localFh = da1.createLocalVec()
+        self.localH  = da1.createLocalVec()
+        self.localHh = da1.createLocalVec()
+        self.localP  = dax.createLocalVec()
+        self.localPh = dax.createLocalVec()
         
-        self.localA1d = dax.createLocalVec()
-        self.localA2d = dax.createLocalVec()
-        self.localA1p = dax.createLocalVec()
-        self.localA2p = dax.createLocalVec()
+        self.localA1p    = dax.createLocalVec()
+        self.localA2p    = dax.createLocalVec()
+        self.localA3p    = dax.createLocalVec()
+        self.localA1h    = dax.createLocalVec()
+        self.localA2h    = dax.createLocalVec()
+        self.localA3h    = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -102,29 +110,26 @@ cdef class PETScJacobianMatrixFree(object):
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
-    def update_history(self, Vec F, Vec H1):
+    def update_history(self, Vec F, Vec H1, Vec P):
         self.H2.copy(self.H2h)
         
         F.copy(self.Fh)
+        P.copy(self.Ph)
         
         self.H0.copy(self.Hh)
         self.Hh.axpy(1., H1)
         self.Hh.axpy(1., self.H2h)
         
     
-    def update_previous(self, Vec F, Vec H1):
-        F.copy(self.Fp)
-        
-        self.H0.copy(self.Hp)
-        self.Hp.axpy(1., H1)
-        self.Hp.axpy(1., self.H2)
-        
-    
     def update_external(self, Vec Pext):
         self.toolbox.potential_to_hamiltonian(Pext, self.H2)
         
     
-    def update_previous_X(self, Vec X):
+    def snes_mult(self, SNES snes, Vec X, Vec Y):
+        self.mult(X, Y)
+        
+    
+    def mult(self, Vec X, Vec Y):
         (xs, xe), = self.da2.getRanges()
         
         H = self.da1.createGlobalVec()
@@ -136,89 +141,70 @@ cdef class PETScJacobianMatrixFree(object):
         f = self.da1.getVecArray(F)
         p = self.dax.getVecArray(P)
         
-        
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        
-        for j in np.arange(0, self.nv):
-            h[xs:xe, j] = p[xs:xe]
-        
-        
-        self.update_previous(F, H, P)
-        
-        
-        
-    def mult(self, Mat mat, Vec X, Vec Y):
-        (xs, xe), = self.da2.getRanges()
-        
-        H = self.da1.createGlobalVec()
-        F = self.da1.createGlobalVec()
-        P = self.dax.createGlobalVec()
-        
-        x = self.da2.getVecArray(X)
-        h = self.da1.getVecArray(H)
-        f = self.da1.getVecArray(F)
-        p = self.dax.getVecArray(P)
+        h0 = self.da1.getVecArray(self.H0)
         
         
         f[xs:xe] = x[xs:xe, 0:self.nv]
         p[xs:xe] = x[xs:xe,   self.nv]
         
         for j in np.arange(0, self.nv):
-            h[xs:xe, j] = p[xs:xe]
+            h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe]
         
+        H.axpy(1., self.H2)
         
         self.matrix_mult(F, H, P, Y)
-    
-    
-    
+        
+        
     @cython.boundscheck(False)
-    def matrix_mult(self, Vec dF, Vec dH, Vec dP, Vec Y):
+    def matrix_mult(self, Vec F, Vec H, Vec P, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
         cdef np.float64_t laplace, integral, nmean, phisum
         
-        nmean  = dF.sum() * self.hv / self.nx
-        phisum = dP.sum()
+        nmean  = F.sum() * self.hv / self.nx
+        phisum = P.sum()
         
         (xs, xe), = self.da2.getRanges()
         
-        self.da1.globalToLocal(dF,       self.localFd)
-        self.da1.globalToLocal(self.Fp,  self.localFp)
-        self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(dH,       self.localHd)
-        self.da1.globalToLocal(self.Hp,  self.localHp)
-        self.da1.globalToLocal(self.Hh,  self.localHh)
-        self.dax.globalToLocal(dP,       self.localPd)
+        self.da1.globalToLocal(F,       self.localF )
+        self.da1.globalToLocal(self.Fh, self.localFh)
+        self.da1.globalToLocal(H,       self.localH )
+        self.da1.globalToLocal(self.Hh, self.localHh)
+        self.dax.globalToLocal(P,       self.localP )
+        self.dax.globalToLocal(self.Ph, self.localPh)
         
-        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fd  = self.da1.getVecArray(self.localFd)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hd  = self.da1.getVecArray(self.localHd)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hp  = self.da1.getVecArray(self.localHp)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hh  = self.da1.getVecArray(self.localHh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] pd  = self.dax.getVecArray(self.localPd)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] y  = self.da2.getVecArray(Y)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getVecArray(self.localF )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hp = self.da1.getVecArray(self.localH )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hh = self.da1.getVecArray(self.localHh)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] p  = self.dax.getVecArray(self.localP )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] ph = self.dax.getVecArray(self.localPh)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = 0.5 * (hp + hh)
+        cdef np.ndarray[np.float64_t, ndim=1] p_ave = 0.5 * (p  + ph)
         
         
         # calculate moments
-        self.toolbox.coll_moments(dF,      self.A1d, self.A2d)
-        self.toolbox.coll_moments(self.Fp, self.A1p, self.A2p)
+        self.toolbox.coll_moments_N1(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+        self.toolbox.coll_moments_N1(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
         
-        self.dax.globalToLocal(self.A1d, self.localA1d)
-        self.dax.globalToLocal(self.A2d, self.localA2d)
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A2p, self.localA2p)
+        self.dax.globalToLocal(self.A3p, self.localA3p)
+        self.dax.globalToLocal(self.A1h, self.localA1h)
+        self.dax.globalToLocal(self.A2h, self.localA2h)
+        self.dax.globalToLocal(self.A3h, self.localA3h)
         
-        A1d = self.dax.getVecArray(self.localA1d)[...]
-        A2d = self.dax.getVecArray(self.localA2d)[...]
         A1p = self.dax.getVecArray(self.localA1p)[...]
         A2p = self.dax.getVecArray(self.localA2p)[...]
+        A3p = self.dax.getVecArray(self.localA3p)[...]
+        A1h = self.dax.getVecArray(self.localA1h)[...]
+        A2h = self.dax.getVecArray(self.localA2h)[...]
+        A3h = self.dax.getVecArray(self.localA3h)[...]
         
         
         for i in np.arange(xs, xe):
@@ -228,16 +214,16 @@ cdef class PETScJacobianMatrixFree(object):
             # Poisson equation
             if i == 0:
                 # pin potential to zero at x[0]
-                y[iy, self.nv] = pd[ix]
+                y[iy, self.nv] = p[ix]
             
             else:
                     
-                laplace  = (pd[ix-1] + pd[ix+1] - 2. * pd[ix]) * self.hx2_inv
+                laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
                 
                 integral = ( \
-                             + 1. * fd[ix-1, :].sum() \
-                             + 2. * fd[ix,   :].sum() \
-                             + 1. * fd[ix+1, :].sum() \
+                             + 1. * fp[ix-1, :].sum() \
+                             + 2. * fp[ix,   :].sum() \
+                             + 1. * fp[ix+1, :].sum() \
                            ) * 0.25 * self.hv
                 
                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
@@ -248,14 +234,14 @@ cdef class PETScJacobianMatrixFree(object):
                 
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = fd[ix,j]
+                    y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
-                             + 0.5 * self.toolbox.arakawa(fd, h_ave, ix, j) \
-                             + 0.5 * self.toolbox.arakawa(f_ave, hd, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fd, A1p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fp, A1d, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fd, A2p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fp, A2d, ix, j)
+                    y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
+                             - self.toolbox.time_derivative(fh, ix, j) \
+                             + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.coll1_N1(fp, A1p, A2p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.coll1_N1(fh, A1h, A2h, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.coll2_N1(fp, A3p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.coll2_N1(fh, A3h, ix, j)
 

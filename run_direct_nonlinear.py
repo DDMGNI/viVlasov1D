@@ -21,10 +21,15 @@ from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 #from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
 #from vlasov.vi.PETScSimpleNLMFJacobian   import PETScJacobianMatrixFree
 
-from vlasov.vi.PETScSimpleMatrixColl       import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionColl   import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianColl   import PETScJacobian
-from vlasov.vi.PETScSimpleNLMFJacobianColl import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleMatrixColl       import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionColl   import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianColl   import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobianColl import PETScJacobianMatrixFree
+
+from vlasov.vi.PETScSimpleMatrixCollN1       import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionCollN1   import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianCollN1   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianCollN1 import PETScJacobianMatrixFree
 
 from petscvp1d import petscVP1Dbase
 
@@ -108,7 +113,8 @@ class petscVP1D(petscVP1Dbase):
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
         self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
         self.snes.setFromOptions()
-        self.snes.getKSP().setType('gmres')
+        self.snes.getKSP().setType(self.cfg['solver']['petsc_ksp_type'])
+#        self.snes.getKSP().setType('gmres')
 #        self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setType('none')
@@ -153,7 +159,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
-        self.petsc_jacobian_mf.update_history(self.f, self.h1, self.p)
+        self.petsc_jacobian_mf.update_history(self.f, self.h1)
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p)
         self.petsc_matrix.update_history(self.f, self.h1)
@@ -263,7 +269,7 @@ class petscVP1D(petscVP1Dbase):
             self.copy_p_to_h()
             
             # update history
-            self.petsc_jacobian_mf.update_history(self.f, self.h1, self.p)
+            self.petsc_jacobian_mf.update_history(self.f, self.h1)
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p)
             self.petsc_matrix.update_history(self.f, self.h1)

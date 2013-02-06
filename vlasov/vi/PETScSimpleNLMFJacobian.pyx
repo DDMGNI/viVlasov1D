@@ -254,8 +254,51 @@ cdef class PETScJacobianMatrixFree(object):
                     y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa(fd, h_ave, ix, j) \
                              + 0.5 * self.toolbox.arakawa(f_ave, hd, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fd, A1p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fp, A1d, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fd, A2p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fp, A2d, ix, j)
+                             - 0.5 * self.nu * self.coll1(fp, A1d, A2d, ix, j) \
+                             - 0.5 * self.nu * self.coll1(fd, A1p, A2p, ix, j) \
+                             - 0.5 * self.nu * self.coll2(fd, ix, j)
 
+
+    @cython.boundscheck(False)
+    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                  np.ndarray[np.float64_t, ndim=1] A1,
+                                  np.ndarray[np.float64_t, ndim=1] A2,
+                                  np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
+        cdef np.float64_t result
+        
+        # d/dv ( v * A2 * f )
+        result = 0.25 * ( \
+                          + 1. * ( (v[j+1] - A1[i-1]) * f[i-1, j+1] - (v[j-1] - A1[i-1]) * f[i-1, j-1] ) / A2[i-1] \
+                          + 2. * ( (v[j+1] - A1[i  ]) * f[i,   j+1] - (v[j-1] - A1[i  ]) * f[i,   j-1] ) / A2[i  ] \
+                          + 1. * ( (v[j+1] - A1[i+1]) * f[i+1, j+1] - (v[j-1] - A1[i+1]) * f[i+1, j-1] ) / A2[i+1] \
+                        ) * 0.5 / self.hv
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                  np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( \
+                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
+                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
+                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
+                 ) * 0.25 * self.hv2_inv
+        
+        return result
+    
+    
+    
