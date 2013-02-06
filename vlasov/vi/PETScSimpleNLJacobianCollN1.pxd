@@ -5,6 +5,7 @@ Created on Jul 10, 2012
 '''
 
 cimport cython
+from cpython cimport bool
 
 cimport numpy as np
 
@@ -15,6 +16,8 @@ from vlasov.vi.Toolbox cimport Toolbox
 
 cdef class PETScJacobian(object):
 
+    cdef bool exact_jacobian
+    
     cdef np.uint64_t  nx
     cdef np.uint64_t  nv
     

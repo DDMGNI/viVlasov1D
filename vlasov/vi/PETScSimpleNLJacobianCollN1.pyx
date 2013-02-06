@@ -7,11 +7,10 @@ Created on Apr 10, 2012
 cimport cython
 
 import  numpy as np
-cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+from petsc4py.PETSc cimport DA, Mat, Vec
 
 from vlasov.vi.Toolbox import Toolbox
 
@@ -26,10 +25,14 @@ cdef class PETScJacobian(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t charge, np.float64_t coll_freq=0.):
+                 np.float64_t charge, np.float64_t coll_freq=0.,
+                 bool exact_jacobian=False):
         '''
         Constructor
         '''
+        
+        # use exact jacobian
+        self.exact_jacobian = exact_jacobian
         
         # distributed array
         self.dax = dax
@@ -302,33 +305,36 @@ cdef class PETScJacobian(object):
                         A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                     
                     
-                    for tj in range(0, self.nv):
-
-                        col.index = (i-1,)
-                        col.field = tj
-                        value = 0.
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * 2. * N[ix-1] * (v[j+1] * fp[ix-1, j+1] - v[j-1] * fp[ix-1, j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( - v[tj] * N[ix-1] - U[ix-1] ) * (fp[ix-1, j+1] - fp[ix-1, j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( v[tj]**2 * N[ix-1] + E[ix-1] - 2. * v[tj] * U[ix-1] ) * (fp[ix-1, j-1] + fp[ix-1, j+1] - 2. * fp[ix-1, j]) * self.hv2_inv
-                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
-                        
-                        col.index = (i,)
-                        col.field = tj
-                        value = 0.
-                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * 2. * N[ix  ] * (v[j+1] * fp[ix,   j+1] - v[j-1] * fp[ix,   j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * ( - v[tj] * N[ix  ] - U[ix  ] ) * (fp[ix,   j+1] - fp[ix,   j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 2. * self.nu * self.hv * ( v[tj]**2 * N[ix  ] + E[ix  ] - 2. * v[tj] * U[ix  ] ) * (fp[ix,   j-1] + fp[ix,   j+1] - 2. * fp[ix,   j]) * self.hv2_inv
-                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
-                        
-                        col.index = (i+1,)
-                        col.field = tj
-                        value = 0.
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * 2. * N[ix+1] * (v[j+1] * fp[ix+1, j+1] - v[j-1] * fp[ix+1, j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( - v[tj] * N[ix+1] - U[ix+1] ) * (fp[ix+1, j+1] - fp[ix+1, j-1]) * 0.5 / self.hv
-                        value -= 0.5 * 0.25 * 1. * self.nu * self.hv * ( v[tj]**2 * N[ix+1] + E[ix+1] - 2. * v[tj] * U[ix+1] ) * (fp[ix+1, j-1] + fp[ix+1, j+1] - 2. * fp[ix+1, j]) * self.hv2_inv
-                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                    if self.exact_jacobian:
+                        for tj in range(0, self.nv):
+    
+                            col.index = (i-1,)
+                            col.field = tj
+                            value = 0.
+                            value -= 2. * N[ix-1] * (v[j+1] * fp[ix-1, j+1] - v[j-1] * fp[ix-1, j-1]) * 0.5
+                            value += ( v[tj]    * N[ix-1] + U[ix-1] ) * (fp[ix-1, j+1] - fp[ix-1, j-1]) * 0.5
+                            value -= ( v[tj]**2 * N[ix-1] + E[ix-1] - 2. * v[tj] * U[ix-1] ) * (fp[ix-1, j-1] + fp[ix-1, j+1] - 2. * fp[ix-1, j]) / self.hv
+                            value *= 0.5 * 0.25 * 1. * self.nu
+                            A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                            
+                            col.index = (i,)
+                            col.field = tj
+                            value = 0.
+                            value -= 2. * N[ix  ] * (v[j+1] * fp[ix,   j+1] - v[j-1] * fp[ix,   j-1]) * 0.5
+                            value += ( v[tj]    * N[ix  ] + U[ix  ] ) * (fp[ix,   j+1] - fp[ix,   j-1]) * 0.5
+                            value -= ( v[tj]**2 * N[ix  ] + E[ix  ] - 2. * v[tj] * U[ix  ] ) * (fp[ix,   j-1] + fp[ix,   j+1] - 2. * fp[ix,   j]) / self.hv
+                            value *= 0.5 * 0.25 * 2. * self.nu
+                            A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
+                            
+                            col.index = (i+1,)
+                            col.field = tj
+                            value = 0.
+                            value -= 2. * N[ix+1] * (v[j+1] * fp[ix+1, j+1] - v[j-1] * fp[ix+1, j-1]) * 0.5
+                            value += ( v[tj]    * N[ix+1] + U[ix+1] ) * (fp[ix+1, j+1] - fp[ix+1, j-1]) * 0.5
+                            value -= ( v[tj]**2 * N[ix+1] + E[ix+1] - 2. * v[tj] * U[ix+1] ) * (fp[ix+1, j-1] + fp[ix+1, j+1] - 2. * fp[ix+1, j]) / self.hv
+                            value *= 0.5 * 0.25 * 1. * self.nu
+                            A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                         
         
         A.assemble()
         
-
