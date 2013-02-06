@@ -203,6 +203,7 @@ cdef class PETScJacobian(object):
                 col.field = self.nv
                 
                 A.setValueStencil(row, col, 1.)
+#                A.setValueStencil(row, col, 1., PETSc.InsertMode.ADD_VALUES)
                 
             else:
                 # density: velocity integral of f
@@ -217,6 +218,7 @@ cdef class PETScJacobian(object):
                     for j in np.arange(0, self.nv):
                         col.field = j
                         A.setValueStencil(row, col, value)
+#                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                 
                 # Laplace operator
                 for index, value in [
@@ -228,6 +230,7 @@ cdef class PETScJacobian(object):
                     col.index = index
                     col.field = self.nv
                     A.setValueStencil(row, col, value)
+#                    A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                     
             
         for i in np.arange(xs, xe):
@@ -242,6 +245,7 @@ cdef class PETScJacobian(object):
                 # Dirichlet boundary conditions
                 if j == 0 or j == self.nv-1:
                     A.setValueStencil(row, row, 1.0)
+#                    A.setValueStencil(row, row, 1.0, PETSc.InsertMode.ADD_VALUES)
                     
                 else:
 
@@ -251,7 +255,7 @@ cdef class PETScJacobian(object):
                                                         + 1. * coll2_fac * A3[ix-1]),
                             ((i-1,), j  , 2. * time_fac - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac \
                                                         - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac \
-                                                        - 2. * coll2_fac * A3[ix]),
+                                                        - 2. * coll2_fac * A3[ix-1]),
                             ((i-1,), j+1, 1. * time_fac - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac \
                                                         + 1. * coll1_fac * ( A1[ix-1] * v[j+1] - A2[ix-1]) \
                                                         + 1. * coll2_fac * A3[ix-1]),
@@ -286,6 +290,7 @@ cdef class PETScJacobian(object):
                         col.index = index
                         col.field = field
                         A.setValueStencil(row, col, value)
+#                        A.setValueStencil(row, col, value, PETSc.InsertMode.ADD_VALUES)
                         
         
         A.assemble()
