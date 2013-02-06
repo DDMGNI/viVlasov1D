@@ -296,6 +296,9 @@ class petscVP1D(petscVP1Dbase):
 
     def check_jacobian(self):
         
+#        use_mf = True
+        use_mf = False
+        
         (xs, xe), = self.da1.getRanges()
         
         eps = 1.E-7
@@ -303,11 +306,21 @@ class petscVP1D(petscVP1Dbase):
         # calculate initial guess
 #        self.calculate_initial_guess()
         
-        # update previous iteration
-        self.petsc_jacobian.update_previous(self.x)
+        if use_mf:
+            # update previous iteration
+            self.petsc_jacobian_mf.update_previous_X(self.x)
+            
+            J = self.Jmf
+            
+        else:
+            # update previous iteration
+            self.petsc_jacobian.update_previous(self.x)
         
-        # calculate jacobian
-        self.petsc_jacobian.formMat(self.J)
+            # calculate jacobian
+            self.petsc_jacobian.formMat(self.J)
+        
+            J = self.J
+        
         
         # create working vectors
         Jx  = self.da2.createGlobalVec()
@@ -336,7 +349,7 @@ class petscVP1D(petscVP1Dbase):
                     
                     
                     # compute J.e
-                    self.J.mult(ex, dJ)
+                    J.mult(ex, dJ)
                     
                     dJ_arr = self.da2.getVecArray(dJ)
                     Jx_arr = self.da2.getVecArray(Jx)
