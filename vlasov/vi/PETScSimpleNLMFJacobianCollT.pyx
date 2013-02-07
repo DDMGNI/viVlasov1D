@@ -144,7 +144,7 @@ cdef class PETScJacobianMatrixFree(object):
             h[xs:xe, j] = p[xs:xe]
         
         
-        self.update_previous(F, H, P)
+        self.update_previous(F, H)
         
         
         
