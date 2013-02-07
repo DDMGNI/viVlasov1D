@@ -46,6 +46,13 @@ cdef class Toolbox(object):
                                             np.uint64_t i, np.uint64_t j)
     
     
+    cdef np.float64_t coll41(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t coll42(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j)
+    
+    
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] A1,
                                    np.ndarray[np.float64_t, ndim=1] A2,

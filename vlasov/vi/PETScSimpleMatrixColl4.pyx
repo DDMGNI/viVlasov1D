@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
+from petsc4py.PETSc cimport DA, Mat, Vec
 
 from vlasov.vi.Toolbox import Toolbox
 
@@ -69,10 +69,6 @@ cdef class PETScMatrix(object):
         self.Fh  = self.da1.createGlobalVec()
         self.H2.set(0.)
         
-        # create moment vectors
-        self.A1 = self.dax.createGlobalVec()
-        self.A2 = self.dax.createGlobalVec()
-        
         # create local vectors
         self.localH0  = da1.createLocalVec()
         self.localH1  = da1.createLocalVec()
@@ -81,9 +77,6 @@ cdef class PETScMatrix(object):
         self.localH2h = da1.createLocalVec()
         self.localF   = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
-
-        self.localA1 = dax.createLocalVec()
-        self.localA2 = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -111,7 +104,7 @@ cdef class PETScMatrix(object):
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.H2h, self.localH2h)
-        
+
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
@@ -139,7 +132,6 @@ cdef class PETScMatrix(object):
             
             
             if i == 0:
-                # pin potential to zero at x[0]
                 col.index = (i,)
                 col.field = self.nv
                 value     = 1.
@@ -180,11 +172,12 @@ cdef class PETScMatrix(object):
             for j in np.arange(0, self.nv):
                 row.field = j
                 
-                if j == 0 or j == self.nv-1:
-                    # Dirichlet boundary conditions
+                # Dirichlet boundary conditions
+                if j <= 1 or j >= self.nv-2:
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
+                        
                     for index, field, value in [
                             ((i-1,), j-1, 1. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac),
                             ((i-1,), j  , 2. * time_fac - (h[ix,   j+1] - h[ix,   j-1]) * arak_fac \
@@ -320,41 +313,30 @@ cdef class PETScMatrix(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2
         
-        cdef np.float64_t nmean = self.Fh.sum() * self.hv / self.nx
-        
-        # calculate moments
-        self.toolbox.collE_moments(self.Fh, self.A1, self.A2)
-        
-        self.dax.globalToLocal(self.A1, self.localA1)
-        self.dax.globalToLocal(self.A2, self.localA2)
-        
-        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.localA1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.localA2)[...]
+        cdef np.float64_t fmean = self.Fh.sum() * self.hv / self.nx
         
         
-        # calculate b
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
             
             # Poisson equation
             if i == 0:
-                # pin potential to zero at x[0]
                 b[iy, self.nv] = 0.
                 
             else:
-                b[iy, self.nv] = nmean * self.charge
+                b[iy, self.nv] = fmean * self.charge
             
             
             # Vlasov equation
             for j in np.arange(0, self.nv):
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     b[iy, j] = 0.0
                     
                 else:
                     b[iy, j] = self.toolbox.time_derivative(fh, ix, j) \
                              - 0.5 * self.toolbox.arakawa(fh, h, ix, j) \
-                             + self.nu * self.toolbox.collE1(fh, A1, ix, j) \
-                             + self.nu * self.toolbox.collE2(fh, A2, ix, j)
-    
+                             + self.nu * self.toolbox.coll41(fh, ix, j) \
+                             + self.nu * self.toolbox.coll42(fh, ix, j)
+

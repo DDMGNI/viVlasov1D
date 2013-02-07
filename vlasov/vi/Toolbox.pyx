@@ -107,6 +107,46 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    cdef np.float64_t coll41(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
+        cdef np.float64_t result
+        
+        result = 0.25 * ( \
+                          + 1. * ( v[j+2] * f[i-1, j+2] - 2. * v[j+1] * f[i-1, j+1] + 2. * v[j-1] * f[i-1, j-1] - v[j-2] * f[i-1, j-2] ) \
+                          + 2. * ( v[j+2] * f[i,   j+2] - 2. * v[j+1] * f[i,   j+1] + 2. * v[j-1] * f[i,   j-1] - v[j-2] * f[i,   j-2] ) \
+                          + 1. * ( v[j+2] * f[i+1, j+2] - 2. * v[j+1] * f[i+1, j+1] + 2. * v[j-1] * f[i+1, j-1] - v[j-2] * f[i+1, j-2] ) \
+                        ) * 0.5 / self.hv**3
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t coll42(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.float64_t result
+        
+        result = 0.25 * ( \
+                          + 1. * ( f[i-1, j+2] - 4. * f[i-1, j+1] + 6. * f[i-1, j  ] - 4. * f[i-1, j-1] + f[i-1, j-2] ) \
+                          + 2. * ( f[i,   j+2] - 4. * f[i,   j+1] + 6. * f[i,   j  ] - 4. * f[i,   j-1] + f[i,   j-2] ) \
+                          + 1. * ( f[i+1, j+2] - 4. * f[i+1, j+1] + 6. * f[i+1, j  ] - 4. * f[i+1, j-1] + f[i+1, j-2] ) \
+                        ) / self.hv**4
+        
+        return result
+
+
+
+    @cython.boundscheck(False)
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] A1,
                                    np.ndarray[np.float64_t, ndim=1] A2,
@@ -204,8 +244,8 @@ cdef class Toolbox(object):
 
     @cython.boundscheck(False)
     cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.uint64_t i, np.uint64_t j):
+                                   np.ndarray[np.float64_t, ndim=1] A1,
+                                   np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''

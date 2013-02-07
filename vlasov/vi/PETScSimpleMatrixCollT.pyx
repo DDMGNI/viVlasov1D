@@ -335,9 +335,9 @@ cdef class PETScMatrix(object):
         self.dax.globalToLocal(self.A2, self.localA2)
         self.dax.globalToLocal(self.A3, self.localA3)
         
-        A1 = self.dax.getVecArray(self.localA1)[...]
-        A2 = self.dax.getVecArray(self.localA2)[...]
-        A3 = self.dax.getVecArray(self.localA3)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.localA1)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.localA2)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A3 = self.dax.getVecArray(self.localA3)[...]
         
         
         for i in np.arange(xs, xe):
