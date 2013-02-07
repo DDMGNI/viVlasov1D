@@ -16,20 +16,20 @@ import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-#from vlasov.vi.PETScSimpleMatrix         import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunction     import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobian     import PETScJacobian
-#from vlasov.vi.PETScSimpleNLMFJacobian   import PETScJacobianMatrixFree
+from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
 
-#from vlasov.vi.PETScSimpleMatrixColl       import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunctionColl   import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobianColl   import PETScJacobian
-#from vlasov.vi.PETScSimpleNLMFJacobianColl import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionCollE   import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianCollE   import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobianCollE import PETScJacobianMatrixFree
 
-from vlasov.vi.PETScSimpleMatrixCollN1       import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionCollN1   import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianCollN1   import PETScJacobian
-from vlasov.vi.PETScSimpleNLMFJacobianCollN1 import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleMatrixCollN       import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionCollN   import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianCollN   import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobianCollN import PETScJacobianMatrixFree
 
 from petscvp1d import petscVP1Dbase
 
