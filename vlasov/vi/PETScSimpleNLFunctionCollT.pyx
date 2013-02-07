@@ -78,6 +78,13 @@ cdef class PETScFunction(object):
         self.A2h = self.dax.createGlobalVec()
         self.A3h = self.dax.createGlobalVec()
         
+        self.Np = self.dax.createGlobalVec()
+        self.Up = self.dax.createGlobalVec()
+        self.Ep = self.dax.createGlobalVec()
+        self.Nh = self.dax.createGlobalVec()
+        self.Uh = self.dax.createGlobalVec()
+        self.Eh = self.dax.createGlobalVec()
+        
         # create local vectors
         self.localH0  = da1.createLocalVec()
         self.localH2  = da1.createLocalVec()
@@ -235,5 +242,5 @@ cdef class PETScFunction(object):
                              + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fp, A1p, A2p, A3p, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fh, A1h, A2h, A3h, ix, j) \
-                             - self.nu * self.toolbox.coll2(f_ave, ix, j)
+                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
 

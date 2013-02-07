@@ -171,6 +171,8 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=1] u  = self.dax.getVecArray(U )[...]
         cdef np.ndarray[np.float64_t, ndim=1] e  = self.dax.getVecArray(E )[...]
         
+        cdef np.ndarray[np.float64_t, ndim=1] t  = np.zeros_like(e)
+        
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
@@ -192,10 +194,11 @@ cdef class Toolbox(object):
             n[iy] *= self.hv
             u[iy] *= self.hv
             e[iy] *= self.hv
+
             
             a1[iy] = n[iy]**2
             a2[iy] = n[iy] * u[iy]
-            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2) 
+            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
 
 
 

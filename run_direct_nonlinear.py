@@ -24,7 +24,7 @@ from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
 #from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
 #from vlasov.vi.PETScSimpleNLFunctionCollE   import PETScFunction
 #from vlasov.vi.PETScSimpleNLJacobianCollE   import PETScJacobian
-#from vlasov.vi.PETScSimpleNLMFJacobianCollE import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleNLMFJacobianCollE import PETScJacobianMatrixFree        ### still does not have the exact Jacobian ###
 
 #from vlasov.vi.PETScSimpleMatrixCollN       import PETScMatrix
 #from vlasov.vi.PETScSimpleNLFunctionCollN   import PETScFunction
