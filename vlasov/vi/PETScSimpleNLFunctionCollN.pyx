@@ -189,8 +189,8 @@ cdef class PETScFunction(object):
         
         
         # calculate moments
-        self.toolbox.coll_moments_N1(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
-        self.toolbox.coll_moments_N1(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
+        self.toolbox.collN_moments(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+        self.toolbox.collN_moments(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
         
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A2p, self.localA2p)
@@ -240,8 +240,8 @@ cdef class PETScFunction(object):
                     y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
                              - self.toolbox.time_derivative(fh, ix, j) \
                              + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1_N1(fp, A1p, A2p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1_N1(fh, A1h, A2h, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2_N1(fp, A3p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2_N1(fh, A3h, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collN1(fp, A1p, A2p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collN1(fh, A1h, A2h, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collN2(fp, A3p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collN2(fh, A3h, ix, j)
 

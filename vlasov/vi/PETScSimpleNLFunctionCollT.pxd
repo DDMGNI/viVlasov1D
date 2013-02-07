@@ -46,8 +46,17 @@ cdef class PETScFunction(object):
     
     cdef Vec A1p
     cdef Vec A2p
+    cdef Vec A3p
     cdef Vec A1h
     cdef Vec A2h
+    cdef Vec A3h
+
+    cdef Vec Np
+    cdef Vec Up
+    cdef Vec Ep
+    cdef Vec Nh
+    cdef Vec Uh
+    cdef Vec Eh
     
     cdef Vec localH0
     cdef Vec localF
@@ -61,16 +70,10 @@ cdef class PETScFunction(object):
     
     cdef Vec localA1p
     cdef Vec localA2p
+    cdef Vec localA3p
     cdef Vec localA1h
     cdef Vec localA2h
+    cdef Vec localA3h
     
     cdef Toolbox toolbox
 
-
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.uint64_t i, np.uint64_t j)

@@ -180,7 +180,7 @@ cdef class PETScJacobian(object):
 
         
         # calculate moments
-        self.toolbox.coll_moments_N1(self.Fp, self.A1, self.A2, self.A3, self.N, self.U, self.E)
+        self.toolbox.collN_moments(self.Fp, self.A1, self.A2, self.A3, self.N, self.U, self.E)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)

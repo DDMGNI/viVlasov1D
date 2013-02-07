@@ -73,8 +73,10 @@ cdef class PETScFunction(object):
         # create moment vectors
         self.A1p = self.dax.createGlobalVec()
         self.A2p = self.dax.createGlobalVec()
+        self.A3p = self.dax.createGlobalVec()
         self.A1h = self.dax.createGlobalVec()
         self.A2h = self.dax.createGlobalVec()
+        self.A3h = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -89,8 +91,10 @@ cdef class PETScFunction(object):
         
         self.localA1p    = dax.createLocalVec()
         self.localA2p    = dax.createLocalVec()
+        self.localA3p    = dax.createLocalVec()
         self.localA1h    = dax.createLocalVec()
         self.localA2h    = dax.createLocalVec()
+        self.localA3h    = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -150,8 +154,6 @@ cdef class PETScFunction(object):
         cdef np.float64_t laplace, integral, nmean, phisum
         
         nmean  = F.sum() * self.hv / self.nx
-#        nmean += self.Fh.sum() * self.hv / self.nx
-#        nmean *= .5
 
         phisum = P.sum()
         
@@ -182,18 +184,22 @@ cdef class PETScFunction(object):
         
         
         # calculate moments
-        self.toolbox.coll_moments(F,       self.A1p, self.A2p)
-        self.toolbox.coll_moments(self.Fh, self.A1h, self.A2h)
+        self.toolbox.collN_moments(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+        self.toolbox.collN_moments(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
         
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A2p, self.localA2p)
+        self.dax.globalToLocal(self.A3p, self.localA3p)
         self.dax.globalToLocal(self.A1h, self.localA1h)
         self.dax.globalToLocal(self.A2h, self.localA2h)
+        self.dax.globalToLocal(self.A3h, self.localA3h)
         
         A1p = self.dax.getVecArray(self.localA1p)[...]
         A2p = self.dax.getVecArray(self.localA2p)[...]
+        A3p = self.dax.getVecArray(self.localA3p)[...]
         A1h = self.dax.getVecArray(self.localA1h)[...]
         A2h = self.dax.getVecArray(self.localA2h)[...]
+        A3h = self.dax.getVecArray(self.localA3h)[...]
         
         
         for i in np.arange(xs, xe):
@@ -227,51 +233,7 @@ cdef class PETScFunction(object):
                     y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
                              - self.toolbox.time_derivative(fh, ix, j) \
                              + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.nu * self.coll1(fp, A1p, A2p, ix, j) \
-                             - 0.5 * self.nu * self.coll1(fh, A1h, A2h, ix, j) \
-                             - self.nu * self.coll2(f_ave, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT1(fp, A1p, A2p, A3p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1(fh, A1h, A2h, A3h, ix, j) \
+                             - self.nu * self.toolbox.coll2(f_ave, ix, j)
 
-
-    @cython.boundscheck(False)
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
-        cdef np.float64_t result
-        
-        # d/dv ( v * A2 * f )
-        result = 0.25 * ( \
-                          + 1. * ( (v[j+1] - A1[i-1]) * f[i-1, j+1] - (v[j-1] - A1[i-1]) * f[i-1, j-1] ) / A2[i-1] \
-                          + 2. * ( (v[j+1] - A1[i  ]) * f[i,   j+1] - (v[j-1] - A1[i  ]) * f[i,   j-1] ) / A2[i  ] \
-                          + 1. * ( (v[j+1] - A1[i+1]) * f[i+1, j+1] - (v[j-1] - A1[i+1]) * f[i+1, j-1] ) / A2[i+1] \
-                        ) * 0.5 / self.hv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                 ) * 0.25 * self.hv2_inv
-        
-        return result
-    
-    
-    

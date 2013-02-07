@@ -207,8 +207,8 @@ cdef class PETScJacobianMatrixFree(object):
         
         
         # calculate moments
-        self.toolbox.coll_moments(dF,      self.A1d, self.A2d)
-        self.toolbox.coll_moments(self.Fp, self.A1p, self.A2p)
+        self.toolbox.collE_moments(dF,      self.A1d, self.A2d)
+        self.toolbox.collE_moments(self.Fp, self.A1p, self.A2p)
         
         self.dax.globalToLocal(self.A1d, self.localA1d)
         self.dax.globalToLocal(self.A2d, self.localA2d)
@@ -254,8 +254,8 @@ cdef class PETScJacobianMatrixFree(object):
                     y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa(fd, h_ave, ix, j) \
                              + 0.5 * self.toolbox.arakawa(f_ave, hd, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fd, A1p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1(fp, A1d, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fd, A2p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2(fp, A2d, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collE1(fd, A1p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collE1(fp, A1d, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collE2(fd, A2p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collE2(fp, A2d, ix, j)
 

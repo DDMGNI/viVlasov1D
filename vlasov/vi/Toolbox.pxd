@@ -45,24 +45,37 @@ cdef class Toolbox(object):
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
                                             np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A1,
+                                   np.ndarray[np.float64_t, ndim=1] A2,
+                                   np.ndarray[np.float64_t, ndim=1] A3,
+                                   np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll_moments(self, Vec F, Vec A1, Vec A2)
+    cdef np.float64_t collT2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t collT_moments(self, Vec F, Vec A1, Vec A2, Vec A3, Vec N, Vec U, Vec E)
+    
+    
+    cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A1,
+                                   np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t collE2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A2,
+                                   np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t collE_moments(self, Vec F, Vec A1, Vec A2)
 
 
-    cdef np.float64_t coll1_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] A1,
-                                     np.ndarray[np.float64_t, ndim=1] A2,
-                                     np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A1,
+                                   np.ndarray[np.float64_t, ndim=1] A2,
+                                   np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll2_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] A3,
-                                     np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collN2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A3,
+                                   np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll_moments_N1(self, Vec F, Vec A1, Vec A2, Vec A3, Vec N, Vec U, Vec E)
+    cdef np.float64_t collN_moments(self, Vec F, Vec A1, Vec A2, Vec A3, Vec N, Vec U, Vec E)

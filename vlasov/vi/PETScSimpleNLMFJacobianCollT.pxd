@@ -47,8 +47,17 @@ cdef class PETScJacobianMatrixFree(object):
     
     cdef Vec A1d
     cdef Vec A2d
+    cdef Vec A3d
     cdef Vec A1p
     cdef Vec A2p
+    cdef Vec A3p
+    
+    cdef Vec Nd
+    cdef Vec Ud
+    cdef Vec Ed
+    cdef Vec Np
+    cdef Vec Up
+    cdef Vec Ep
     
     cdef Vec localH0
     cdef Vec localH2
@@ -63,16 +72,29 @@ cdef class PETScJacobianMatrixFree(object):
     
     cdef Vec localA1d
     cdef Vec localA2d
+    cdef Vec localA3d
     cdef Vec localA1p
     cdef Vec localA2p
+    cdef Vec localA3p
+    
+    cdef Vec localNd
+    cdef Vec localUd
+    cdef Vec localEd
+    cdef Vec localNp
+    cdef Vec localUp
+    cdef Vec localEp
     
     cdef Toolbox toolbox
 
 
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A1p,
+                                   np.ndarray[np.float64_t, ndim=1] A2p,
+                                   np.ndarray[np.float64_t, ndim=1] A3p,
+                                   np.ndarray[np.float64_t, ndim=1] nd,
+                                   np.ndarray[np.float64_t, ndim=1] np,
+                                   np.ndarray[np.float64_t, ndim=1] ud,
+                                   np.ndarray[np.float64_t, ndim=1] up,
+                                   np.ndarray[np.float64_t, ndim=1] ed,
+                                   np.ndarray[np.float64_t, ndim=1] ep,
+                                   np.uint64_t i, np.uint64_t j)

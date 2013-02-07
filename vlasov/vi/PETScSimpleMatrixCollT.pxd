@@ -47,7 +47,11 @@ cdef class PETScMatrix(object):
     
     cdef Vec A1
     cdef Vec A2
-    
+    cdef Vec A3
+    cdef Vec N
+    cdef Vec U
+    cdef Vec E
+        
     cdef Vec localH0
     cdef Vec localH1
     cdef Vec localH1h
@@ -58,14 +62,6 @@ cdef class PETScMatrix(object):
     
     cdef Vec localA1
     cdef Vec localA2
+    cdef Vec localA3
     
     cdef Toolbox toolbox
-
-
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j)
-
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.uint64_t i, np.uint64_t j)

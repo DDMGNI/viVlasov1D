@@ -75,8 +75,17 @@ cdef class PETScJacobianMatrixFree(object):
         # create moment vectors
         self.A1d = self.dax.createGlobalVec()
         self.A2d = self.dax.createGlobalVec()
+        self.A3d = self.dax.createGlobalVec()
         self.A1p = self.dax.createGlobalVec()
         self.A2p = self.dax.createGlobalVec()
+        self.A3p = self.dax.createGlobalVec()
+        
+        self.Nd = self.dax.createGlobalVec()
+        self.Ud = self.dax.createGlobalVec()
+        self.Ed = self.dax.createGlobalVec()
+        self.Np = self.dax.createGlobalVec()
+        self.Up = self.dax.createGlobalVec()
+        self.Ep = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -92,8 +101,17 @@ cdef class PETScJacobianMatrixFree(object):
         
         self.localA1d = dax.createLocalVec()
         self.localA2d = dax.createLocalVec()
+        self.localA3d = dax.createLocalVec()
         self.localA1p = dax.createLocalVec()
         self.localA2p = dax.createLocalVec()
+        self.localA3p = dax.createLocalVec()
+        
+        self.localNd  = dax.createLocalVec()
+        self.localUd  = dax.createLocalVec()
+        self.localEd  = dax.createLocalVec()
+        self.localNp  = dax.createLocalVec()
+        self.localUp  = dax.createLocalVec()
+        self.localEp  = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -207,18 +225,36 @@ cdef class PETScJacobianMatrixFree(object):
         
         
         # calculate moments
-        self.toolbox.coll_moments(dF,      self.A1d, self.A2d)
-        self.toolbox.coll_moments(self.Fp, self.A1p, self.A2p)
+        self.toolbox.collN_moments(dF,      self.A1d, self.A2d, self.A3d, self.Nd, self.Ud, self.Ed)
+        self.toolbox.collN_moments(self.Fp, self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
         
         self.dax.globalToLocal(self.A1d, self.localA1d)
         self.dax.globalToLocal(self.A2d, self.localA2d)
+        self.dax.globalToLocal(self.A3d, self.localA3d)
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A2p, self.localA2p)
+        self.dax.globalToLocal(self.A3p, self.localA3p)
+        
+        self.dax.globalToLocal(self.Nd, self.localNd)
+        self.dax.globalToLocal(self.Ud, self.localUd)
+        self.dax.globalToLocal(self.Ed, self.localEd)
+        self.dax.globalToLocal(self.Np, self.localNp)
+        self.dax.globalToLocal(self.Up, self.localUp)
+        self.dax.globalToLocal(self.Ep, self.localEp)
         
         A1d = self.dax.getVecArray(self.localA1d)[...]
         A2d = self.dax.getVecArray(self.localA2d)[...]
+        A3d = self.dax.getVecArray(self.localA3d)[...]
         A1p = self.dax.getVecArray(self.localA1p)[...]
         A2p = self.dax.getVecArray(self.localA2p)[...]
+        A3p = self.dax.getVecArray(self.localA3p)[...]
+        
+        Nd = self.dax.getVecArray(self.localNd)[...]
+        Ud = self.dax.getVecArray(self.localUd)[...]
+        Ed = self.dax.getVecArray(self.localEd)[...]
+        Np = self.dax.getVecArray(self.localNp)[...]
+        Up = self.dax.getVecArray(self.localUp)[...]
+        Ep = self.dax.getVecArray(self.localEp)[...]
         
         
         for i in np.arange(xs, xe):
@@ -254,51 +290,60 @@ cdef class PETScJacobianMatrixFree(object):
                     y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa(fd, h_ave, ix, j) \
                              + 0.5 * self.toolbox.arakawa(f_ave, hd, ix, j) \
-                             - 0.5 * self.nu * self.coll1(fp, A1d, A2d, ix, j) \
-                             - 0.5 * self.nu * self.coll1(fd, A1p, A2p, ix, j) \
-                             - 0.5 * self.nu * self.coll2(fd, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT1(fd, A1p, A2p, A3p, ix, j) \
+                             - 0.5 * self.nu * self.collT1(fp, A1p, A2p, A3p, Nd, Np, Ud, Up, Ed, Ep, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2(fd, ix, j)
 
 
-    @cython.boundscheck(False)
-    cdef np.float64_t coll1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A1,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j):
+
+    cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] A1p,
+                                   np.ndarray[np.float64_t, ndim=1] A2p,
+                                   np.ndarray[np.float64_t, ndim=1] A3p,
+                                   np.ndarray[np.float64_t, ndim=1] Nd,
+                                   np.ndarray[np.float64_t, ndim=1] Np,
+                                   np.ndarray[np.float64_t, ndim=1] Ud,
+                                   np.ndarray[np.float64_t, ndim=1] Up,
+                                   np.ndarray[np.float64_t, ndim=1] Ed,
+                                   np.ndarray[np.float64_t, ndim=1] Ep,
+                                   np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
-        cdef np.float64_t result
+        cdef np.float64_t result = 0.
         
-        # d/dv ( v * A2 * f )
-        result = 0.25 * ( \
-                          + 1. * ( (v[j+1] - A1[i-1]) * f[i-1, j+1] - (v[j-1] - A1[i-1]) * f[i-1, j-1] ) / A2[i-1] \
-                          + 2. * ( (v[j+1] - A1[i  ]) * f[i,   j+1] - (v[j-1] - A1[i  ]) * f[i,   j-1] ) / A2[i  ] \
-                          + 1. * ( (v[j+1] - A1[i+1]) * f[i+1, j+1] - (v[j-1] - A1[i+1]) * f[i+1, j-1] ) / A2[i+1] \
+        ### check sign ###
+        
+        result -= 0.25 * ( \
+                           + 1. * Nd[i-1] * ( Np[i-1] * v[j+1] - Up[i-1] ) * f[i-1, j+1] * A3p[i-1] \
+                           - 1. * Nd[i-1] * ( Np[i-1] * v[j-1] - Up[i-1] ) * f[i-1, j-1] * A3p[i-1] \
+                           + 2. * Nd[i  ] * ( Np[i  ] * v[j+1] - Up[i  ] ) * f[i,   j+1] * A3p[i  ] \
+                           - 2. * Nd[i  ] * ( Np[i  ] * v[j-1] - Up[i  ] ) * f[i,   j-1] * A3p[i  ] \
+                           + 1. * Nd[i+1] * ( Np[i+1] * v[j+1] - Up[i+1] ) * f[i+1, j+1] * A3p[i+1] \
+                           - 1. * Nd[i+1] * ( Np[i+1] * v[j-1] - Up[i+1] ) * f[i+1, j-1] * A3p[i+1] \
+                         ) * 0.5 / self.hv
+        
+        result -= 0.25 * ( \
+                           + 1. * Np[i-1] * ( Nd[i-1] * v[j+1] - Ud[i-1] ) * f[i-1, j+1] * A3p[i-1] \
+                           - 1. * Np[i-1] * ( Nd[i-1] * v[j-1] - Ud[i-1] ) * f[i-1, j-1] * A3p[i-1] \
+                           + 2. * Np[i  ] * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] * A3p[i  ] \
+                           - 2. * Np[i  ] * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] * A3p[i  ] \
+                           + 1. * Np[i+1] * ( Nd[i+1] * v[j+1] - Ud[i+1] ) * f[i+1, j+1] * A3p[i+1] \
+                           - 1. * Np[i+1] * ( Nd[i+1] * v[j-1] - Ud[i+1] ) * f[i+1, j-1] * A3p[i+1] \
+                        ) * 0.5 / self.hv
+        
+        result += 0.25 * ( \
+                           + 1. * (A1p[i-1] * v[j+1] - A2p[i-1]) * f[i-1, j+1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           - 1. * (A1p[i-1] * v[j-1] - A2p[i-1]) * f[i-1, j-1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           + 2. * (A1p[i  ] * v[j+1] - A2p[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           - 2. * (A1p[i  ] * v[j-1] - A2p[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           + 1. * (A1p[i+1] * v[j+1] - A2p[i+1]) * f[i+1, j+1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
+                           - 1. * (A1p[i+1] * v[j-1] - A2p[i+1]) * f[i+1, j-1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
                         ) * 0.5 / self.hv
         
         return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t coll2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                 ) * 0.25 * self.hv2_inv
-        
-        return result
-    
-    
-    
+
+

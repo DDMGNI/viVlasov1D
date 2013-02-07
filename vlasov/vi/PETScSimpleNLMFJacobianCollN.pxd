@@ -87,19 +87,19 @@ cdef class PETScJacobianMatrixFree(object):
     cdef Toolbox toolbox
 
 
-    cdef np.float64_t coll1_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] nd,
-                                     np.ndarray[np.float64_t, ndim=1] np,
-                                     np.ndarray[np.float64_t, ndim=1] ud,
-                                     np.ndarray[np.float64_t, ndim=1] up,
-                                     np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] nd,
+                                   np.ndarray[np.float64_t, ndim=1] np,
+                                   np.ndarray[np.float64_t, ndim=1] ud,
+                                   np.ndarray[np.float64_t, ndim=1] up,
+                                   np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t coll2_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] nd,
-                                     np.ndarray[np.float64_t, ndim=1] np,
-                                     np.ndarray[np.float64_t, ndim=1] ud,
-                                     np.ndarray[np.float64_t, ndim=1] up,
-                                     np.ndarray[np.float64_t, ndim=1] ed,
-                                     np.ndarray[np.float64_t, ndim=1] ep,
-                                     np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t collN2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] nd,
+                                   np.ndarray[np.float64_t, ndim=1] np,
+                                   np.ndarray[np.float64_t, ndim=1] ud,
+                                   np.ndarray[np.float64_t, ndim=1] up,
+                                   np.ndarray[np.float64_t, ndim=1] ed,
+                                   np.ndarray[np.float64_t, ndim=1] ep,
+                                   np.uint64_t i, np.uint64_t j)
     

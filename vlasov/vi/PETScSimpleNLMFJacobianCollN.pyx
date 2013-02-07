@@ -225,8 +225,8 @@ cdef class PETScJacobianMatrixFree(object):
         
         
         # calculate moments
-        self.toolbox.coll_moments_N1(dF,      self.A1d, self.A2d, self.A3d, self.Nd, self.Ud, self.Ed)
-        self.toolbox.coll_moments_N1(self.Fp, self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+        self.toolbox.collN_moments(dF,      self.A1d, self.A2d, self.A3d, self.Nd, self.Ud, self.Ed)
+        self.toolbox.collN_moments(self.Fp, self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
         
         self.dax.globalToLocal(self.A1d, self.localA1d)
         self.dax.globalToLocal(self.A2d, self.localA2d)
@@ -290,20 +290,20 @@ cdef class PETScJacobianMatrixFree(object):
                     y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa(fd, h_ave, ix, j) \
                              + 0.5 * self.toolbox.arakawa(f_ave, hd, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll1_N1(fd, A1p, A2p, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.coll2_N1(fd, A3p, ix, j) \
-                             - 0.5 * self.nu * self.coll1_N1(fp, Nd, Np, Ud, Up, ix, j) \
-                             - 0.5 * self.nu * self.coll2_N1(fp, Nd, Np, Ud, Up, Ed, Ep, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collN1(fd, A1p, A2p, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collN2(fd, A3p, ix, j) \
+                             - 0.5 * self.nu * self.collN1(fp, Nd, Np, Ud, Up, ix, j) \
+                             - 0.5 * self.nu * self.collN2(fp, Nd, Np, Ud, Up, Ed, Ep, ix, j)
 
 
     
     @cython.boundscheck(False)
-    cdef np.float64_t coll1_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] Nd,
-                                     np.ndarray[np.float64_t, ndim=1] Np,
-                                     np.ndarray[np.float64_t, ndim=1] Ud,
-                                     np.ndarray[np.float64_t, ndim=1] Up,
-                                     np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] Nd,
+                                   np.ndarray[np.float64_t, ndim=1] Np,
+                                   np.ndarray[np.float64_t, ndim=1] Ud,
+                                   np.ndarray[np.float64_t, ndim=1] Up,
+                                   np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''
@@ -326,14 +326,14 @@ cdef class PETScJacobianMatrixFree(object):
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t coll2_N1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                     np.ndarray[np.float64_t, ndim=1] Nd,
-                                     np.ndarray[np.float64_t, ndim=1] Np,
-                                     np.ndarray[np.float64_t, ndim=1] Ud,
-                                     np.ndarray[np.float64_t, ndim=1] Up,
-                                     np.ndarray[np.float64_t, ndim=1] Ed,
-                                     np.ndarray[np.float64_t, ndim=1] Ep,
-                                     np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t collN2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.ndarray[np.float64_t, ndim=1] Nd,
+                                   np.ndarray[np.float64_t, ndim=1] Np,
+                                   np.ndarray[np.float64_t, ndim=1] Ud,
+                                   np.ndarray[np.float64_t, ndim=1] Up,
+                                   np.ndarray[np.float64_t, ndim=1] Ed,
+                                   np.ndarray[np.float64_t, ndim=1] Ep,
+                                   np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''

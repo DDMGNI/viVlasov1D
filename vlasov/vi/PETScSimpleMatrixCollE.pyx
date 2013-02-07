@@ -323,7 +323,7 @@ cdef class PETScMatrix(object):
         cdef np.float64_t nmean = self.Fh.sum() * self.hv / self.nx
         
         # calculate moments
-        self.toolbox.coll_moments(self.Fh, self.A1, self.A2)
+        self.toolbox.collE_moments(self.Fh, self.A1, self.A2)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
@@ -355,6 +355,6 @@ cdef class PETScMatrix(object):
                 else:
                     b[iy, j] = self.toolbox.time_derivative(fh, ix, j) \
                              - 0.5 * self.toolbox.arakawa(fh, h, ix, j) \
-                             + self.nu * self.toolbox.coll1(fh, A1, ix, j) \
-                             + self.nu * self.toolbox.coll2(fh, A2, ix, j)
+                             + self.nu * self.toolbox.collE1(fh, A1, ix, j) \
+                             + self.nu * self.toolbox.collE2(fh, A2, ix, j)
     

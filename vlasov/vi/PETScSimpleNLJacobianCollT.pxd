@@ -46,6 +46,10 @@ cdef class PETScJacobian(object):
     
     cdef Vec A1
     cdef Vec A2
+    cdef Vec A3
+    cdef Vec N
+    cdef Vec U
+    cdef Vec E
     
     cdef Vec localH0
     cdef Vec localH1p
@@ -57,5 +61,6 @@ cdef class PETScJacobian(object):
     
     cdef Vec localA1
     cdef Vec localA2
+    cdef Vec localA3
     
     cdef Toolbox toolbox
