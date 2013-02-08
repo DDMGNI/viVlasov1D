@@ -63,7 +63,9 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
         OptDB.setValue('snes_type', 'ls')
-#        OptDB.setValue('snes_linesearch_type', 'basic')
+        
+        if self.cfg['solver']['petsc_ksp_type'] == 'gmres':
+            OptDB.setValue('snes_linesearch_type', 'basic')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -438,6 +440,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-#    petscvp.run()
-    petscvp.check_jacobian()
+    petscvp.run()
+#    petscvp.check_jacobian()
     
