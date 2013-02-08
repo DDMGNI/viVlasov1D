@@ -16,15 +16,15 @@ import numpy as np
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-from vlasov.vi.PETScSimpleMatrixColl4       import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionColl4   import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianColl4   import PETScJacobian
-from vlasov.vi.PETScSimpleNLMFJacobianColl4 import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleMatrixColl4       import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionColl4   import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianColl4   import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobianColl4 import PETScJacobianMatrixFree
 
-#from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
-#from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
+from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
 
 #from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
 #from vlasov.vi.PETScSimpleNLFunctionCollE   import PETScFunction
@@ -63,7 +63,7 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
         OptDB.setValue('snes_type', 'ls')
-        OptDB.setValue('snes_linesearch_type', 'basic')
+#        OptDB.setValue('snes_linesearch_type', 'basic')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -438,6 +438,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-    petscvp.run()
-#    petscvp.check_jacobian()
+#    petscvp.run()
+    petscvp.check_jacobian()
     
