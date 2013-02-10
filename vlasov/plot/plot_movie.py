@@ -6,6 +6,9 @@ Created on Mar 21, 2012
 
 import numpy as np
 
+from scipy.ndimage     import zoom, gaussian_filter
+from scipy.interpolate import interp1d
+
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
 from matplotlib.ticker import ScalarFormatter, MaxNLocator
@@ -183,7 +186,16 @@ class PlotMovie(object):
         self.f  [0:-1,:] = self.distribution.f[:,:]
         self.f  [  -1,:] = self.distribution.f[0,:]
         
-        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
+#        fint = zoom(self.f.T, 3)
+#        xint = np.linspace(self.x[0], self.x[-1], 3*len(self.x))
+#        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], 3*len(self.grid.vGrid))
+#        
+#        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
+        
+        fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
+        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
+        
+#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
         
         if self.vMax > 0.0:
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
