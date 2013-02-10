@@ -297,6 +297,59 @@ cdef class PETScJacobianMatrixFree(object):
 
 
     
+#    @cython.boundscheck(False)
+#    cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
+#                                   np.ndarray[np.float64_t, ndim=1] Nd,
+#                                   np.ndarray[np.float64_t, ndim=1] Np,
+#                                   np.ndarray[np.float64_t, ndim=1] Ud,
+#                                   np.ndarray[np.float64_t, ndim=1] Up,
+#                                   np.uint64_t i, np.uint64_t j):
+#        '''
+#        Collision Operator
+#        '''
+#        
+#        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+#        
+#        cdef np.float64_t result
+#        
+#        result = 0.25 * ( \
+#                          + 1. * ( 2. * Nd[i-1] * Np[i-1] * v[j+1] - Nd[i-1] * Up[i-1] - Np[i-1] * Ud[i-1] ) * f[i-1, j+1] \
+#                          - 1. * ( 2. * Nd[i-1] * Np[i-1] * v[j-1] - Nd[i-1] * Up[i-1] - Np[i-1] * Ud[i-1] ) * f[i-1, j-1] \
+#                          + 2. * ( 2. * Nd[i  ] * Np[i  ] * v[j+1] - Nd[i  ] * Up[i  ] - Np[i  ] * Ud[i  ] ) * f[i,   j+1] \
+#                          - 2. * ( 2. * Nd[i  ] * Np[i  ] * v[j-1] - Nd[i  ] * Up[i  ] - Np[i  ] * Ud[i  ] ) * f[i,   j-1] \
+#                          + 1. * ( 2. * Nd[i+1] * Np[i+1] * v[j+1] - Nd[i+1] * Up[i+1] - Np[i+1] * Ud[i+1] ) * f[i+1, j+1] \
+#                          - 1. * ( 2. * Nd[i+1] * Np[i+1] * v[j-1] - Nd[i+1] * Up[i+1] - Np[i+1] * Ud[i+1] ) * f[i+1, j-1] \
+#                        ) * 0.5 / self.hv
+#        
+#        return result
+#    
+#    
+#    
+#    @cython.boundscheck(False)
+#    cdef np.float64_t collN2(self, np.ndarray[np.float64_t, ndim=2] f,
+#                                   np.ndarray[np.float64_t, ndim=1] Nd,
+#                                   np.ndarray[np.float64_t, ndim=1] Np,
+#                                   np.ndarray[np.float64_t, ndim=1] Ud,
+#                                   np.ndarray[np.float64_t, ndim=1] Up,
+#                                   np.ndarray[np.float64_t, ndim=1] Ed,
+#                                   np.ndarray[np.float64_t, ndim=1] Ep,
+#                                   np.uint64_t i, np.uint64_t j):
+#        '''
+#        Collision Operator
+#        '''
+#        
+#        cdef np.float64_t result
+#        
+#        result = ( \
+#                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Up[i-1] * Ud[i-1] ) \
+#                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Up[i  ] * Ud[i  ] ) \
+#                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Up[i+1] * Ud[i+1] ) \
+#                 ) * 0.25 * self.hv2_inv
+#        
+#        return result
+
+
+
     @cython.boundscheck(False)
     cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] Nd,
@@ -313,12 +366,12 @@ cdef class PETScJacobianMatrixFree(object):
         cdef np.float64_t result
         
         result = 0.25 * ( \
-                          + 1. * ( 2. * Nd[i-1] * Np[i-1] * v[j+1] - Nd[i-1] * Up[i-1] - Np[i-1] * Ud[i-1] ) * f[i-1, j+1] \
-                          - 1. * ( 2. * Nd[i-1] * Np[i-1] * v[j-1] - Nd[i-1] * Up[i-1] - Np[i-1] * Ud[i-1] ) * f[i-1, j-1] \
-                          + 2. * ( 2. * Nd[i  ] * Np[i  ] * v[j+1] - Nd[i  ] * Up[i  ] - Np[i  ] * Ud[i  ] ) * f[i,   j+1] \
-                          - 2. * ( 2. * Nd[i  ] * Np[i  ] * v[j-1] - Nd[i  ] * Up[i  ] - Np[i  ] * Ud[i  ] ) * f[i,   j-1] \
-                          + 1. * ( 2. * Nd[i+1] * Np[i+1] * v[j+1] - Nd[i+1] * Up[i+1] - Np[i+1] * Ud[i+1] ) * f[i+1, j+1] \
-                          - 1. * ( 2. * Nd[i+1] * Np[i+1] * v[j-1] - Nd[i+1] * Up[i+1] - Np[i+1] * Ud[i+1] ) * f[i+1, j-1] \
+                          + 1. * ( Nd[i-1] * v[j+1] - Ud[i-1] ) * f[i-1, j+1] \
+                          - 1. * ( Nd[i-1] * v[j-1] - Ud[i-1] ) * f[i-1, j-1] \
+                          + 2. * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] \
+                          - 2. * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] \
+                          + 1. * ( Nd[i+1] * v[j+1] - Ud[i+1] ) * f[i+1, j+1] \
+                          - 1. * ( Nd[i+1] * v[j-1] - Ud[i+1] ) * f[i+1, j-1] \
                         ) * 0.5 / self.hv
         
         return result
@@ -341,12 +394,13 @@ cdef class PETScJacobianMatrixFree(object):
         cdef np.float64_t result
         
         result = ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Up[i-1] * Ud[i-1] ) \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Up[i  ] * Ud[i  ] ) \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Up[i+1] * Ud[i+1] ) \
+                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) * ( Ed[i-1] - 2. * Up[i-1] * Ud[i-1] / Np[i-1] + (Up[i-1] / Np[i-1])**2 * Nd[i-1] ) \
+                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * ( Ed[i  ] - 2. * Up[i  ] * Ud[i  ] / Np[i  ] + (Up[i  ] / Np[i  ])**2 * Nd[i  ] ) \
+                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) * ( Ed[i+1] - 2. * Up[i+1] * Ud[i+1] / Np[i+1] + (Up[i+1] / Np[i+1])**2 * Nd[i+1] ) \
                  ) * 0.25 * self.hv2_inv
         
         return result
+
 
 
 

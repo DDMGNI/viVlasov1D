@@ -160,7 +160,6 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        ### check sign ### A1*v - A2 or A2 - A1*v ? ###
         result = 0.25 * ( \
                           + 1. * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
                           + 2. * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
@@ -180,11 +179,11 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        result = ( \
+        result = 0.25 * ( \
                      + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
                      + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
                      + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                 ) * 0.25 * self.hv2_inv
+                 ) * self.hv2_inv
         
         return result
 
@@ -236,9 +235,13 @@ cdef class Toolbox(object):
             e[iy] *= self.hv
 
             
-            a1[iy] = n[iy]**2
-            a2[iy] = n[iy] * u[iy]
-            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
+#            a1[iy] = n[iy]**2
+#            a2[iy] = n[iy] * u[iy]
+#            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
+            
+            a1[iy] = n[iy]
+            a2[iy] = u[iy]
+            a3[iy] = n[iy] / (n[iy] * e[iy] - u[iy]**2)
 
 
 
@@ -421,9 +424,13 @@ cdef class Toolbox(object):
             u[iy] *= self.hv
             e[iy] *= self.hv
             
-            a1[iy] = n[iy]**2
-            a2[iy] = n[iy] * u[iy]
-            a3[iy] = n[iy] * e[iy] - u[iy]**2 
+#            a1[iy] = n[iy]**2
+#            a2[iy] = n[iy] * u[iy]
+#            a3[iy] = n[iy] * e[iy] - u[iy]**2 
+
+            a1[iy] = n[iy]
+            a2[iy] = u[iy]
+            a3[iy] = e[iy] - u[iy]**2 / n[iy] 
 
 
 
