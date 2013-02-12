@@ -13,7 +13,11 @@ import argparse
 import time
 
 from vlasov.predictor.PETScPoissonMatrix  import PETScPoissonMatrix
-from vlasov.vi.PETScSimpleMatrix          import PETScMatrix
+
+#from vlasov.vi.PETScSimpleMatrixColl4       import PETScMatrix
+from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
+#from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
+#from vlasov.vi.PETScSimpleMatrixCollN       import PETScMatrix
 
 from petscvp1d import petscVP1Dbase
 
