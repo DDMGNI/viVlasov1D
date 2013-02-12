@@ -62,7 +62,11 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
+#        OptDB.setValue('snes_type', 'test')
         OptDB.setValue('snes_type', 'ls')
+        
+#        if self.cfg['solver']['petsc_ksp_type'] == 'gmres':
+#            OptDB.setValue('snes_linesearch_type', 'basic')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -70,6 +74,7 @@ class petscVP1D(petscVP1Dbase):
 #        OptDB.setValue('log_info',    '')
 #        OptDB.setValue('log_summary', '')
 
+#        OptDB.setValue('snes_test_display',  '')
 
         
         # create residual vector
@@ -115,6 +120,8 @@ class petscVP1D(petscVP1Dbase):
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
+#        self.snes.setJacobian(self.updateJacobian, self.J)
+#        self.snes.setJacobian(self.updateJacobian, self.Jmf)
         self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
         self.snes.setFromOptions()
         self.snes.getKSP().setType(self.cfg['solver']['petsc_ksp_type'])
