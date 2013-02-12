@@ -128,6 +128,9 @@ cdef class PETScMatrix(object):
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
         cdef np.float64_t poss_fac = 0.25 * self.hv * self.charge
         
+        cdef np.float64_t coll1_fac = - self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll2_fac = - self.nu * 0.25 * self.hv2_inv
+        
         
         # calculate moments
         self.toolbox.collT_moments(self.Fh, self.A1, self.A2, self.A3, self.N, self.U, self.E)
