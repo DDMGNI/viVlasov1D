@@ -315,8 +315,6 @@ cdef class PETScJacobianMatrixFree(object):
         
         cdef np.float64_t result = 0.
         
-        ### check sign ###
-        
         result += 0.25 * ( \
                            + 1. * Nd[i-1] * ( Np[i-1] * v[j+1] - Up[i-1] ) * f[i-1, j+1] * A3p[i-1] \
                            - 1. * Nd[i-1] * ( Np[i-1] * v[j-1] - Up[i-1] ) * f[i-1, j-1] * A3p[i-1] \
@@ -336,12 +334,12 @@ cdef class PETScJacobianMatrixFree(object):
                         ) * 0.5 / self.hv
         
         result -= 0.25 * ( \
-                           + 1. * (A1p[i-1] * v[j+1] - A2p[i-1]) * f[i-1, j+1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
-                           - 1. * (A1p[i-1] * v[j-1] - A2p[i-1]) * f[i-1, j-1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
-                           + 2. * (A1p[i  ] * v[j+1] - A2p[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-                           - 2. * (A1p[i  ] * v[j-1] - A2p[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-                           + 1. * (A1p[i+1] * v[j+1] - A2p[i+1]) * f[i+1, j+1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
-                           - 1. * (A1p[i+1] * v[j-1] - A2p[i+1]) * f[i+1, j-1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
+                           + 1. * Np[i-1] * (A1p[i-1] * v[j+1] - A2p[i-1]) * f[i-1, j+1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           - 1. * Np[i-1] * (A1p[i-1] * v[j-1] - A2p[i-1]) * f[i-1, j-1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           + 2. * Np[i  ] * (A1p[i  ] * v[j+1] - A2p[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           - 2. * Np[i  ] * (A1p[i  ] * v[j-1] - A2p[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           + 1. * Np[i+1] * (A1p[i+1] * v[j+1] - A2p[i+1]) * f[i+1, j+1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
+                           - 1. * Np[i+1] * (A1p[i+1] * v[j-1] - A2p[i+1]) * f[i+1, j-1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
                         ) * 0.5 / self.hv
         
         return result
