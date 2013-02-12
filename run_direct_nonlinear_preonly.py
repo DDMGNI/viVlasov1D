@@ -85,7 +85,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)
+                                        self.charge, coll_freq=self.coll_freq)
         
         
         # initialise matrix
