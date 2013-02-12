@@ -209,6 +209,16 @@ cdef class PETScFunction(object):
         A3h = self.dax.getVecArray(self.localA3h)[...]
         
         
+#        print
+#        print(" min(A1) = %24.16E" % (A1h.min()))
+#        print(" max(A1) = %24.16E" % (A1h.max()))
+#        print(" min(A2) = %24.16E" % (A2h.min()))
+#        print(" max(A2) = %24.16E" % (A2h.max()))
+#        print(" min(A3) = %24.16E" % (A3h.min()))
+#        print(" max(A3) = %24.16E" % (A3h.max()))
+#        print
+        
+        
         for i in np.arange(xs, xe):
             ix = i-xs+1
             iy = i-xs
