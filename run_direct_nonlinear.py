@@ -21,20 +21,20 @@ from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 #from vlasov.vi.PETScSimpleNLJacobianColl4   import PETScJacobian
 #from vlasov.vi.PETScSimpleNLMFJacobianColl4 import PETScJacobianMatrixFree
 
-from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
-from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
+#from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
+#from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
+#from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
+#from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
 
 #from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
 #from vlasov.vi.PETScSimpleNLFunctionCollE   import PETScFunction
 #from vlasov.vi.PETScSimpleNLJacobianCollE   import PETScJacobian
 #from vlasov.vi.PETScSimpleNLMFJacobianCollE import PETScJacobianMatrixFree        ### still does not have the exact Jacobian ###
 
-#from vlasov.vi.PETScSimpleMatrixCollN       import PETScMatrix
-#from vlasov.vi.PETScSimpleNLFunctionCollN   import PETScFunction
-#from vlasov.vi.PETScSimpleNLJacobianCollN   import PETScJacobian
-#from vlasov.vi.PETScSimpleNLMFJacobianCollN import PETScJacobianMatrixFree
+from vlasov.vi.PETScSimpleMatrixCollN       import PETScMatrix
+from vlasov.vi.PETScSimpleNLFunctionCollN   import PETScFunction
+from vlasov.vi.PETScSimpleNLJacobianCollN   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianCollN import PETScJacobianMatrixFree
 
 from petscvp1d import petscVP1Dbase
 
@@ -63,9 +63,6 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
         OptDB.setValue('snes_type', 'ls')
-        
-        if self.cfg['solver']['petsc_ksp_type'] == 'gmres':
-            OptDB.setValue('snes_linesearch_type', 'basic')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -97,7 +94,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge, coll_freq=self.coll_freq)
+                                        self.charge)
         
         
         # initialise matrix
