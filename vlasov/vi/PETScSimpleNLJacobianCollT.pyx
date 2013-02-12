@@ -171,21 +171,30 @@ cdef class PETScJacobian(object):
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
         cdef np.float64_t poss_fac = 0.25 * self.hv * self.charge
         
-#        cdef np.float64_t coll1_fac = + 0.5 * self.nu * 0.25 * 0.5 / self.hv
         cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
         cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
         
         
         # calculate moments
+#        self.toolbox.collT_moments(self.Fh, self.A1, self.A2, self.A3, self.N, self.U, self.E)
         self.toolbox.collT_moments(self.Fp, self.A1, self.A2, self.A3, self.N, self.U, self.E)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
         self.dax.globalToLocal(self.A3, self.localA3)
         
-        A1 = self.dax.getVecArray(self.localA1)[...]
-        A2 = self.dax.getVecArray(self.localA2)[...]
-        A3 = self.dax.getVecArray(self.localA3)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A1 = self.dax.getVecArray(self.localA1)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A2 = self.dax.getVecArray(self.localA2)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] A3 = self.dax.getVecArray(self.localA3)[...]
+        
+#        print
+#        print(" min(A1) = %24.16E" % (A1.min()))
+#        print(" max(A1) = %24.16E" % (A1.max()))
+#        print(" min(A2) = %24.16E" % (A2.min()))
+#        print(" max(A2) = %24.16E" % (A2.max()))
+#        print(" min(A3) = %24.16E" % (A3.min()))
+#        print(" max(A3) = %24.16E" % (A3.max()))
+#        print
         
         
         A.zeroEntries()
