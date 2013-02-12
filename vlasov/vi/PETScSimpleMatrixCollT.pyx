@@ -329,7 +329,7 @@ cdef class PETScMatrix(object):
         
         
         # calculate moments
-        self.toolbox.collN_moments(self.Fh, self.A1, self.A2, self.A3, self.N, self.U, self.E)
+        self.toolbox.collT_moments(self.Fh, self.A1, self.A2, self.A3, self.N, self.U, self.E)
         
         self.dax.globalToLocal(self.A1, self.localA1)
         self.dax.globalToLocal(self.A2, self.localA2)
