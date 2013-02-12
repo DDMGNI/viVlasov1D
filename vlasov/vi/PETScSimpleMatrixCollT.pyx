@@ -112,6 +112,8 @@ cdef class PETScMatrix(object):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs
         
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
         self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1h, self.localH1h)
