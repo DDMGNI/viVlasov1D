@@ -197,7 +197,7 @@ class petscVP1D(petscVP1Dbase):
 #        self.remove_average_from_potential()
 #    
 #        self.copy_p_to_x()
-#        self.copy_p_to_h()
+        self.copy_p_to_h()
         
         del self.ksp
         
