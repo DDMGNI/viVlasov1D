@@ -109,9 +109,17 @@ class petscVP1D(petscVP1Dbase):
         self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
         
         
-        # create linear sovler space keeper
-        # use SNES with type set to KSPONLY = 'ksponly'
-        self.ksp = None
+        # create linear solver
+        self.snes_linear = PETSc.SNES().create()
+        self.snes_linear.setType('ksponly')
+        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.F)
+        self.snes_linear.setJacobian(self.updateMatrix, self.A)
+        self.snes_linear.setFromOptions()
+        self.snes_linear.getKSP().setType('preonly')
+        self.snes._lineargetKSP().getPC().setType('lu')
+#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+
         
         # create Poisson object
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
@@ -162,8 +170,6 @@ class petscVP1D(petscVP1Dbase):
         
         phisum = self.p.sum()
         
-#        self.remove_average_from_potential()
-        
         self.copy_p_to_x()
         self.copy_p_to_h()
         
@@ -172,35 +178,10 @@ class petscVP1D(petscVP1Dbase):
             print("                                   sum(phi) = %24.16E" % (phisum))
     
         
-    def initial_guess(self):
-        self.ksp = PETSc.KSP().create()
-        self.ksp.setFromOptions()
-        self.ksp.setOperators(self.A)
-        self.ksp.setType('preonly')
-        self.ksp.getPC().setType('lu')
-#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
-        self.ksp.getPC().setFactorSolverPackage('mumps')
+    def updateMatrix(self, snes, X, J, P):
+#        self.petsc_matrix.update_previous(X)
+        self.petsc_matrix.formMat(J)
     
-        # build matrix
-        self.petsc_matrix.formMat(self.A)
-        
-        # build RHS
-        self.petsc_matrix.formRHS(self.b)
-        
-        # solve
-        self.ksp.solve(self.b, self.x)
-        
-        # update data vectors
-        self.copy_x_to_f()
-        self.copy_x_to_p()
-        
-#        self.remove_average_from_potential()
-#    
-#        self.copy_p_to_x()
-        self.copy_p_to_h()
-        
-        del self.ksp
-        
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
@@ -225,7 +206,7 @@ class petscVP1D(petscVP1Dbase):
             
             
             # calculate initial guess for distribution function
-            self.initial_guess()
+            self.snes_linear.solve(None, self.x)
             
             # solve
             self.snes.solve(None, self.x)
@@ -247,10 +228,6 @@ class petscVP1D(petscVP1Dbase):
             # update data vectors
             self.copy_x_to_f()
             self.copy_x_to_p()
-            
-#            self.remove_average_from_potential()
-#        
-#            self.copy_p_to_x()
             self.copy_p_to_h()
             
             # update history

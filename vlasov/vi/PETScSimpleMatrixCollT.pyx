@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 
 from vlasov.vi.Toolbox import Toolbox
 
@@ -85,6 +85,7 @@ cdef class PETScMatrix(object):
         self.localH2h = da1.createLocalVec()
         self.localF   = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
+        self.localP   = dax.createLocalVec()
 
         self.localA1 = dax.createLocalVec()
         self.localA2 = dax.createLocalVec()
@@ -435,4 +436,123 @@ cdef class PETScMatrix(object):
                 else:
                     b[iy, j] = self.toolbox.time_derivative(fh, ix, j) \
                              - 0.5 * self.toolbox.arakawa(fh, h, ix, j)
+
+
+
+
+    def snes_mult(self, SNES snes, Vec X, Vec Y):
+        self.mult(X, Y)
+        
+    
+    def mult(self, Vec X, Vec Y):
+        (xs, xe), = self.da2.getRanges()
+        
+        H = self.da1.createGlobalVec()
+        F = self.da1.createGlobalVec()
+        P = self.dax.createGlobalVec()
+        
+        x = self.da2.getVecArray(X)
+        h = self.da1.getVecArray(H)
+        f = self.da1.getVecArray(F)
+        p = self.dax.getVecArray(P)
+        
+        h0 = self.da1.getVecArray(self.H0)
+        
+        
+        f[xs:xe] = x[xs:xe, 0:self.nv]
+        p[xs:xe] = x[xs:xe,   self.nv]
+        
+        for j in np.arange(0, self.nv):
+            h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe]
+        
+        
+        self.matrix_mult(F, H, P, Y)
+        
+        
+    @cython.boundscheck(False)
+    def matrix_mult(self, Vec F, Vec H, Vec P, Vec Y):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t ix, iy
+        cdef np.uint64_t xe, xs
+        
+        cdef np.float64_t laplace, integral, nmean, phisum
+        
+        nmean  = F.sum() * self.hv / self.nx
+        phisum = P.sum()
+        
+        (xs, xe), = self.da2.getRanges()
+        
+        self.da1.globalToLocal(F,        self.localF )
+        self.da1.globalToLocal(self.Fh,  self.localFh)
+        self.da1.globalToLocal(H,        self.localH )
+        self.da1.globalToLocal(self.Hh,  self.localHh)
+#        self.da1.globalToLocal(self.H2,  self.localH2 )
+#        self.da1.globalToLocal(self.H2h, self.localH2h)
+        self.dax.globalToLocal(P,        self.localP )
+        
+        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF  )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h   = self.da1.getVecArray(self.localH  )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hh  = self.da1.getVecArray(self.localHh )[...]
+#        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
+#        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] p   = self.dax.getVecArray(self.localP  )[...]
+        
+        
+#        # calculate moments
+#        self.toolbox.collN_moments(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+#        self.toolbox.collN_moments(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
+#        
+#        self.dax.globalToLocal(self.A1p, self.localA1p)
+#        self.dax.globalToLocal(self.A2p, self.localA2p)
+#        self.dax.globalToLocal(self.A3p, self.localA3p)
+#        self.dax.globalToLocal(self.A1h, self.localA1h)
+#        self.dax.globalToLocal(self.A2h, self.localA2h)
+#        self.dax.globalToLocal(self.A3h, self.localA3h)
+#        
+#        A1p = self.dax.getVecArray(self.localA1p)[...]
+#        A2p = self.dax.getVecArray(self.localA2p)[...]
+#        A3p = self.dax.getVecArray(self.localA3p)[...]
+#        A1h = self.dax.getVecArray(self.localA1h)[...]
+#        A2h = self.dax.getVecArray(self.localA2h)[...]
+#        A3h = self.dax.getVecArray(self.localA3h)[...]
+        
+        
+        for i in np.arange(xs, xe):
+            ix = i-xs+1
+            iy = i-xs
+            
+            # Poisson equation
+            
+            if i == 0:
+                y[iy, self.nv] = p[ix]
+            
+            else:
+                    
+                laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
+                
+                integral = ( \
+                             + 1. * f[ix-1, :].sum() \
+                             + 2. * f[ix,   :].sum() \
+                             + 1. * f[ix+1, :].sum() \
+                           ) * 0.25 * self.hv
+                
+                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+            
+            # Vlasov Equation
+            for j in np.arange(0, self.nv):
+                if j == 0 or j == self.nv-1:
+                    # Dirichlet Boundary Conditions
+                    y[iy, j] = f[ix,j]
+                    
+                else:
+                    y[iy, j] = self.toolbox.time_derivative(f,  ix, j) \
+                             - self.toolbox.time_derivative(fh, ix, j) \
+                             + 0.5 * self.toolbox.arakawa(f, hh, ix, j) \
+                             + 0.5 * self.toolbox.arakawa(fh, h, ix, j)
+#                             - 0.5 * self.nu * self.toolbox.collT1(fp, A1p, A2p, A3p, ix, j) \
+#                             - 0.5 * self.nu * self.toolbox.collT1(fh, A1h, A2h, A3h, ix, j) \
+#                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
+
 

@@ -59,6 +59,7 @@ cdef class PETScMatrix(object):
     cdef Vec localH2h
     cdef Vec localF
     cdef Vec localFh
+    cdef Vec localP
     
     cdef Vec localA1
     cdef Vec localA2
