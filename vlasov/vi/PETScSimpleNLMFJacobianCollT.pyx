@@ -315,47 +315,47 @@ cdef class PETScJacobianMatrixFree(object):
         
         cdef np.float64_t result = 0.
         
-        result += ( \
-                    + Nd[i  ] * ( Np[i  ] * v[j+1] - Up[i  ] ) * f[i,   j+1] * A3p[i  ] \
-                    - Nd[i  ] * ( Np[i  ] * v[j-1] - Up[i  ] ) * f[i,   j-1] * A3p[i  ] \
-                  ) * 0.5 / self.hv
-        
-        result += ( \
-                    + Np[i  ] * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] * A3p[i  ] \
-                    - Np[i  ] * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] * A3p[i  ] \
-                  ) * 0.5 / self.hv
-        
-        result -= ( \
-                    + Np[i  ] * (Np[i  ] * v[j+1] - Up[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-                    - Np[i  ] * (Np[i  ] * v[j-1] - Up[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-                  ) * 0.5 / self.hv
+#        result += ( \
+#                    + Nd[i  ] * ( Np[i  ] * v[j+1] - Up[i  ] ) * f[i,   j+1] * A3p[i  ] \
+#                    - Nd[i  ] * ( Np[i  ] * v[j-1] - Up[i  ] ) * f[i,   j-1] * A3p[i  ] \
+#                  ) * 0.5 / self.hv
+#        
+#        result += ( \
+#                    + Np[i  ] * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] * A3p[i  ] \
+#                    - Np[i  ] * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] * A3p[i  ] \
+#                  ) * 0.5 / self.hv
+#        
+#        result -= ( \
+#                    + Np[i  ] * (Np[i  ] * v[j+1] - Up[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+#                    - Np[i  ] * (Np[i  ] * v[j-1] - Up[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+#                  ) * 0.5 / self.hv
 
-#        result += 0.25 * ( \
-#                           + 1. * Nd[i-1] * ( Np[i-1] * v[j+1] - Up[i-1] ) * f[i-1, j+1] * A3p[i-1] \
-#                           - 1. * Nd[i-1] * ( Np[i-1] * v[j-1] - Up[i-1] ) * f[i-1, j-1] * A3p[i-1] \
-#                           + 2. * Nd[i  ] * ( Np[i  ] * v[j+1] - Up[i  ] ) * f[i,   j+1] * A3p[i  ] \
-#                           - 2. * Nd[i  ] * ( Np[i  ] * v[j-1] - Up[i  ] ) * f[i,   j-1] * A3p[i  ] \
-#                           + 1. * Nd[i+1] * ( Np[i+1] * v[j+1] - Up[i+1] ) * f[i+1, j+1] * A3p[i+1] \
-#                           - 1. * Nd[i+1] * ( Np[i+1] * v[j-1] - Up[i+1] ) * f[i+1, j-1] * A3p[i+1] \
-#                         ) * 0.5 / self.hv
-#        
-#        result += 0.25 * ( \
-#                           + 1. * Np[i-1] * ( Nd[i-1] * v[j+1] - Ud[i-1] ) * f[i-1, j+1] * A3p[i-1] \
-#                           - 1. * Np[i-1] * ( Nd[i-1] * v[j-1] - Ud[i-1] ) * f[i-1, j-1] * A3p[i-1] \
-#                           + 2. * Np[i  ] * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] * A3p[i  ] \
-#                           - 2. * Np[i  ] * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] * A3p[i  ] \
-#                           + 1. * Np[i+1] * ( Nd[i+1] * v[j+1] - Ud[i+1] ) * f[i+1, j+1] * A3p[i+1] \
-#                           - 1. * Np[i+1] * ( Nd[i+1] * v[j-1] - Ud[i+1] ) * f[i+1, j-1] * A3p[i+1] \
-#                        ) * 0.5 / self.hv
-#        
-#        result -= 0.25 * ( \
-#                           + 1. * Np[i-1] * (Np[i-1] * v[j+1] - Up[i-1]) * f[i-1, j+1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
-#                           - 1. * Np[i-1] * (Np[i-1] * v[j-1] - Up[i-1]) * f[i-1, j-1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
-#                           + 2. * Np[i  ] * (Np[i  ] * v[j+1] - Up[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-#                           - 2. * Np[i  ] * (Np[i  ] * v[j-1] - Up[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
-#                           + 1. * Np[i+1] * (Np[i+1] * v[j+1] - Up[i+1]) * f[i+1, j+1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
-#                           - 1. * Np[i+1] * (Np[i+1] * v[j-1] - Up[i+1]) * f[i+1, j-1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
-#                        ) * 0.5 / self.hv
+        result += 0.25 * ( \
+                           + 1. * Nd[i-1] * ( Np[i-1] * v[j+1] - Up[i-1] ) * f[i-1, j+1] * A3p[i-1] \
+                           - 1. * Nd[i-1] * ( Np[i-1] * v[j-1] - Up[i-1] ) * f[i-1, j-1] * A3p[i-1] \
+                           + 2. * Nd[i  ] * ( Np[i  ] * v[j+1] - Up[i  ] ) * f[i,   j+1] * A3p[i  ] \
+                           - 2. * Nd[i  ] * ( Np[i  ] * v[j-1] - Up[i  ] ) * f[i,   j-1] * A3p[i  ] \
+                           + 1. * Nd[i+1] * ( Np[i+1] * v[j+1] - Up[i+1] ) * f[i+1, j+1] * A3p[i+1] \
+                           - 1. * Nd[i+1] * ( Np[i+1] * v[j-1] - Up[i+1] ) * f[i+1, j-1] * A3p[i+1] \
+                         ) * 0.5 / self.hv
+        
+        result += 0.25 * ( \
+                           + 1. * Np[i-1] * ( Nd[i-1] * v[j+1] - Ud[i-1] ) * f[i-1, j+1] * A3p[i-1] \
+                           - 1. * Np[i-1] * ( Nd[i-1] * v[j-1] - Ud[i-1] ) * f[i-1, j-1] * A3p[i-1] \
+                           + 2. * Np[i  ] * ( Nd[i  ] * v[j+1] - Ud[i  ] ) * f[i,   j+1] * A3p[i  ] \
+                           - 2. * Np[i  ] * ( Nd[i  ] * v[j-1] - Ud[i  ] ) * f[i,   j-1] * A3p[i  ] \
+                           + 1. * Np[i+1] * ( Nd[i+1] * v[j+1] - Ud[i+1] ) * f[i+1, j+1] * A3p[i+1] \
+                           - 1. * Np[i+1] * ( Nd[i+1] * v[j-1] - Ud[i+1] ) * f[i+1, j-1] * A3p[i+1] \
+                        ) * 0.5 / self.hv
+        
+        result -= 0.25 * ( \
+                           + 1. * Np[i-1] * (Np[i-1] * v[j+1] - Up[i-1]) * f[i-1, j+1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           - 1. * Np[i-1] * (Np[i-1] * v[j-1] - Up[i-1]) * f[i-1, j-1] * A3p[i-1]**2 * ( Nd[i-1] * Ep[i-1] + Np[i-1] * Ed[i-1] - 2. * Ud[i-1] * Up[i-1] ) \
+                           + 2. * Np[i  ] * (Np[i  ] * v[j+1] - Up[i  ]) * f[i,   j+1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           - 2. * Np[i  ] * (Np[i  ] * v[j-1] - Up[i  ]) * f[i,   j-1] * A3p[i  ]**2 * ( Nd[i  ] * Ep[i  ] + Np[i  ] * Ed[i  ] - 2. * Ud[i  ] * Up[i  ] ) \
+                           + 1. * Np[i+1] * (Np[i+1] * v[j+1] - Up[i+1]) * f[i+1, j+1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
+                           - 1. * Np[i+1] * (Np[i+1] * v[j-1] - Up[i+1]) * f[i+1, j-1] * A3p[i+1]**2 * ( Nd[i+1] * Ep[i+1] + Np[i+1] * Ed[i+1] - 2. * Ud[i+1] * Up[i+1] ) \
+                        ) * 0.5 / self.hv
         
         return result
 
