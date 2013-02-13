@@ -160,11 +160,15 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        result = 0.25 * ( \
-                          + 1. * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
-                          + 2. * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
-                          + 1. * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) * A3[i+1] \
-                        ) * 0.5 / self.hv
+        result = ( \
+                   + A1[i  ] * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
+                 ) * 0.5 / self.hv
+        
+#        result = 0.25 * ( \
+#                          + 1. * A1[i-1] * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
+#                          + 2. * A1[i  ] * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
+#                          + 1. * A1[i+1] * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) * A3[i+1] \
+#                        ) * 0.5 / self.hv
         
         return result
     
@@ -179,11 +183,13 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        result = 0.25 * ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                 ) * self.hv2_inv
+        result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
+        
+#        result = 0.25 * ( \
+#                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
+#                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
+#                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
+#                 ) * self.hv2_inv
         
         return result
 
@@ -235,13 +241,9 @@ cdef class Toolbox(object):
             e[iy] *= self.hv
 
             
-#            a1[iy] = n[iy]**2
-#            a2[iy] = n[iy] * u[iy]
-#            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
-            
             a1[iy] = n[iy]
             a2[iy] = u[iy]
-            a3[iy] = n[iy] / (n[iy] * e[iy] - u[iy]**2)
+            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
 
 
 
