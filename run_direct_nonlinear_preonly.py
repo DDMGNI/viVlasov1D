@@ -162,7 +162,7 @@ class petscVP1D(petscVP1Dbase):
         
         phisum = self.p.sum()
         
-        self.remove_average_from_potential()
+#        self.remove_average_from_potential()
         
         self.copy_p_to_x()
         self.copy_p_to_h()
@@ -194,10 +194,12 @@ class petscVP1D(petscVP1Dbase):
         self.copy_x_to_f()
         self.copy_x_to_p()
         
-        self.remove_average_from_potential()
-    
-        self.copy_p_to_x()
-        self.copy_p_to_h()
+#        self.remove_average_from_potential()
+#    
+#        self.copy_p_to_x()
+#        self.copy_p_to_h()
+        
+        del self.ksp
         
     
     def updateJacobian(self, snes, X, J, P):
@@ -246,9 +248,9 @@ class petscVP1D(petscVP1Dbase):
             self.copy_x_to_f()
             self.copy_x_to_p()
             
-            self.remove_average_from_potential()
-        
-            self.copy_p_to_x()
+#            self.remove_average_from_potential()
+#        
+#            self.copy_p_to_x()
             self.copy_p_to_h()
             
             # update history
