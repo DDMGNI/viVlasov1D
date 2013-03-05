@@ -4,7 +4,6 @@ Created on Apr 06, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-import StringIO
 import argparse
 import numpy as np
 import h5py
