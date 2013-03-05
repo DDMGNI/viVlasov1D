@@ -8,6 +8,10 @@ import argparse
 import numpy as np
 import h5py
 
+import matplotlib
+matplotlib.use('AGG')
+#matplotlib.use('PDF')
+
 import matplotlib.pyplot as plt
 
 from vlasov.core import Grid, Potential
@@ -49,12 +53,12 @@ class potential(object):
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$")
         plt.title("Electrostatic Field Energy")
        
+        plt.draw()
+        
         filename = str('potential')
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.pdf')
        
-        plt.show()
-        
     
     def __del__(self):
         if self.hdf5 != None:
