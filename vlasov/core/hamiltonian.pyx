@@ -220,23 +220,19 @@ class Hamiltonian(object):
         cdef np.float64_t Epot = 0.0
         
         
-        h1_ave = self.h1.mean()
-        h2_ave = self.h2.mean()
-        
         cdef np.ndarray[np.float64_t, ndim=2] h0 = self.h0
-        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - h1_ave
-        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.h2 - h2_ave
+        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - self.h1.mean()
+        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.h2 - self.h2.mean()
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         
+        cdef np.ndarray[np.float64_t, ndim=2] h0h = self.h0h
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.h1h
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.h2h
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.fh
         
         if self.linear_diagnostics:
-            h1h_ave = self.h1h.mean()
-            h2h_ave = self.h2h.mean()
-        
-            cdef np.ndarray[np.float64_t, ndim=2] h0h = self.h0h
-            cdef np.ndarray[np.float64_t, ndim=2] h1h = self.h1h - h1h_ave
-            cdef np.ndarray[np.float64_t, ndim=2] h2h = self.h2h - h2h_ave
-            cdef np.ndarray[np.float64_t, ndim=2] fh  = self.fh
+            h1h -= self.h1h.mean()
+            h2h -= self.h2h.mean()
         
             if f != None and fh != None:
                 for ix in np.arange(0, nx):
