@@ -235,7 +235,7 @@ class PlotMovie(object):
         
         
         if self.write:
-            filename = self.prefix + str('%06d' % self.iTime-1) + '.png'
+            filename = self.prefix + str('%06d' % (self.iTime-1)) + '.png'
             plt.savefig(filename, dpi=100)
         else:
             plt.draw()
