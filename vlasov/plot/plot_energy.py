@@ -95,7 +95,7 @@ class PlotEnergy(object):
 
 
         self.figure2 = plt.figure(num=2, figsize=(16,10))
-        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.95, wspace=0.10, hspace=0.4)
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
 
         gs = gridspec.GridSpec(4, 1)
         self.axes["N"] = plt.subplot(gs[0,0])
@@ -118,24 +118,29 @@ class PlotEnergy(object):
         self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[tStart:tEnd], self.momentum [tStart:tEnd])
         self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[tStart:tEnd], self.energy   [tStart:tEnd])
         
-        self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$')
-        self.axes ["L" ].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$')
-        self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$')
-        self.axes ["P" ].set_title('Total Momentum $P (t)$')
-        self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$')
+        self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
+        self.axes ["L" ].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
+        self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
+        self.axes ["P" ].set_title('Total Momentum $P (t)$', fontsize=24)
+        self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
 
-#        self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$')
-#        self.axes ["L" ].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$')
-#        self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$')
-#        self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$')
-#        self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$')
-
-        self.axes ["N"].title.set_y(1.04)
-        self.axes ["L"].title.set_y(1.01)
-        self.axes ["E"].title.set_y(1.04)
-        self.axes ["P"].title.set_y(1.04)
+        self.axes ["N"].title.set_y(1.02)
+        self.axes ["L"].title.set_y(1.00)
+        self.axes ["E"].title.set_y(1.02)
+        self.axes ["P"].title.set_y(1.02)
         self.axes ["E0"].title.set_y(1.02)
         
+        self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$', fontsize=20)
+        self.axes ["L" ].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=20)
+        self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$', fontsize=20)
+        self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$', fontsize=20)
+        self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$')
+        
+        self.axes ["N"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["L"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["E"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["P"].yaxis.set_label_coords(-0.08, 0.5)
+
         self.axes ["N" ].set_xlim((xStart,xEnd)) 
         self.axes ["L" ].set_xlim((xStart,xEnd)) 
         self.axes ["E" ].set_xlim((xStart,xEnd)) 
@@ -169,6 +174,9 @@ class PlotEnergy(object):
         plt.setp(self.axes["N"].get_xticklabels(), visible=False)
         plt.setp(self.axes["L"].get_xticklabels(), visible=False)
         plt.setp(self.axes["E"].get_xticklabels(), visible=False)
+        
+        self.figure2 = plt.figure(num=2, figsize=(16,10))
+        plt.tight_layout(pad=0.4, w_pad=0.2, h_pad=0.4)
         
         self.update()
         
