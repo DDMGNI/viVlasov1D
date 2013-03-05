@@ -23,7 +23,7 @@ class potential(object):
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=1):
+    def __init__(self, hdf5_file, nPlot=1, fmax=0):
         '''
         Constructor
         '''
@@ -56,7 +56,12 @@ class potential(object):
                 EMax.append(self.energy[it])
         
         # fit maxima
-        fit = np.polyfit(tMax[1:], np.log(EMax[1:]), 1)
+        if fmax == 0:
+            fmax = len(tMax)
+        else:
+            fmax += 1
+        
+        fit = np.polyfit(tMax[1:fmax], np.log(EMax[1:fmax]), 1)
         fit_fn = np.poly1d(fit)
         
         print("Fit Parameter (m,b):", fit)
@@ -95,6 +100,8 @@ if __name__ == '__main__':
                         help='Run HDF5 File')
     parser.add_argument('-np', metavar='i', type=int, default=1,
                         help='plot every i\'th frame')
+    parser.add_argument('-fmax', metavar='i', type=int, default=1,
+                        help='fit only until i\'th maximum')
     
     args = parser.parse_args()
     
@@ -102,6 +109,6 @@ if __name__ == '__main__':
     print("Plot Field Decay for run with " + args.hdf5_file)
     print
     
-    pot = potential(args.hdf5_file, args.np)
+    pot = potential(args.hdf5_file, args.np, args.fmax)
     
     
