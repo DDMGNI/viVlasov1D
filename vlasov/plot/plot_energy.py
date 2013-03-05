@@ -17,7 +17,7 @@ class PlotEnergy(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0):
+    def __init__(self, grid, distribution, hamiltonian, potential, first=-1, last=0, vMax=0.0):
         '''
         Constructor
         '''
@@ -25,14 +25,20 @@ class PlotEnergy(object):
         matplotlib.rc('text', usetex=True)
         matplotlib.rc('font', family='sans-serif', size='24')
         
-        if nTime > 0 and nTime < grid.nt:
-            self.nTime = nTime
+        if last > 0 and last < grid.nt:
+            self.nTime = last
         else:
             self.nTime = grid.nt
             
+        if first > 0 and first < grid.nt:
+            self.iStart = first
+        else:
+            self.iStart = 0
+        
+        
         self.iTime  = 0
-        self.iStart = 0
         self.nPlot  = 1
+        self.vMax   = vMax
         
         self.grid         = grid
         self.distribution = distribution
@@ -79,17 +85,17 @@ class PlotEnergy(object):
 
         # distribution function (filled contour)
         self.figure1 = plt.figure(num=1, figsize=(16,9))
-        plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.1, hspace=0.2)
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.94, wspace=0.1, hspace=0.2)
 
         self.axes["f"] = plt.subplot(1,1,1)
-        self.axes ["f"].set_title('$f (x,v)$')
+        self.axes ["f"].set_title('Distribution Function $f (x,v)$')
         self.axes ["f"].title.set_y(1.01)
 #        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
 #        self.cbars["f"] = plt.colorbar(self.conts["f"], orientation='vertical')
 
 
-        self.figure2 = plt.figure(num=2, figsize=(16,9))
-        plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.1, hspace=0.3)
+        self.figure2 = plt.figure(num=2, figsize=(16,10))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.95, wspace=0.10, hspace=0.4)
 
         gs = gridspec.GridSpec(4, 1)
         self.axes["N"] = plt.subplot(gs[0,0])
@@ -99,7 +105,7 @@ class PlotEnergy(object):
         
         
         self.figure3 = plt.figure(num=3, figsize=(16,4))
-        plt.subplots_adjust(left=0.1, right=0.9, bottom=0.25, top=0.9, wspace=0.1, hspace=0.2)
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
 
         self.axes["E0"] = plt.subplot(1,1,1)
 
@@ -118,6 +124,18 @@ class PlotEnergy(object):
         self.axes ["P" ].set_title('Total Momentum $P (t)$')
         self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$')
 
+#        self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$')
+#        self.axes ["L" ].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$')
+#        self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$')
+#        self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$')
+#        self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$')
+
+        self.axes ["N"].title.set_y(1.04)
+        self.axes ["L"].title.set_y(1.01)
+        self.axes ["E"].title.set_y(1.04)
+        self.axes ["P"].title.set_y(1.04)
+        self.axes ["E0"].title.set_y(1.02)
+        
         self.axes ["N" ].set_xlim((xStart,xEnd)) 
         self.axes ["L" ].set_xlim((xStart,xEnd)) 
         self.axes ["E" ].set_xlim((xStart,xEnd)) 
@@ -198,6 +216,9 @@ class PlotEnergy(object):
                 self.axes[ckey].collections.remove(coll)
         
         self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
+        
+        if self.vMax > 0.0:
+            self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
         
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()

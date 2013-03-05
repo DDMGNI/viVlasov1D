@@ -23,12 +23,13 @@ class replay(object):
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=-1, linear=False):
+    def __init__(self, hdf5_file, first=-1, last=-1, vMax=0., linear=False):
         '''
         Constructor
         '''
         
-        self.nPlot  = nPlot
+        self.first = first
+        self.last  = last
         
         self.hdf5 = h5py.File(hdf5_file, 'r')
         
@@ -49,7 +50,7 @@ class replay(object):
         self.distribution.read_from_hdf5(0)
         self.hamiltonian.read_from_hdf5(0)
         
-        self.plot = PlotEnergy(self.grid, self.distribution, self.hamiltonian, self.potential, nPlot)
+        self.plot = PlotEnergy(self.grid, self.distribution, self.hamiltonian, self.potential, first, last, vMax)
         
     
     def __del__(self):
@@ -59,7 +60,7 @@ class replay(object):
     
     def run(self, ptime):
         if ptime != 0:
-            for itime in range(1, self.grid.nt+1):
+            for itime in range(self.first, self.last+1):
                 print("it = %5i" % (itime))
                 
                 self.potential.read_from_hdf5(itime)
@@ -84,8 +85,12 @@ if __name__ == '__main__':
                         help='Run HDF5 File')
     parser.add_argument('-pi', metavar='i', type=int, default=1,
                         help='plot pi\'th frame')    
+    parser.add_argument('-fi', metavar='i', type=int, default=-1,
+                        help='first time index')
     parser.add_argument('-li', metavar='i', type=int, default=-1,
                         help='last time index')
+    parser.add_argument('-v', metavar='f', type=float, default=0.0,
+                        help='limit velocity domain to +/-v')
     parser.add_argument('-linear', metavar='b', type=bool, default=False,
                         help='use linear diagnostics')
     
@@ -95,7 +100,7 @@ if __name__ == '__main__':
     print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = replay(args.hdf5_file, args.li, args.linear)
+    pyvp = replay(args.hdf5_file, args.fi, args.li, args.v, args.linear)
     pyvp.run(args.pi)
     
     print
