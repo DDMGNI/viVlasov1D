@@ -58,7 +58,8 @@ class potential(object):
         # fit maxima
         fit = np.polyfit(tMax,EMax,1)
         fit_fn = np.poly1d(fit)
-
+        
+        print("Fit Parameter (m,b):", fit)
         
         # set up figure/window size
         self.figure1 = plt.figure(num=None, figsize=(16,9))
