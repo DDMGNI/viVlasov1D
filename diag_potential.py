@@ -50,6 +50,10 @@ class potential(object):
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$")
         plt.title("Electrostatic Field Energy")
        
+        filename = str('potential')
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.pdf')
+       
         plt.show()
         
     
