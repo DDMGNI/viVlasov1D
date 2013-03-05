@@ -43,6 +43,16 @@ class potential(object):
             self.potential.read_from_hdf5(itime)
             self.energy[itime] = self.potential.E
 
+        tMax = []
+        EMax = []
+
+        for it in range(0, self.grid.nt+1):
+            itm = (it-1+self.grid.nt+1) % (self.grid.nt+1)
+            itp = (it+1+self.grid.nt+1) % (self.grid.nt+1)
+            
+            if self.energy[it] > self.energy[itm] and self.energy[it] > self.energy[itp]:
+                tMax.append(self.grid.tGrid[it])
+                EMax.append(self.energy[it])
         
         # set up figure/window size
         self.figure1 = plt.figure(num=None, figsize=(16,9))
@@ -50,6 +60,8 @@ class potential(object):
         
         # plot
         plt.semilogy(self.grid.tGrid, self.energy)
+        plt.plot(tMax, EMax, 'ro')
+        
         plt.xlabel("$t$", labelpad=15, fontsize=22)
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
         plt.title("Electrostatic Field Energy", fontsize=24)
