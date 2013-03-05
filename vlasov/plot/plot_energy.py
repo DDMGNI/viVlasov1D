@@ -157,9 +157,9 @@ class PlotEnergy(object):
         
         self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$', fontsize=22)
-        self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$', fontsize=22)
+        self.axes ["P" ].set_ylabel('$P$', fontsize=22)
         self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$', fontsize=22)
-        self.axes ["P0"].set_ylabel('$(P - P_0) / P_0$', fontsize=22)
+        self.axes ["P0"].set_ylabel('$P$', fontsize=22)
         self.axes ["N0"].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["L1"].set_ylabel('$(L_1 - L_{1,0}) / L_{1,0}$', fontsize=22)
         self.axes ["L2"].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=22)
