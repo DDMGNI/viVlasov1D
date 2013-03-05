@@ -17,25 +17,31 @@ class Hamiltonian(object):
 
 
     def __init__(self, grid, mass=1.0, nhist=1, potential=None, distribution=None,
-                 hdf5_in=None,  hdf5_out=None, replay=False):
+                 hdf5_in=None,  hdf5_out=None, replay=False, linear=False):
         '''
         Constructor
         '''
         
         self.average_diagnostics = True
-        
+        self.linear_diagnostics  = linear
         
         self.grid  = grid       # grid object
         self.nhist = nhist      # number of timesteps to save in history
         self.mass  = mass       # particle mass
         
-        self.f = None           # distribution function (data array only),
+        self.f   = None          # distribution function (data array only),
                                 # needed for calculation of total energy
+        self.fh  = None          # distribution function from last timestep
         
-        self.h  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # total hamiltonian
-        self.h0 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # kinetic   term
-        self.h1 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # potential term
-        self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
+        self.h   = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # total hamiltonian
+        self.hh  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # total hamiltonian from last timestep
+        
+        self.h0  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # kinetic   term
+        self.h1  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # potential term
+        self.h2  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
+        self.h0h = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # kinetic   term from last timestep
+        self.h1h = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # potential term from last timestep
+        self.h2h = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term from last timestep
         
         self.E0    = 0.0         # initial total energy
         self.Ekin0 = 0.0         # initial kinetic energy
@@ -209,7 +215,10 @@ class Hamiltonian(object):
         cdef np.uint64_t nv = self.grid.nv
         
         cdef np.uint64_t ix, ixp, iv
-        cdef np.float64_t Ekin, Epot
+        
+        cdef np.float64_t Ekin = 0.0
+        cdef np.float64_t Epot = 0.0
+        
         
         h1_ave = self.h1.mean()
         h2_ave = self.h2.mean()
@@ -219,50 +228,136 @@ class Hamiltonian(object):
         cdef np.ndarray[np.float64_t, ndim=2] h2 = self.h2 - h2_ave
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         
-        Ekin = 0.0
-        Epot = 0.0
         
-        if self.f != None:
-            for ix in np.arange(0, nx):
-                ixp = (ix+1) % nx
-                
-                for iv in np.arange(0, nv-1):
-                    
-                    Ekin += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h0[ix,  iv  ]
-                            + h0[ixp, iv  ]
-                            + h0[ixp, iv+1]
-                            + h0[ix,  iv+1]
-                            )
-                    
-                    Epot += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h1[ix,  iv  ]
-                            + h1[ixp, iv  ]
-                            + h1[ixp, iv+1]
-                            + h1[ix,  iv+1]
-                            )
+        if self.linear_diagnostics:
+            h1h_ave = self.h1h.mean()
+            h2h_ave = self.h2h.mean()
         
-                    Epot += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h2[ix,  iv  ]
-                            + h2[ixp, iv  ]
-                            + h2[ixp, iv+1]
-                            + h2[ix,  iv+1]
-                            )
+            cdef np.ndarray[np.float64_t, ndim=2] h0h = self.h0h
+            cdef np.ndarray[np.float64_t, ndim=2] h1h = self.h1h - h1h_ave
+            cdef np.ndarray[np.float64_t, ndim=2] h2h = self.h2h - h2h_ave
+            cdef np.ndarray[np.float64_t, ndim=2] fh  = self.fh
+        
+            if f != None and fh != None:
+                for ix in np.arange(0, nx):
+                    ixp = (ix+1) % nx
+                    
+                    for iv in np.arange(0, nv-1):
+                        
+                        Ekin += 0.5 * ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h0[ix,  iv  ]
+                                + h0[ixp, iv  ]
+                                + h0[ixp, iv+1]
+                                + h0[ix,  iv+1]
+                                )
+                        
+                        Ekin += 0.5 * ( 
+                                + fh[ix,  iv  ]
+                                + fh[ixp, iv  ]
+                                + fh[ixp, iv+1]
+                                + fh[ix,  iv+1]
+                              ) * ( 
+                                + h0[ix,  iv  ]
+                                + h0[ixp, iv  ]
+                                + h0[ixp, iv+1]
+                                + h0[ix,  iv+1]
+                                )
+                        
+                        Epot += 0.5 * ( 
+                                + fh[ix,  iv  ]
+                                + fh[ixp, iv  ]
+                                + fh[ixp, iv+1]
+                                + fh[ix,  iv+1]
+                              ) * ( 
+                                + h1[ix,  iv  ]
+                                + h1[ixp, iv  ]
+                                + h1[ixp, iv+1]
+                                + h1[ix,  iv+1]
+                                )
+            
+                        Epot += 0.5 * ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h1h[ix,  iv  ]
+                                + h1h[ixp, iv  ]
+                                + h1h[ixp, iv+1]
+                                + h1h[ix,  iv+1]
+                                )
+            
+                        Epot += 0.5 * ( 
+                                + fh[ix,  iv  ]
+                                + fh[ixp, iv  ]
+                                + fh[ixp, iv+1]
+                                + fh[ix,  iv+1]
+                              ) * ( 
+                                + h2[ix,  iv  ]
+                                + h2[ixp, iv  ]
+                                + h2[ixp, iv+1]
+                                + h2[ix,  iv+1]
+                                )        
+            
+                        Epot += 0.5 * ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h2h[ix,  iv  ]
+                                + h2h[ixp, iv  ]
+                                + h2h[ixp, iv+1]
+                                + h2h[ix,  iv+1]
+                                )        
+        
+        else:
+            if f != None:
+                for ix in np.arange(0, nx):
+                    ixp = (ix+1) % nx
+                    
+                    for iv in np.arange(0, nv-1):
+                        
+                        Ekin += ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h0[ix,  iv  ]
+                                + h0[ixp, iv  ]
+                                + h0[ixp, iv+1]
+                                + h0[ix,  iv+1]
+                                )
+                        
+                        Epot += ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h1[ix,  iv  ]
+                                + h1[ixp, iv  ]
+                                + h1[ixp, iv+1]
+                                + h1[ix,  iv+1]
+                                )
+            
+                        Epot += ( 
+                                + f[ix,  iv  ]
+                                + f[ixp, iv  ]
+                                + f[ixp, iv+1]
+                                + f[ix,  iv+1]
+                              ) * ( 
+                                + h2[ix,  iv  ]
+                                + h2[ixp, iv  ]
+                                + h2[ixp, iv+1]
+                                + h2[ix,  iv+1]
+                                )
         
         self.Ekin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
         self.Epot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
@@ -331,10 +426,35 @@ class Hamiltonian(object):
     def read_from_hdf5(self, iTime):
         self.h0[:,:] = self.hdf5_h0[iTime,:,:]
         self.h1[:,:] = self.hdf5_h1[iTime,:,:]
+        
         if self.hdf5_h2 != None:
             self.h2[:,:] = self.hdf5_h2[iTime,:,:]
-        self.h [:,:] = self.h0 + self.h1 + self.h2
+        
         self.f  = self.hdf5_f[iTime,:,:]
+        
+        self.h [:,:] = self.h0  + self.h1  + self.h2
+         
+        
+        if self.linear_diagnostics:
+            if iTime == 0:
+                self.h0h[:,:] = self.hdf5_h0[iTime+1,:,:]
+                self.h1h[:,:] = self.hdf5_h1[iTime+1,:,:]
+                
+                if self.hdf5_h2 != None:
+                    self.h2h[:,:] = self.hdf5_h2[iTime+1,:,:]
+                
+                self.fh = self.hdf5_f[iTime+1,:,:]
+            else:
+                self.h0h[:,:] = self.hdf5_h0[iTime-1,:,:]
+                self.h1h[:,:] = self.hdf5_h1[iTime-1,:,:]
+                
+                if self.hdf5_h2 != None:
+                    self.h2h[:,:] = self.hdf5_h2[iTime-1,:,:]
+                
+                self.fh = self.hdf5_f[iTime-1,:,:]
+        
+            self.hh[:,:] = self.h0h + self.h1h + self.h2h
+        
         
         self.calculate_total_energy()
         self.calculate_total_momentum()

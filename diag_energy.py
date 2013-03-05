@@ -23,7 +23,7 @@ class replay(object):
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=-1):
+    def __init__(self, hdf5_file, nPlot=-1, linear=False):
         '''
         Constructor
         '''
@@ -42,7 +42,7 @@ class replay(object):
         self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
         self.potential    = Potential           (self.grid, hdf5_in=self.hdf5, replay=True,
                                                  poisson_const=-1.)
-        self.hamiltonian  = Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True)
+        self.hamiltonian  = Hamiltonian         (self.grid, hdf5_in=self.hdf5, replay=True, linear=linear)
         self.distribution = DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
         
         self.potential.read_from_hdf5(0)
@@ -86,6 +86,8 @@ if __name__ == '__main__':
                         help='plot pi\'th frame')    
     parser.add_argument('-li', metavar='i', type=int, default=-1,
                         help='last time index')
+    parser.add_argument('-linear', metavar='b', type=bool, default=False,
+                        help='use linear diagnostics')
     
     args = parser.parse_args()
     
@@ -93,7 +95,7 @@ if __name__ == '__main__':
     print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = replay(args.hdf5_file, args.li)
+    pyvp = replay(args.hdf5_file, args.li, args.linear)
     pyvp.run(args.pi)
     
     print
