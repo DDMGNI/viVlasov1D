@@ -60,7 +60,7 @@ class replay(object):
     
     def run(self, ptime):
         if ptime != 0:
-            for itime in range(self.first, self.last+1):
+            for itime in range(1, self.last+1):
                 print("it = %5i" % (itime))
                 
                 self.potential.read_from_hdf5(itime)
