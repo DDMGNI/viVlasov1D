@@ -45,7 +45,8 @@ class potential(object):
 
         tMax = []
         EMax = []
-
+        
+        # find maxima
         for it in range(0, self.grid.nt+1):
             itm = (it-1+self.grid.nt+1) % (self.grid.nt+1)
             itp = (it+1+self.grid.nt+1) % (self.grid.nt+1)
@@ -54,6 +55,11 @@ class potential(object):
                 tMax.append(self.grid.tGrid[it])
                 EMax.append(self.energy[it])
         
+        # fit maxima
+        fit = np.polyfit(tMax,EMax,1)
+        fit_fn = np.poly1d(fit)
+
+        
         # set up figure/window size
         self.figure1 = plt.figure(num=None, figsize=(16,9))
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.94, wspace=0.1, hspace=0.2)
@@ -61,6 +67,7 @@ class potential(object):
         # plot
         plt.semilogy(self.grid.tGrid, self.energy)
         plt.plot(tMax, EMax, 'ro')
+        plt.plot(self.grid.tGrid, fit_fn(self.grid.tGrid), '--k')
         
         plt.xlabel("$t$", labelpad=15, fontsize=22)
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
