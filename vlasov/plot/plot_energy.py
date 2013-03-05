@@ -119,7 +119,7 @@ class PlotEnergy(object):
         self.axes["L1"] = plt.subplot(1,1,1)
 
 
-        self.figure7 = plt.figure(num=6, figsize=(16,4))
+        self.figure7 = plt.figure(num=7, figsize=(16,4))
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
 
         self.axes["L2"] = plt.subplot(1,1,1)
