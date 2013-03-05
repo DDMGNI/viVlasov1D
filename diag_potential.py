@@ -50,7 +50,7 @@ class potential(object):
         
         # plot
         plt.semilogy(self.grid.tGrid, self.energy)
-        plt.xlabel("$t$", labelpad=15)
+        plt.xlabel("$t$", labelpad=15, fontsize=22)
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
         plt.title("Electrostatic Field Energy", fontsize=24)
         plt.tight_layout()
