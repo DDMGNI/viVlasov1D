@@ -110,13 +110,14 @@ class PlotEnergy(object):
         self.axes["E0"] = plt.subplot(1,1,1)
 
 
-        tStart, tEnd, xStart, xEnd = self.get_timerange()
+        xStart = self.grid.tGrid[self.iStart]
+        xEnd   = self.grid.tGrid[self.nTime]
 
-        self.lines["N" ], = self.axes["N" ].plot(self.grid.tGrid[tStart:tEnd], self.partnum  [tStart:tEnd])
-        self.lines["L" ], = self.axes["L" ].plot(self.grid.tGrid[tStart:tEnd], self.enstrophy[tStart:tEnd])
-        self.lines["E" ], = self.axes["E" ].plot(self.grid.tGrid[tStart:tEnd], self.energy   [tStart:tEnd])
-        self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[tStart:tEnd], self.momentum [tStart:tEnd])
-        self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[tStart:tEnd], self.energy   [tStart:tEnd])
+        self.lines["N" ], = self.axes["N" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.partnum  [self.iStart:self.nTime])
+        self.lines["L" ], = self.axes["L" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.enstrophy[self.iStart:self.nTime])
+        self.lines["E" ], = self.axes["E" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.energy   [self.iStart:self.nTime])
+        self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.momentum [self.iStart:self.nTime])
+        self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[self.iStart:self.nTime], self.energy   [self.iStart:self.nTime])
         
         self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["L" ].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
@@ -229,34 +230,35 @@ class PlotEnergy(object):
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
         
         
-        tStart, tEnd, xStart, xEnd = self.get_timerange()
+        xStart = self.grid.tGrid[self.iStart]
+        xEnd   = self.grid.tGrid[self.nTime]
         
-        self.lines["N"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["N"].set_ydata(self.partnum[tStart:tEnd])
+        self.lines["N"].set_xdata(self.grid.tGrid[self.iStart:self.nTime])
+        self.lines["N"].set_ydata(self.partnum[self.iStart:self.nTime])
         self.axes ["N"].relim()
         self.axes ["N"].autoscale_view()
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["L"].set_ydata(self.enstrophy[tStart:tEnd])
+        self.lines["L"].set_xdata(self.grid.tGrid[self.iStart:self.nTime])
+        self.lines["L"].set_ydata(self.enstrophy[self.iStart:self.nTime])
         self.axes ["L"].relim()
         self.axes ["L"].autoscale_view()
         self.axes ["L"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["E"].set_ydata(self.energy[tStart:tEnd])
+        self.lines["E"].set_xdata(self.grid.tGrid[self.iStart:self.nTime])
+        self.lines["E"].set_ydata(self.energy[self.iStart:self.nTime])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         
-        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["P"].set_ydata(self.energy[tStart:tEnd])
+        self.lines["P"].set_xdata(self.grid.tGrid[self.iStart:self.nTime])
+        self.lines["P"].set_ydata(self.energy[self.iStart:self.nTime])
         self.axes ["P"].relim()
         self.axes ["P"].autoscale_view()
         self.axes ["P"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E0"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["E0"].set_ydata(self.energy[tStart:tEnd])
+        self.lines["E0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime])
+        self.lines["E0"].set_ydata(self.energy[self.iStart:self.nTime])
         self.axes ["E0"].relim()
         self.axes ["E0"].autoscale_view()
         self.axes ["E0"].set_xlim((xStart,xEnd)) 
@@ -288,14 +290,3 @@ class PlotEnergy(object):
 #        self.title.set_text('t = %1.2f' % (self.grid.tGrid[self.iTime]))
         
         self.iTime += 1
-        
-    
-    def get_timerange(self):
-        tStart = self.iStart
-        tEnd   = self.nTime
-        
-        xStart = self.grid.tGrid[tStart]
-        xEnd   = self.grid.tGrid[tEnd]
-        
-        return tStart, tEnd, xStart, xEnd
-    
