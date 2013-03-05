@@ -45,13 +45,15 @@ class potential(object):
 
         
         # set up figure/window size
-        self.figure = plt.figure(num=None, figsize=(14,9))
+        self.figure1 = plt.figure(num=None, figsize=(16,9))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.94, wspace=0.1, hspace=0.2)
         
         # plot
         plt.semilogy(self.grid.tGrid, self.energy)
-        plt.xlabel("$t$")
-        plt.ylabel("$\parallel E (x,t) \parallel_{2}$")
-        plt.title("Electrostatic Field Energy")
+        plt.xlabel("$t$", labelpad=15)
+        plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
+        plt.title("Electrostatic Field Energy", fontsize=24)
+        plt.tight_layout()
        
         plt.draw()
         
