@@ -88,20 +88,17 @@ class PlotEnergy(object):
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.94, wspace=0.1, hspace=0.2)
 
         self.axes["f"] = plt.subplot(1,1,1)
-        self.axes ["f"].set_title('Distribution Function $f (x,v)$')
-        self.axes ["f"].title.set_y(1.01)
-#        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
-#        self.cbars["f"] = plt.colorbar(self.conts["f"], orientation='vertical')
+        self.axes["f"].set_title('Distribution Function $f (x,v)$')
+        self.axes["f"].title.set_y(1.01)
 
 
         self.figure2 = plt.figure(num=2, figsize=(16,10))
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
 
-        gs = gridspec.GridSpec(4, 1)
+        gs = gridspec.GridSpec(3, 1)
         self.axes["N"] = plt.subplot(gs[0,0])
-        self.axes["L"] = plt.subplot(gs[1,0])
-        self.axes["E"] = plt.subplot(gs[2,0])
-        self.axes["P"] = plt.subplot(gs[3,0])
+        self.axes["E"] = plt.subplot(gs[1,0])
+        self.axes["P"] = plt.subplot(gs[2,0])
         
         
         self.figure3 = plt.figure(num=3, figsize=(16,4))
@@ -110,60 +107,98 @@ class PlotEnergy(object):
         self.axes["E0"] = plt.subplot(1,1,1)
 
 
+        self.figure4 = plt.figure(num=4, figsize=(16,4))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
+
+        self.axes["P0"] = plt.subplot(1,1,1)
+
+
+        self.figure5 = plt.figure(num=5, figsize=(16,4))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
+
+        self.axes["N0"] = plt.subplot(1,1,1)
+
+
+        self.figure6 = plt.figure(num=6, figsize=(16,4))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
+
+        self.axes["L0"] = plt.subplot(1,1,1)
+
+
         xStart = self.grid.tGrid[self.iStart]
         xEnd   = self.grid.tGrid[self.nTime]
 
         self.lines["N" ], = self.axes["N" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.partnum  [self.iStart:self.nTime])
-        self.lines["L" ], = self.axes["L" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.enstrophy[self.iStart:self.nTime])
         self.lines["E" ], = self.axes["E" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.energy   [self.iStart:self.nTime])
         self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[self.iStart:self.nTime], self.momentum [self.iStart:self.nTime])
         self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[self.iStart:self.nTime], self.energy   [self.iStart:self.nTime])
+        self.lines["P0"], = self.axes["P0"].plot(self.grid.tGrid[self.iStart:self.nTime], self.momentum [self.iStart:self.nTime])
+        self.lines["N0"], = self.axes["N0"].plot(self.grid.tGrid[self.iStart:self.nTime], self.partnum  [self.iStart:self.nTime])
+        self.lines["L0"], = self.axes["L0"].plot(self.grid.tGrid[self.iStart:self.nTime], self.enstrophy[self.iStart:self.nTime])
         
         self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
-        self.axes ["L" ].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
         self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
         self.axes ["P" ].set_title('Total Momentum $P (t)$', fontsize=24)
         self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
+        self.axes ["P0"].set_title('Total Momentum $P (t)$', fontsize=24)
+        self.axes ["N0"].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
+        self.axes ["L0"].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
 
-        self.axes ["N"].title.set_y(1.02)
-        self.axes ["L"].title.set_y(1.00)
-        self.axes ["E"].title.set_y(1.02)
-        self.axes ["P"].title.set_y(1.02)
+        self.axes ["N" ].title.set_y(1.02)
+        self.axes ["E" ].title.set_y(1.02)
+        self.axes ["P" ].title.set_y(1.02)
         self.axes ["E0"].title.set_y(1.02)
+        self.axes ["P0"].title.set_y(1.02)
+        self.axes ["N0"].title.set_y(1.02)
+        self.axes ["L0"].title.set_y(1.00)
         
         self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$', fontsize=20)
-        self.axes ["L" ].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=20)
         self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$', fontsize=20)
         self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$', fontsize=20)
-        self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$')
+        self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$', fontsize=20)
+        self.axes ["P0"].set_ylabel('$(P - P_0) / P_0$', fontsize=20)
+        self.axes ["N0"].set_ylabel('$(N - N_0) / N_0$', fontsize=20)
+        self.axes ["L0"].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=20)
         
-        self.axes ["N"].yaxis.set_label_coords(-0.08, 0.5)
-        self.axes ["L"].yaxis.set_label_coords(-0.08, 0.5)
-        self.axes ["E"].yaxis.set_label_coords(-0.08, 0.5)
-        self.axes ["P"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["N" ].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["E" ].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["P" ].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["E0"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["P0"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["N0"].yaxis.set_label_coords(-0.08, 0.5)
+        self.axes ["L0"].yaxis.set_label_coords(-0.08, 0.5)
 
         self.axes ["N" ].set_xlim((xStart,xEnd)) 
-        self.axes ["L" ].set_xlim((xStart,xEnd)) 
         self.axes ["E" ].set_xlim((xStart,xEnd)) 
         self.axes ["P" ].set_xlim((xStart,xEnd)) 
         self.axes ["E0"].set_xlim((xStart,xEnd)) 
+        self.axes ["P0"].set_xlim((xStart,xEnd)) 
+        self.axes ["N0"].set_xlim((xStart,xEnd)) 
+        self.axes ["L0"].set_xlim((xStart,xEnd)) 
         
         self.axes ["N" ].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["L" ].yaxis.set_major_formatter(majorFormatter)
         self.axes ["E" ].yaxis.set_major_formatter(majorFormatter)
         self.axes ["P" ].yaxis.set_major_formatter(majorFormatter)
         self.axes ["E0"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["P0"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["N0"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["L0"].yaxis.set_major_formatter(majorFormatter)
         
         self.axes ["N" ].yaxis.set_major_locator(MaxNLocator(4))
-        self.axes ["L" ].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["E" ].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["P" ].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["E0"].yaxis.set_major_locator(MaxNLocator(4))
+        self.axes ["P0"].yaxis.set_major_locator(MaxNLocator(4))
+        self.axes ["N0"].yaxis.set_major_locator(MaxNLocator(4))
+        self.axes ["L0"].yaxis.set_major_locator(MaxNLocator(4))
         
         self.axes ["f" ].set_xlabel('$x$', labelpad=15)
         self.axes ["f" ].set_ylabel('$v$', labelpad=15)
         self.axes ["P" ].set_xlabel('$t$', labelpad=15)
         self.axes ["E0"].set_xlabel('$t$', labelpad=15)
+        self.axes ["P0"].set_xlabel('$t$', labelpad=15)
+        self.axes ["N0"].set_xlabel('$t$', labelpad=15)
+        self.axes ["L0"].set_xlabel('$t$', labelpad=15)
         
         for ax in self.axes:
             for tick in self.axes[ax].xaxis.get_major_ticks():
@@ -173,7 +208,6 @@ class PlotEnergy(object):
         
         # switch off some ticks
         plt.setp(self.axes["N"].get_xticklabels(), visible=False)
-        plt.setp(self.axes["L"].get_xticklabels(), visible=False)
         plt.setp(self.axes["E"].get_xticklabels(), visible=False)
         
         self.figure2 = plt.figure(num=2, figsize=(16,10))
@@ -188,15 +222,29 @@ class PlotEnergy(object):
         plt.figure(1)
         filename = str('F_%06d' % (self.iTime-1))
         plt.savefig(filename + '.png', dpi=300)
-#        plt.savefig(filename + '.pdf')
         
         plt.figure(2)
-        filename = str('NLEP_%06d' % (self.iTime-1))
+        filename = str('NEP_%06d' % (self.iTime-1))
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.pdf')
 
         plt.figure(3)
         filename = str('E_%06d' % (self.iTime-1))
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.pdf')
+
+        plt.figure(4)
+        filename = str('P_%06d' % (self.iTime-1))
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.pdf')
+
+        plt.figure(5)
+        filename = str('N_%06d' % (self.iTime-1))
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.pdf')
+
+        plt.figure(6)
+        filename = str('L2_%06d' % (self.iTime-1))
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.pdf')
 
