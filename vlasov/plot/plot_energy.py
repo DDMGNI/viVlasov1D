@@ -291,14 +291,17 @@ class PlotEnergy(object):
         
     
     def get_timerange(self):
-        tStart = self.iTime - (self.nTime+1)
-        tEnd   = self.iTime
+        tStart = self.iTime
+        tEnd   = self.iTime + self.nTime
         
         if tStart < self.iStart:
             tStart = self.iStart
         
+        if tEnd > self.nTime:
+            tEnd = self.nTime
+        
         xStart = self.grid.tGrid[tStart]
-        xEnd   = self.grid.tGrid[tStart+self.nTime]
+        xEnd   = self.grid.tGrid[tEnd]
         
         return tStart, tEnd, xStart, xEnd
     
