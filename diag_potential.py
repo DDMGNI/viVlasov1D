@@ -56,7 +56,7 @@ class potential(object):
                 EMax.append(self.energy[it])
         
         # fit maxima
-        fit = np.polyfit(tMax, np.log(EMax), 1)
+        fit = np.polyfit(tMax[1:], np.log(EMax[1:]), 1)
         fit_fn = np.poly1d(fit)
         
         print("Fit Parameter (m,b):", fit)
