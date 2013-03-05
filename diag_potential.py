@@ -56,7 +56,7 @@ class potential(object):
                 EMax.append(self.energy[it])
         
         # fit maxima
-        fit = np.polyfit(tMax,EMax,1)
+        fit = np.polyfit(tMax, np.log(EMax), 1)
         fit_fn = np.poly1d(fit)
         
         print("Fit Parameter (m,b):", fit)
@@ -68,7 +68,7 @@ class potential(object):
         # plot
         plt.semilogy(self.grid.tGrid, self.energy)
         plt.plot(tMax, EMax, 'ro')
-        plt.plot(self.grid.tGrid, fit_fn(self.grid.tGrid), '--k')
+        plt.plot(self.grid.tGrid, np.exp(fit_fn(self.grid.tGrid)), '--k')
         
         plt.xlabel("$t$", labelpad=15, fontsize=22)
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
