@@ -383,11 +383,10 @@ class Hamiltonian(object):
         Calculates total momentum w.r.t. the given distribution function.
         '''
         
-#        if self.f != None:
-#            self.P = self.mass * (self.f.sum(axis=0) * self.grid.vGrid).sum() * self.grid.hx * self.grid.hv
-#        else:
-#            self.P = 0.0
-        self.P = 0.0
+        if self.f != None:
+            self.P = self.mass * (self.f.sum(axis=0) * self.grid.vGrid).sum() * self.grid.hx * self.grid.hv
+        else:
+            self.P = 0.0
         
     
     def calculate_momentum_error(self):
@@ -395,7 +394,7 @@ class Hamiltonian(object):
         Calculates momentum error, i.e. relative difference between P and P0.
         '''
         if self.P0 != 0.0:
-            self.P_error = (self.P - self.P0) # / self.P0
+            self.P_error = (self.P - self.P0) / self.P0
         else:
             self.P_error = 0.0
     
