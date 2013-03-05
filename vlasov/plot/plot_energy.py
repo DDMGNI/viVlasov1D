@@ -112,11 +112,11 @@ class PlotEnergy(object):
         self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[tStart:tEnd], self.momentum [tStart:tEnd])
         self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[tStart:tEnd], self.energy   [tStart:tEnd])
         
-        self.axes ["N" ].set_title('$Total Particle Number Error \Delta N (t)$')
-        self.axes ["L" ].set_title('$L_{2} Integral Norm Error \Delta L_{2} (t)$')
-        self.axes ["E" ].set_title('$Total Energy Error \Delta E (t)$')
-        self.axes ["P" ].set_title('$Total Momentum P (t)$')
-        self.axes ["E0"].set_title('$Total Energy Error \Delta E (t)$')
+        self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$')
+        self.axes ["L" ].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$')
+        self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$')
+        self.axes ["P" ].set_title('Total Momentum $P (t)$')
+        self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$')
 
         self.axes ["N" ].set_xlim((xStart,xEnd)) 
         self.axes ["L" ].set_xlim((xStart,xEnd)) 
@@ -161,7 +161,7 @@ class PlotEnergy(object):
         plt.figure(1)
         filename = str('F_%06d' % (self.iTime-1))
         plt.savefig(filename + '.png', dpi=300)
-        plt.savefig(filename + '.pdf')
+#        plt.savefig(filename + '.pdf')
         
         plt.figure(2)
         filename = str('NLEP_%06d' % (self.iTime-1))
