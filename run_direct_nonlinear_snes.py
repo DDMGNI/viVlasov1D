@@ -205,10 +205,10 @@ class petscVP1D(petscVP1Dbase):
             self.petsc_matrix.update_external(self.p_ext)
             
             
-            # calculate initial guess for distribution function
+            # calculate initial guess
             self.snes_linear.solve(None, self.x)
             
-            # solve
+            # nonlinear solve
             self.snes.solve(None, self.x)
             
             # output some solver info

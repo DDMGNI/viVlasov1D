@@ -18,6 +18,9 @@ from vlasov.predictor.PETScPoissonSolver import PETScPoissonSolver
 from vlasov.predictor.PETScVlasovSolver  import PETScVlasovSolver
 
 
+stencil = 1
+
+
 class petscVP1Dbase(object):
     '''
     PETSc/Python Vlasov Poisson Solver in 1D.
@@ -87,7 +90,7 @@ class petscVP1Dbase(object):
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=stencil,
                                     stencil_type='box')
         
         # create DA for 2d grid (f and phi)
@@ -95,7 +98,7 @@ class petscVP1Dbase(object):
                                      sizes=[self.nx],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                      boundary_type=('periodic'),
-                                     stencil_width=1,
+                                     stencil_width=stencil,
                                      stencil_type='box')
         
         
@@ -104,7 +107,7 @@ class petscVP1Dbase(object):
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=stencil,
                                     stencil_type='box')
         
         # create DA for y grid
@@ -267,7 +270,8 @@ class petscVP1Dbase(object):
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-                    if j == 0 or j == self.nv-1:
+#                    if j == 0 or j == self.nv-1:
+                    if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
@@ -298,7 +302,8 @@ class petscVP1Dbase(object):
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-                    if j == 0 or j == self.nv-1:
+#                    if j == 0 or j == self.nv-1:
+                    if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
