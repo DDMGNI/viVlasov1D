@@ -23,6 +23,7 @@ from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 from vlasov.vi.PETScSimpleMatrixCollT       import PETScMatrix
 from vlasov.vi.PETScSimpleNLFunctionCollT   import PETScFunction
 from vlasov.vi.PETScSimpleNLJacobianCollT   import PETScJacobian
+from vlasov.vi.PETScSimpleNLMFJacobianCollT import PETScJacobianMatrixFree
 
 #from vlasov.vi.PETScSimpleMatrixCollE       import PETScMatrix
 #from vlasov.vi.PETScSimpleNLFunctionCollE   import PETScFunction
@@ -58,7 +59,7 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-        OptDB.setValue('snes_type', 'ls')
+#        OptDB.setValue('snes_type', 'ls')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -72,6 +73,11 @@ class petscVP1D(petscVP1Dbase):
         self.F  = self.da2.createGlobalVec()
         
         # create Jacobian, Function, and linear Matrix objects
+        self.petsc_jacobian_mf = PETScJacobianMatrixFree(self.da1, self.da2, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht, self.hx, self.hv,
+                                                         self.charge, coll_freq=self.coll_freq)
+        
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
@@ -98,20 +104,44 @@ class petscVP1D(petscVP1Dbase):
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.J.setUp()
 
+        # initialise matrixfree Jacobian
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.F.getSizes()], 
+                                            context=self.petsc_jacobian_mf,
+                                            comm=PETSc.COMM_WORLD)
+        self.Jmf.setUp()
+        
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
-        self.snes.setJacobian(self.updateJacobian, self.J)
+        self.snes.setJacobian(self.updateJacobianMF, self.Jmf)
         self.snes.setFromOptions()
-        self.snes.getKSP().setType('preonly')
-        self.snes.getKSP().getPC().setType('lu')
-#        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
+        self.snes.getKSP().setType('gmres')
+        self.snes.getKSP().getPC().setType('none')
         
         
-        # create linear sovler space keeper
-        # use SNES with type set to KSPONLY = 'ksponly'
-        self.ksp = None
+        # create nonlinear predictor
+        self.snes_nonlinear = PETSc.SNES().create()
+        self.snes_nonlinear.setType('ksponly')
+        self.snes_nonlinear.setFunction(self.petsc_function.snes_mult, self.F)
+        self.snes_nonlinear.setJacobian(self.updateJacobian, self.J)
+        self.snes_nonlinear.setFromOptions()
+        self.snes_nonlinear.getKSP().setType('preonly')
+        self.snes_nonlinear.getKSP().getPC().setType('lu')
+#        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('mumps')
+
+        
+        # create linear predictor
+        self.snes_linear = PETSc.SNES().create()
+        self.snes_linear.setType('ksponly')
+        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.F)
+        self.snes_linear.setJacobian(self.updateMatrix, self.A)
+        self.snes_linear.setFromOptions()
+        self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().getPC().setType('lu')
+#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+
         
         # create Poisson object
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
@@ -140,11 +170,13 @@ class petscVP1D(petscVP1Dbase):
         self.calculate_potential()
         
         # copy external potential
+        self.petsc_jacobian_mf.update_external(self.p_ext)
         self.petsc_jacobian.update_external(self.p_ext)
         self.petsc_function.update_external(self.p_ext)
         self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
+        self.petsc_jacobian_mf.update_history(self.f, self.h1)
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p)
         self.petsc_matrix.update_history(self.f, self.h1)
@@ -162,8 +194,6 @@ class petscVP1D(petscVP1Dbase):
         
         phisum = self.p.sum()
         
-#        self.remove_average_from_potential()
-        
         self.copy_p_to_x()
         self.copy_p_to_h()
         
@@ -172,39 +202,18 @@ class petscVP1D(petscVP1Dbase):
             print("                                   sum(phi) = %24.16E" % (phisum))
     
         
-    def initial_guess(self):
-        self.ksp = PETSc.KSP().create()
-        self.ksp.setFromOptions()
-        self.ksp.setOperators(self.A)
-        self.ksp.setType('preonly')
-        self.ksp.getPC().setType('lu')
-#        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
-        self.ksp.getPC().setFactorSolverPackage('mumps')
+    def updateMatrix(self, snes, X, J, P):
+#        self.petsc_matrix.update_previous(X)
+        self.petsc_matrix.formMat(J)
     
-        # build matrix
-        self.petsc_matrix.formMat(self.A)
-        
-        # build RHS
-        self.petsc_matrix.formRHS(self.b)
-        
-        # solve
-        self.ksp.solve(self.b, self.x)
-        
-        # update data vectors
-        self.copy_x_to_f()
-        self.copy_x_to_p()
-        
-#        self.remove_average_from_potential()
-#    
-#        self.copy_p_to_x()
-        self.copy_p_to_h()
-        
-        del self.ksp
-        
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
         self.petsc_jacobian.formMat(J)
+    
+    
+    def updateJacobianMF(self, snes, X, J, P):
+        self.petsc_jacobian_mf.update_previous_X(X)
     
     
     def run(self):
@@ -219,15 +228,40 @@ class petscVP1D(petscVP1Dbase):
             
             # calculate external field and copy to matrix, jacobian and function
             self.calculate_external(current_time)
+            self.petsc_jacobian_mf.update_external(self.p_ext)
             self.petsc_jacobian.update_external(self.p_ext)
             self.petsc_function.update_external(self.p_ext)
             self.petsc_matrix.update_external(self.p_ext)
             
             
-            # calculate initial guess for distribution function
-            self.initial_guess()
+            # calculate initial guess
+            self.snes_linear.solve(None, self.x)
             
-            # solve
+            # output some solver info
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print()
+                print("  Linear Precon:  %5i iterations,   funcnorm = %24.16E" % (self.snes_linear.getIterationNumber(), self.snes_linear.getFunctionNorm()) )
+                print()
+            
+            # correct initial guess
+            self.snes_nonlinear.solve(None, self.x)
+            
+            # output some solver info
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print()
+                print("  Nonlin Precon:  %5i iterations,   funcnorm = %24.16E" % (self.snes_nonlinear.getIterationNumber(), self.snes_nonlinear.getFunctionNorm()) )
+                print()
+            
+            # correct initial guess
+            self.snes_nonlinear.solve(None, self.x)
+            
+            # output some solver info
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print()
+                print("  Nonlin Precon:  %5i iterations,   funcnorm = %24.16E" % (self.snes_nonlinear.getIterationNumber(), self.snes_nonlinear.getFunctionNorm()) )
+                print()
+            
+            # nonlinear solve
             self.snes.solve(None, self.x)
             
             # output some solver info
@@ -247,13 +281,10 @@ class petscVP1D(petscVP1Dbase):
             # update data vectors
             self.copy_x_to_f()
             self.copy_x_to_p()
-            
-#            self.remove_average_from_potential()
-#        
-#            self.copy_p_to_x()
             self.copy_p_to_h()
             
             # update history
+            self.petsc_jacobian_mf.update_history(self.f, self.h1)
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p)
             self.petsc_matrix.update_history(self.f, self.h1)

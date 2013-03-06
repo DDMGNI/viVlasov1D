@@ -484,21 +484,26 @@ cdef class PETScMatrix(object):
         
         self.da1.globalToLocal(F,        self.localF )
         self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(H,        self.localH )
-        self.da1.globalToLocal(self.Hh,  self.localHh)
-#        self.da1.globalToLocal(self.H2,  self.localH2 )
-#        self.da1.globalToLocal(self.H2h, self.localH2h)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.H1,  self.localH1)
+        self.da1.globalToLocal(self.H2,  self.localH2)
+        self.da1.globalToLocal(self.H1h, self.localH1h)
+        self.da1.globalToLocal(self.H2h, self.localH2h)
         self.dax.globalToLocal(P,        self.localP )
+        
         
         cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
         cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF  )[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h   = self.da1.getVecArray(self.localH  )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] hh  = self.da1.getVecArray(self.localHh )[...]
-#        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
-#        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
         cdef np.ndarray[np.float64_t, ndim=1] p   = self.dax.getVecArray(self.localP  )[...]
         
+        cdef np.ndarray[np.float64_t, ndim=2] h  = h0 + h1  + h2
+        cdef np.ndarray[np.float64_t, ndim=2] hh = h0 + h1h + h2h
         
         # calculate moments
         self.toolbox.collT_moments(self.Fh, self.A1, self.A2, self.A3, self.N, self.U, self.E)
