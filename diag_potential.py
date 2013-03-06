@@ -75,9 +75,9 @@ class potential(object):
         plt.plot(tMax, EMax, 'ro')
         plt.plot(self.grid.tGrid, np.exp(fit_fn(self.grid.tGrid)), '--k')
         
+#        plt.title("Damping of the Electrostatic Field", fontsize=24)
         plt.xlabel("$t$", labelpad=15, fontsize=22)
         plt.ylabel("$\parallel E (x,t) \parallel_{2}$", fontsize=22)
-        plt.title("Electrostatic Field Energy", fontsize=24)
         plt.tight_layout()
        
         plt.draw()
