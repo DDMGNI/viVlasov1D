@@ -116,7 +116,7 @@ class petscVP1D(petscVP1Dbase):
         self.snes_linear.setJacobian(self.updateMatrix, self.A)
         self.snes_linear.setFromOptions()
         self.snes_linear.getKSP().setType('preonly')
-        self.snes._lineargetKSP().getPC().setType('lu')
+        self.snes_linear.getKSP().getPC().setType('lu')
 #        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
 
