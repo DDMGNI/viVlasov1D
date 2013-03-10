@@ -86,6 +86,20 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScSimpleNLFunctionCollD",
+                  sources=["PETScSimpleNLFunctionCollD.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScSimpleNLJacobianCollD",
+                  sources=["PETScSimpleNLJacobianCollD.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScSimpleMatrixCollT",
                   sources=["PETScSimpleMatrixCollT.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
