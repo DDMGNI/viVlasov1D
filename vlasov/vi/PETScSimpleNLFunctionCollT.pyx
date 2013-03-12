@@ -191,8 +191,8 @@ cdef class PETScFunction(object):
         
         
         # calculate moments
-        self.toolbox.collN_moments(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
-        self.toolbox.collN_moments(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
+        self.toolbox.collT_moments(F,       self.A1p, self.A2p, self.A3p, self.Np, self.Up, self.Ep)
+        self.toolbox.collT_moments(self.Fh, self.A1h, self.A2h, self.A3h, self.Nh, self.Uh, self.Eh)
         
         self.dax.globalToLocal(self.A1p, self.localA1p)
         self.dax.globalToLocal(self.A2p, self.localA2p)

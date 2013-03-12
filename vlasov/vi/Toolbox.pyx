@@ -165,9 +165,9 @@ cdef class Toolbox(object):
 #                 ) * 0.5 / self.hv
         
         result = 0.25 * ( \
-                          + 1. * A1[i-1] * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
-                          + 2. * A1[i  ] * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
-                          + 1. * A1[i+1] * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) * A3[i+1] \
+                          + 1. * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
+                          + 2. * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
+                          + 1. * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) * A3[i+1] \
                         ) * 0.5 / self.hv
         
         return result
@@ -227,15 +227,20 @@ cdef class Toolbox(object):
             u[iy] = 0.
             e[iy] = 0.
             
-            for j in np.arange(0, (self.nv-1)/2):
-                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
-                u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
-                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
-
-            n[iy] += f[ix, (self.nv-1)/2]
-            u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
-            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
+#            for j in np.arange(0, (self.nv-1)/2):
+#                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
+#                u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
+#                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
+#
+#            n[iy] += f[ix, (self.nv-1)/2]
+#            u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
+#            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
                 
+            for j in np.arange(0, self.nv):
+                n[iy] += f[ix, j]
+                u[iy] += self.v[j]    * f[ix, j]
+                e[iy] += self.v[j]**2 * f[ix, j]
+
             n[iy] *= self.hv
             u[iy] *= self.hv
             e[iy] *= self.hv
@@ -243,7 +248,7 @@ cdef class Toolbox(object):
             
             a1[iy] = n[iy]
             a2[iy] = u[iy]
-            a3[iy] = 1. / (n[iy] * e[iy] - u[iy]**2)
+            a3[iy] = n[iy] / (n[iy] * e[iy] - u[iy]**2)
 
 
 
