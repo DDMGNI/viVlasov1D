@@ -58,7 +58,9 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-        OptDB.setValue('snes_type', 'ls')
+        OptDB.setValue('snes_lag_preconditioner', 5)
+        
+#        OptDB.setValue('snes_type', 'ls')
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -85,7 +87,7 @@ class petscVP1D(petscVP1Dbase):
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge, coll_freq=self.coll_freq)
+                                        self.charge)#, coll_freq=self.coll_freq)
         
         
         # initialise matrix
@@ -98,6 +100,19 @@ class petscVP1D(petscVP1Dbase):
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.J.setUp()
 
+
+        # create linear solver
+        self.snes_linear = PETSc.SNES().create()
+        self.snes_linear.setType('ksponly')
+        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
+        self.snes_linear.setJacobian(self.updateMatrix, self.A)
+        self.snes_linear.setFromOptions()
+        self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().getPC().setType('lu')
+#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+
+        
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
@@ -108,18 +123,6 @@ class petscVP1D(petscVP1Dbase):
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
         
-        
-        # create linear solver
-        self.snes_linear = PETSc.SNES().create()
-        self.snes_linear.setType('ksponly')
-        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.F)
-        self.snes_linear.setJacobian(self.updateMatrix, self.A)
-        self.snes_linear.setFromOptions()
-        self.snes_linear.getKSP().setType('preonly')
-        self.snes_linear.getKSP().getPC().setType('lu')
-#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
-
         
         # create Poisson object
         self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
@@ -179,7 +182,6 @@ class petscVP1D(petscVP1Dbase):
     
         
     def updateMatrix(self, snes, X, J, P):
-#        self.petsc_matrix.update_previous(X)
         self.petsc_matrix.formMat(J)
     
     

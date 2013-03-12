@@ -58,6 +58,8 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
+        OptDB.setValue('snes_lag_preconditioner', 5)
+        
         OptDB.setValue('snes_type', 'ls')
         
         OptDB.setValue('ksp_monitor',  '')
