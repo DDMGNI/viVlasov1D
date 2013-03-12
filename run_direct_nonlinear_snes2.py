@@ -59,12 +59,11 @@ class petscVP1D(petscVP1Dbase):
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
 
-        OptDB.setValue('ksp_rtol',    self.cfg['solver']['petsc_snes_rtol'])
-        OptDB.setValue('ksp_atol',    self.cfg['solver']['petsc_snes_atol']/100.)
-        OptDB.setValue('ksp_stol',    self.cfg['solver']['petsc_snes_stol'])
-        OptDB.setValue('ksp_max_it',  self.cfg['solver']['petsc_snes_max_iter'])
+        OptDB.setValue('ksp_rtol',    self.cfg['solver']['petsc_ksp_rtol'])
+        OptDB.setValue('ksp_atol',    self.cfg['solver']['petsc_ksp_atol'])
+        OptDB.setValue('ksp_max_it',  self.cfg['solver']['petsc_ksp_max_iter'])
         
-#        OptDB.setValue('snes_type', 'ls')
+        OptDB.setValue('snes_lag_preconditioner', 5)
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -129,6 +128,22 @@ class petscVP1D(petscVP1Dbase):
 
         
         # create nonlinear solver
+        self.snes_nonlinear = PETSc.SNES().create()
+        self.snes_nonlinear.setFunction(self.petsc_function.snes_mult, self.F)
+        self.snes_nonlinear.setJacobian(self.updateJacobian, self.Jmf, self.J)
+        self.snes_nonlinear.setFromOptions()
+        self.snes_nonlinear.getKSP().setType('gmres')
+        self.snes_nonlinear.getKSP().getPC().setType('lu')
+#        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('mumps')
+        
+        
+        OptDB.setValue('snes_rtol',   self.cfg['solver']['petsc_snes_rtol'] / 10.)
+        OptDB.setValue('snes_atol',   self.cfg['solver']['petsc_snes_atol'] / 10.)
+        OptDB.setValue('ksp_rtol',    self.cfg['solver']['petsc_ksp_rtol']  / 10.)
+        OptDB.setValue('ksp_atol',    self.cfg['solver']['petsc_ksp_atol']  / 10.)
+        
+        # create backup solver
         self.snes_backup = PETSc.SNES().create()
         self.snes_backup.setFunction(self.petsc_function.snes_mult, self.F)
         self.snes_backup.setJacobian(self.updateJacobianMF, self.Jmf)
@@ -156,22 +171,6 @@ class petscVP1D(petscVP1Dbase):
 #        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
-#        self.poisson_nsp = PETSc.NullSpace().create(constant=True)
-#        self.poisson_ksp.setNullSpace(self.poisson_nsp)        
-        
-        
-#        OptDB.setValue('ksp_max_it',  3)
-#        OptDB.setValue('ksp_convergence_test',  'skip')
-        
-        # create nonlinear solver
-        self.snes_nonlinear = PETSc.SNES().create()
-        self.snes_nonlinear.setFunction(self.petsc_function.snes_mult, self.F)
-        self.snes_nonlinear.setJacobian(self.updateJacobian, self.Jmf, self.J)
-        self.snes_nonlinear.setFromOptions()
-        self.snes_nonlinear.getKSP().setType('gmres')
-        self.snes_nonlinear.getKSP().getPC().setType('lu')
-#        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes_nonlinear.getKSP().getPC().setFactorSolverPackage('mumps')
         
         # calculate initial potential
         self.calculate_potential()
@@ -242,7 +241,7 @@ class petscVP1D(petscVP1Dbase):
             
             
             # calculate initial guess
-            self.snes_linear.solve(None, self.x)
+#            self.snes_linear.solve(None, self.x)
             
             # output some solver info
             if PETSc.COMM_WORLD.getRank() == 0:
