@@ -287,7 +287,7 @@ class PlotEnergy(object):
                 self.axes[ckey].collections.remove(coll)
         
         self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
-        self.axes ["f"].set_title('t = %.0f' % (self.grid.tGrid[self.iTime]))
+        self.axes ["f"].set_title('t = %.0f' % (self.grid.tGrid[self.iTime-1]))
         
         if self.vMax > 0.0:
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
