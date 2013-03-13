@@ -383,10 +383,25 @@ class Hamiltonian(object):
         Calculates total momentum w.r.t. the given distribution function.
         '''
         
+        self.P = 0.0
+        
         if self.f != None:
-            self.P = self.mass * (self.f.sum(axis=0) * self.grid.vGrid).sum() * self.grid.hx * self.grid.hv
-        else:
-            self.P = 0.0
+            for ix in np.arange(0, nx):
+                ixp = (ix+1) % nx
+                
+                for iv in np.arange(0, nv-1):
+                    
+                    self.P += ( 
+                            + f[ix,  iv  ]
+                            + f[ixp, iv  ]
+                            + f[ixp, iv+1]
+                            + f[ix,  iv+1]
+                          ) * ( 
+                            + self.grid.vGrid[iv  ]
+                            + self.grid.vGrid[iv+1]
+                            )
+            
+            self.P *= self.mass * 0.25 * 0.5 * self.grid.hx * self.grid.hv
         
     
     def calculate_momentum_error(self):
