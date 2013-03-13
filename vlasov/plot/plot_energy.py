@@ -48,6 +48,7 @@ class PlotEnergy(object):
         self.partnum   = np.zeros_like(grid.tGrid)
         self.energy    = np.zeros_like(grid.tGrid)
         self.momentum  = np.zeros_like(grid.tGrid)
+        self.entropy   = np.zeros_like(grid.tGrid)
         self.L1        = np.zeros_like(grid.tGrid)
         self.L2        = np.zeros_like(grid.tGrid)
         
@@ -125,6 +126,12 @@ class PlotEnergy(object):
         self.axes["L2"] = plt.subplot(1,1,1)
 
 
+        self.figure8 = plt.figure(num=8, figsize=(16,4))
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.22, top=0.88, wspace=0.10, hspace=0.2)
+
+        self.axes["S0"] = plt.subplot(1,1,1)
+
+
         xStart = self.grid.tGrid[self.iStart]
         xEnd   = self.grid.tGrid[self.nTime]
 
@@ -136,6 +143,7 @@ class PlotEnergy(object):
         self.lines["N0"], = self.axes["N0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.partnum  [self.iStart:self.nTime+1])
         self.lines["L1"], = self.axes["L1"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.L1       [self.iStart:self.nTime+1])
         self.lines["L2"], = self.axes["L2"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.L2       [self.iStart:self.nTime+1])
+        self.lines["S0"], = self.axes["S0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.entropy  [self.iStart:self.nTime+1])
         
         self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
@@ -145,6 +153,7 @@ class PlotEnergy(object):
         self.axes ["N0"].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["L1"].set_title('$L_{1}$ Integral Norm Error $\Delta L_{1} (t)$', fontsize=24)
         self.axes ["L2"].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
+        self.axes ["S0"].set_title('Entropy Error $\Delta S (t)$', fontsize=24)
 
         self.axes ["N" ].title.set_y(1.02)
         self.axes ["E" ].title.set_y(1.02)
@@ -154,6 +163,7 @@ class PlotEnergy(object):
         self.axes ["N0"].title.set_y(1.02)
         self.axes ["L1"].title.set_y(1.00)
         self.axes ["L2"].title.set_y(1.00)
+        self.axes ["S0"].title.set_y(1.02)
         
         self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$', fontsize=22)
@@ -163,6 +173,7 @@ class PlotEnergy(object):
         self.axes ["N0"].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["L1"].set_ylabel('$(L_1 - L_{1,0}) / L_{1,0}$', fontsize=22)
         self.axes ["L2"].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=22)
+        self.axes ["S0"].set_ylabel('$(S - S_0) / S_0$', fontsize=22)
         
         self.axes ["N" ].yaxis.set_label_coords(-0.07, 0.5)
         self.axes ["E" ].yaxis.set_label_coords(-0.07, 0.5)
@@ -172,6 +183,7 @@ class PlotEnergy(object):
         self.axes ["N0"].yaxis.set_label_coords(-0.07, 0.5)
         self.axes ["L1"].yaxis.set_label_coords(-0.07, 0.5)
         self.axes ["L2"].yaxis.set_label_coords(-0.07, 0.5)
+        self.axes ["S0"].yaxis.set_label_coords(-0.07, 0.5)
 
         self.axes ["N" ].set_xlim((xStart,xEnd))
         self.axes ["E" ].set_xlim((xStart,xEnd))
@@ -181,6 +193,7 @@ class PlotEnergy(object):
         self.axes ["N0"].set_xlim((xStart,xEnd))
         self.axes ["L1"].set_xlim((xStart,xEnd))
         self.axes ["L2"].set_xlim((xStart,xEnd))
+        self.axes ["S0"].set_xlim((xStart,xEnd))
         
         self.axes ["N" ].yaxis.set_major_formatter(majorFormatter)
         self.axes ["E" ].yaxis.set_major_formatter(majorFormatter)
@@ -190,6 +203,7 @@ class PlotEnergy(object):
         self.axes ["N0"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L1"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L2"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["S0"].yaxis.set_major_formatter(majorFormatter)
         
         self.axes ["N" ].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["E" ].yaxis.set_major_locator(MaxNLocator(4))
@@ -199,6 +213,7 @@ class PlotEnergy(object):
         self.axes ["N0"].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["L1"].yaxis.set_major_locator(MaxNLocator(4))
         self.axes ["L2"].yaxis.set_major_locator(MaxNLocator(4))
+        self.axes ["S0"].yaxis.set_major_locator(MaxNLocator(4))
         
         self.axes ["f" ].set_xlabel('$x$', labelpad=15)
         self.axes ["f" ].set_ylabel('$v$', labelpad=15)
@@ -208,6 +223,7 @@ class PlotEnergy(object):
         self.axes ["N0"].set_xlabel('$t$', labelpad=15)
         self.axes ["L1"].set_xlabel('$t$', labelpad=15)
         self.axes ["L2"].set_xlabel('$t$', labelpad=15)
+        self.axes ["S0"].set_xlabel('$t$', labelpad=15)
         
         for ax in self.axes:
             for tick in self.axes[ax].xaxis.get_major_ticks():
@@ -259,6 +275,11 @@ class PlotEnergy(object):
 
         plt.figure(7)
         filename = str('L2_%06d' % (self.iTime-1))
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.pdf')
+
+        plt.figure(8)
+        filename = str('S_%06d' % (self.iTime-1))
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.pdf')
 
@@ -344,23 +365,16 @@ class PlotEnergy(object):
         self.axes ["L2"].autoscale_view()
         self.axes ["L2"].set_xlim((xStart,xEnd)) 
         
-        plt.figure(1)
-        plt.draw()
+        self.lines["S0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["S0"].set_ydata(self.entropy[self.iStart:self.nTime+1])
+        self.axes ["S0"].relim()
+        self.axes ["S0"].autoscale_view()
+        self.axes ["S0"].set_xlim((xStart,xEnd)) 
         
-        plt.figure(2)
-        plt.draw()
         
-        plt.figure(3)
-        plt.draw()
-        
-        plt.figure(4)
-        plt.draw()
-        
-        plt.figure(5)
-        plt.draw()
-        
-        plt.figure(6)
-        plt.draw()
+        for i in range(0,8):
+            plt.figure(i+1)
+            plt.draw()
         
     
     def add_timepoint(self):
@@ -372,6 +386,7 @@ class PlotEnergy(object):
         self.energy   [self.iTime] = E_error
         self.momentum [self.iTime] = self.hamiltonian.P
         self.partnum  [self.iTime] = self.distribution.N_error
+        self.entropy  [self.iTime] = self.distribution.S_error
         self.L1       [self.iTime] = self.distribution.L1_error
         self.L2       [self.iTime] = self.distribution.L2_error
         
