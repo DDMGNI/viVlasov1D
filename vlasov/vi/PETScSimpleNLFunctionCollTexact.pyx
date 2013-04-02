@@ -231,7 +231,6 @@ cdef class PETScFunction(object):
             iy = i-xs
             
             # Poisson equation
-            
             if i == 0:
                 y[iy, self.nv] = Pp[ix]
             
@@ -242,7 +241,15 @@ cdef class PETScFunction(object):
                 
                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
-            # Vlasov Equation
+            
+            # moments
+            y[iy, self.nv+1] = self.hv * fp[ix].sum()
+            y[iy, self.nv+2] = self.hv * (fp[ix, :] * self.v).sum()
+            y[iy, self.nv+3] = self.hv * (fp[ix, :] * self.v * self.v).sum()
+            y[iy, self.nv+4] = Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
+            
+            
+            # Vlasov equation
             for j in np.arange(0, self.nv):
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
