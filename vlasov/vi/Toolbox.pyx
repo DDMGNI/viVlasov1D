@@ -148,26 +148,22 @@ cdef class Toolbox(object):
 
     @cython.boundscheck(False)
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.ndarray[np.float64_t, ndim=1] A1,
-                                   np.ndarray[np.float64_t, ndim=1] A2,
-                                   np.ndarray[np.float64_t, ndim=1] A3,
+                                   np.ndarray[np.float64_t, ndim=1] N,
+                                   np.ndarray[np.float64_t, ndim=1] U,
+                                   np.ndarray[np.float64_t, ndim=1] E,
+                                   np.ndarray[np.float64_t, ndim=1] A,
                                    np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
         cdef np.float64_t result
         
-#        result = ( \
-#                   + A1[i  ] * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
-#                 ) * 0.5 / self.hv
-        
         result = 0.25 * ( \
-                          + 1. * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) * A3[i-1] \
-                          + 2. * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) * A3[i  ] \
-                          + 1. * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) * A3[i+1] \
+                          + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
+                          + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
+                          + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
                         ) * 0.5 / self.hv
         
         return result
@@ -183,8 +179,6 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-#        result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
-        
         result = 0.25 * ( \
                      + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
                      + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
@@ -192,247 +186,6 @@ cdef class Toolbox(object):
                  ) * self.hv2_inv
         
         return result
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collT_moments(self, Vec F, Vec A1, Vec A2, Vec A3, Vec N, Vec U, Vec E):
-        '''
-        Calculate Moments of distribution function
-        '''
-        
-        cdef np.int64_t i, j, ix, iy, xs, xe
-        
-        (xs, xe), = self.da2.getRanges()
-        
-        
-        self.da1.globalToLocal(F, self.localF)
-        
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getVecArray(self.localF)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a1 = self.dax.getVecArray(A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a2 = self.dax.getVecArray(A2)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a3 = self.dax.getVecArray(A3)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] n  = self.dax.getVecArray(N )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] u  = self.dax.getVecArray(U )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] e  = self.dax.getVecArray(E )[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] t  = np.zeros_like(e)
-        
-        
-        for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
-            
-            n[iy] = 0.
-            u[iy] = 0.
-            e[iy] = 0.
-            
-            for j in np.arange(0, (self.nv-1)/2):
-                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
-                u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
-                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
-
-            n[iy] += f[ix, (self.nv-1)/2]
-            u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
-            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
-                
-            n[iy] *= self.hv
-            u[iy] *= self.hv
-            e[iy] *= self.hv
-
-            
-            a1[iy] = n[iy]
-            a2[iy] = u[iy]
-            a3[iy] = n[iy] / (n[iy] * e[iy] - u[iy]**2)
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.ndarray[np.float64_t, ndim=1] A1,
-                                   np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          - 1. * ( (A1[i-1] - v[j+1]) * f[i-1, j+1] - (A1[i-1] - v[j-1]) * f[i-1, j-1] ) \
-                          - 2. * ( (A1[i  ] - v[j+1]) * f[i,   j+1] - (A1[i  ] - v[j-1]) * f[i,   j-1] ) \
-                          - 1. * ( (A1[i+1] - v[j+1]) * f[i+1, j+1] - (A1[i+1] - v[j-1]) * f[i+1, j-1] ) \
-                        ) * 0.5 / self.hv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t collE2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                  np.ndarray[np.float64_t, ndim=1] A2,
-                                  np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) * A2[i-1] \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * A2[i  ] \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) * A2[i+1] \
-                 ) * 0.25 * self.hv2_inv
-        
-        return result
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collE_moments(self, Vec F, Vec A1, Vec A2):
-        '''
-        Calculate Moments of distribution function
-        '''
-        
-        cdef np.int64_t i, j, ix, iy, xs, xe
-        
-        (xs, xe), = self.da2.getRanges()
-        
-        
-        self.da1.globalToLocal(F, self.localF)
-        
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getVecArray(self.localF)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a1 = self.dax.getVecArray(A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a2 = self.dax.getVecArray(A2)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] mom_n = np.zeros_like(a1)         # density
-        cdef np.ndarray[np.float64_t, ndim=1] mom_u = np.zeros_like(a1)         # mean velocity
-        cdef np.ndarray[np.float64_t, ndim=1] mom_e = np.zeros_like(a1)         # energy
-        
-        
-        for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
-            
-            mom_n[iy] = 0.
-            mom_u[iy] = 0.
-            mom_e[iy] = 0.
-            
-            for j in np.arange(0, (self.nv-1)/2):
-                mom_n[iy] += f[ix, j] + f[ix, self.nv-1-j]
-                mom_u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
-
-            mom_n[iy] += f[ix, (self.nv-1)/2]
-            mom_u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
-                
-            mom_n[iy] *= self.hv
-            mom_u[iy] *= self.hv / mom_n[iy]
-
-            for j in np.arange(0, (self.nv-1)/2):
-                mom_e[iy] += (self.v[j] - mom_u[iy])**2 * f[ix, j] + (self.v[self.nv-1-j] - mom_u[iy])**2 * f[ix, self.nv-1-j]
-
-            mom_e[iy] += (self.v[(self.nv-1)/2] - mom_u[iy])**2 * f[ix, (self.nv-1)/2]
-            mom_e[iy] *= self.hv / mom_n[iy]
-            
-            a1[iy] = mom_u[iy]
-            a2[iy] = mom_e[iy]
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collN1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.ndarray[np.float64_t, ndim=1] A1,
-                                   np.ndarray[np.float64_t, ndim=1] A2,
-                                   np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          + 1. * ( (A1[i-1] * v[j+1] - A2[i-1]) * f[i-1, j+1] - (A1[i-1] * v[j-1] - A2[i-1]) * f[i-1, j-1] ) \
-                          + 2. * ( (A1[i  ] * v[j+1] - A2[i  ]) * f[i,   j+1] - (A1[i  ] * v[j-1] - A2[i  ]) * f[i,   j-1] ) \
-                          + 1. * ( (A1[i+1] * v[j+1] - A2[i+1]) * f[i+1, j+1] - (A1[i+1] * v[j-1] - A2[i+1]) * f[i+1, j-1] ) \
-                        ) * 0.5 / self.hv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t collN2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.ndarray[np.float64_t, ndim=1] A3,
-                                   np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.float64_t result
-        
-        result =  0.25 * ( \
-                     + 1. * ( f[i-1, j+1] + f[i-1, j-1] - 2. * f[i-1, j  ] ) * A3[i-1] \
-                     + 2. * ( f[i,   j+1] + f[i,   j-1] - 2. * f[i,   j  ] ) * A3[i  ] \
-                     + 1. * ( f[i+1, j+1] + f[i+1, j-1] - 2. * f[i+1, j  ] ) * A3[i+1] \
-                 ) *self.hv2_inv
-        
-        return result
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collN_moments(self, Vec F, Vec A1, Vec A2, Vec A3, Vec N, Vec U, Vec E):
-        '''
-        Calculate Moments of distribution function
-        '''
-        
-        cdef np.int64_t i, j, ix, iy, xs, xe
-        
-        (xs, xe), = self.da2.getRanges()
-        
-        
-        self.da1.globalToLocal(F, self.localF)
-        
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getVecArray(self.localF)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a1 = self.dax.getVecArray(A1)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a2 = self.dax.getVecArray(A2)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] a3 = self.dax.getVecArray(A3)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] n  = self.dax.getVecArray(N )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] u  = self.dax.getVecArray(U )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] e  = self.dax.getVecArray(E )[...]
-        
-        
-        for i in np.arange(xs, xe):
-            ix = i-xs+1
-            iy = i-xs
-            
-            n[iy] = 0.
-            u[iy] = 0.
-            e[iy] = 0.
-            
-            for j in np.arange(0, (self.nv-1)/2):
-                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
-                u[iy] += self.v[j]    * f[ix, j] + self.v[self.nv-1-j]    * f[ix, self.nv-1-j]
-                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
-
-            n[iy] += f[ix, (self.nv-1)/2]
-            u[iy] += self.v[(self.nv-1)/2]    * f[ix, (self.nv-1)/2]
-            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
-                
-            n[iy] *= self.hv
-            u[iy] *= self.hv
-            e[iy] *= self.hv
-            
-#            a1[iy] = n[iy]**2
-#            a2[iy] = n[iy] * u[iy]
-#            a3[iy] = n[iy] * e[iy] - u[iy]**2 
-
-            a1[iy] = n[iy]
-            a2[iy] = u[iy]
-            a3[iy] = e[iy] - u[iy]**2 / n[iy] 
 
 
 
