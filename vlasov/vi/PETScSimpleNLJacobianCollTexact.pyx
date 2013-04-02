@@ -232,6 +232,8 @@ cdef class PETScJacobian(object):
         
         # moments
         for i in np.arange(xs, xe):
+            ix = i-xs+1
+            
             row.index = (i,)
             col.index = (i,)
             
@@ -268,18 +270,18 @@ cdef class PETScJacobian(object):
             # temperature
             row.field = self.nv+4
             
-            afac = ( Np[i] * Ep[i] - Up[i] * Up[i] )
+            afac = ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
             
             A.setValueStencil(row, row, 1.)
             
             col.field = self.nv+1
-            A.setValueStencil(row, col, - 1. / afac - Np[i] * Ep[i] / afac**2)
+            A.setValueStencil(row, col, - 1. / afac - Np[ix] * Ep[ix] / afac**2)
             
             col.field = self.nv+2
-            A.setValueStencil(row, col, + 2. * Np[i] * Up[i] / afac**2)
+            A.setValueStencil(row, col, + 2. * Np[ix] * Up[ix] / afac**2)
             
             col.field = self.nv+3
-            A.setValueStencil(row, col, - 1. * Np[i] * Np[i] * Ep[i] / afac**2)
+            A.setValueStencil(row, col, - 1. * Np[ix] * Np[ix] * Ep[ix] / afac**2)
         
         
         
