@@ -20,7 +20,7 @@ from vlasov.data.maxwell import maxwellian
 
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-from vlasov.vi.PETScSimpleMatrixCollT     import PETScMatrix
+# from vlasov.vi.PETScSimpleMatrixCollT     import PETScMatrix
 from vlasov.vi.PETScSimpleNLFunctionCollTexact import PETScFunction
 from vlasov.vi.PETScSimpleNLJacobianCollTexact import PETScJacobian
 
@@ -84,7 +84,7 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-        OptDB.setValue('snes_lag_preconditioner', 5)
+#        OptDB.setValue('snes_lag_preconditioner', 5)
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -246,6 +246,7 @@ class petscVP1D():
         self.snes.setFunction(self.petsc_function.snes_mult, self.F)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
+#        self.snes.getKSP().setType('gmres')
         self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
@@ -364,11 +365,11 @@ class petscVP1D():
                 f_arr[i,j] /= nave
         
         
+        self.calculate_potential()            # calculate initial potential
         self.calculate_density()              # calculate density
         self.calculate_velocity()             # calculate mean velocity density
         self.calculate_energy()               # calculate mean energy density
         self.calculate_collision_factor()     # 
-        self.calculate_potential()            # calculate initial potential
 
         self.copy_f_to_x()                    # copy distribution function to solution vector
         self.copy_p_to_x()                    # copy potential to solution vector
@@ -482,13 +483,14 @@ class petscVP1D():
         (xs, xe), = self.da1.getRanges()
         
         # copy solution to f and p vectors
-        n_arr  = self.dax.getVecArray(self.n)
-        u_arr  = self.dax.getVecArray(self.u)
-        e_arr  = self.dax.getVecArray(self.e)
-        a_arr  = self.dax.getVecArray(self.a)
+        n_arr  = self.dax.getVecArray(self.n)[...]
+        u_arr  = self.dax.getVecArray(self.u)[...]
+        e_arr  = self.dax.getVecArray(self.e)[...]
+        a_arr  = self.dax.getVecArray(self.a)[...]
         
         for i in range(xs, xe):
-            a_arr[i] = n_arr[i] / ( n_arr[i] * e_arr[i] - u_arr[i] * u_arr[i] )
+            ix = i-xs
+            a_arr[ix] = n_arr[ix] / ( n_arr[ix] * e_arr[ix] - u_arr[ix] * u_arr[ix] )
         
     
     def calculate_external(self, t):
@@ -674,7 +676,6 @@ class petscVP1D():
                     print()
                     print("Solver not converging... quitting!   %i" % (self.snes.getConvergedReason()))
                     print()
-                exit()
            
            
             # update data vectors
@@ -683,6 +684,7 @@ class petscVP1D():
             self.copy_x_to_n()
             self.copy_x_to_u()
             self.copy_x_to_e()
+            self.copy_x_to_a()
             self.copy_p_to_h()
             
             # update history
@@ -836,6 +838,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-    petscvp.run()
-#    petscvp.check_jacobian()
+#     petscvp.run()
+    petscvp.check_jacobian()
     
