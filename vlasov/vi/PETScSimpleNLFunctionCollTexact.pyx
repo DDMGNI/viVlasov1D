@@ -243,10 +243,10 @@ cdef class PETScFunction(object):
             
             
             # moments
-            y[iy, self.nv+1] = self.hv * fp[ix].sum()
-            y[iy, self.nv+2] = self.hv * (fp[ix, :] * self.v).sum()
-            y[iy, self.nv+3] = self.hv * (fp[ix, :] * self.v * self.v).sum()
-            y[iy, self.nv+4] = Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
+            y[iy, self.nv+1] = Np[ix] - self.hv * fp[ix].sum()
+            y[iy, self.nv+2] = Up[ix] - self.hv * (fp[ix, :] * self.v).sum()
+            y[iy, self.nv+3] = Ep[ix] - self.hv * (fp[ix, :] * self.v * self.v).sum()
+            y[iy, self.nv+4] = Ap[ix] - Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
             
             
             # Vlasov equation
