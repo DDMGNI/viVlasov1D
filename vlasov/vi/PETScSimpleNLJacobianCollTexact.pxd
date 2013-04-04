@@ -39,12 +39,12 @@ cdef class PETScJacobian(object):
     cdef Vec H0
     cdef Vec H1p
     cdef Vec H1h
-    cdef Vec H2
+    cdef Vec H2p
     cdef Vec H2h
     cdef Vec Fp
     cdef Vec Fh
-    cdef Vec Pp
     
+    cdef Vec Pp
     cdef Vec Np
     cdef Vec Up
     cdef Vec Ep
@@ -53,7 +53,7 @@ cdef class PETScJacobian(object):
     cdef Vec localH0
     cdef Vec localH1p
     cdef Vec localH1h
-    cdef Vec localH2
+    cdef Vec localH2p
     cdef Vec localH2h
     cdef Vec localFp
     cdef Vec localFh

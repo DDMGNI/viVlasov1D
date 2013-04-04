@@ -769,7 +769,7 @@ class petscVP1D():
         sx =  0
 #        sx = +1
         
-        nfield=self.nv+1
+        nfield=self.nv+5
         
         for ifield in range(0, nfield):
             for ix in range(xs, xe):
@@ -852,7 +852,7 @@ class petscVP1D():
             print()
         
             for tfield in range(0,nfield):
-                print("max(difference)[fields=%i,%i] = %16.8E" % ( ifield, tfield, diff[tfield] ))
+                print("max(difference)[field=%2i, equation=%2i] = %16.8E" % ( ifield, tfield, diff[tfield] ))
             
             print()
     
@@ -866,6 +866,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-    petscvp.run()
-#     petscvp.check_jacobian()
+#     petscvp.run()
+    petscvp.check_jacobian()
     

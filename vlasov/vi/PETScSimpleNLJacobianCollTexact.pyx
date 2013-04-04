@@ -63,13 +63,13 @@ cdef class PETScJacobian(object):
         self.H0  = self.da1.createGlobalVec()
         self.H1p = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
-        self.H2  = self.da1.createGlobalVec()
+        self.H2p = self.da1.createGlobalVec()
         self.H2h = self.da1.createGlobalVec()
         self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
-        self.Pp = self.dax.createGlobalVec()
         
         # create moment vectors
+        self.Pp = self.dax.createGlobalVec()
         self.Np = self.dax.createGlobalVec()
         self.Up = self.dax.createGlobalVec()
         self.Ep = self.dax.createGlobalVec()
@@ -79,7 +79,7 @@ cdef class PETScJacobian(object):
         self.localH0  = da1.createLocalVec()
         self.localH1p = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
-        self.localH2  = da1.createLocalVec()
+        self.localH2p = da1.createLocalVec()
         self.localH2h = da1.createLocalVec()
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
@@ -93,7 +93,7 @@ cdef class PETScJacobian(object):
         H0.copy(self.H0)
         
         # external Hamiltonian
-        self.H2.set(0.)
+        self.H2p.set(0.)
         
         # create toolbox object
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
@@ -106,6 +106,8 @@ cdef class PETScJacobian(object):
         
     
     def update_previous(self, Vec X):
+        cdef np.float64_t phisum, phiave
+        
         (xs, xe), = self.da2.getRanges()
         
         x  = self.da2.getVecArray(X)
@@ -133,8 +135,8 @@ cdef class PETScJacobian(object):
         
     
     def update_external(self, Vec Pext):
-        self.H2.copy(self.H2h)
-        self.toolbox.potential_to_hamiltonian(Pext, self.H2)
+        self.H2p.copy(self.H2h)
+        self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
         
     
     @cython.boundscheck(False)
@@ -148,26 +150,26 @@ cdef class PETScJacobian(object):
         
         (xs, xe), = self.da2.getRanges()
         
-        self.da1.globalToLocal(self.Fp,  self.localFp)
-        self.da1.globalToLocal(self.Fh,  self.localFh)
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1p, self.localH1p)
         self.da1.globalToLocal(self.H1h, self.localH1h)
-        self.da1.globalToLocal(self.H2,  self.localH2 )
+        self.da1.globalToLocal(self.H2p, self.localH2p)
         self.da1.globalToLocal(self.H2h, self.localH2h)
+        self.da1.globalToLocal(self.Fp,  self.localFp)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
         
         self.dax.globalToLocal(self.Np,  self.localNp)
         self.dax.globalToLocal(self.Up,  self.localUp)
         self.dax.globalToLocal(self.Ep,  self.localEp)
         self.dax.globalToLocal(self.Ap,  self.localAp)
         
-        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getVecArray(self.localH2p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         
         cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp)[...]
@@ -175,14 +177,14 @@ cdef class PETScJacobian(object):
         cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2 + h2h)
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2p + h2h)
         
         
 #        cdef np.float64_t time_fac = 0.
 #        cdef np.float64_t arak_fac = 0.
 #        cdef np.float64_t poss_fac = 0.
 #        cdef np.float64_t coll1_fac = 0.
-#        cdef np.float64_t coll2_fac = 0.
+#         cdef np.float64_t coll2_fac = 0.
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
@@ -278,18 +280,18 @@ cdef class PETScJacobian(object):
             row.field = self.nv+4
             col.field = self.nv+4
             
-            afac = ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
+            afac = 1. / ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
              
-            A.setValueStencil(row, col, afac)
+            A.setValueStencil(row, col, 1.)
              
             col.field = self.nv+1
-            A.setValueStencil(row, col, - 1. - Np[ix] * Ep[ix] / afac)
+            A.setValueStencil(row, col, - afac + Np[ix] * Ep[ix] * afac**2)
              
             col.field = self.nv+2
-            A.setValueStencil(row, col, + 2. * Np[ix] * Up[ix] / afac)
+            A.setValueStencil(row, col,   - 2. * Np[ix] * Up[ix] * afac**2)
              
             col.field = self.nv+3
-            A.setValueStencil(row, col, - 1. * Np[ix] * Np[ix] / afac)
+            A.setValueStencil(row, col,   + 1. * Np[ix] * Np[ix] * afac**2)
         
         
         

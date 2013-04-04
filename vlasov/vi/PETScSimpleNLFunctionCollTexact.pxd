@@ -38,10 +38,12 @@ cdef class PETScFunction(object):
     cdef DA da2
     
     cdef Vec H0
-    cdef Vec H2
+    cdef Vec H1p
+    cdef Vec H1h
+    cdef Vec H2p
     cdef Vec H2h
+    cdef Vec Fp
     cdef Vec Fh
-    cdef Vec Hh
     
     cdef Vec Pp
     cdef Vec Np
@@ -56,12 +58,12 @@ cdef class PETScFunction(object):
     cdef Vec Ah
     
     cdef Vec localH0
-    cdef Vec localF
-    cdef Vec localFh
-    cdef Vec localH
-    cdef Vec localHh
-    cdef Vec localH2
+    cdef Vec localH1p
+    cdef Vec localH1h
+    cdef Vec localH2p
     cdef Vec localH2h
+    cdef Vec localFp
+    cdef Vec localFh
     
     cdef Vec localPp
     cdef Vec localNp
