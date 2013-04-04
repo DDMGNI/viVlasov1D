@@ -495,8 +495,12 @@ cdef class PETScMatrix(object):
         self.da1.globalToLocal(self.H2,  self.localH2)
         self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.H2h, self.localH2h)
+        
         self.dax.globalToLocal(self.P,   self.localP )
         self.dax.globalToLocal(self.N,   self.localN )
+        self.dax.globalToLocal(self.U,   self.localU )
+        self.dax.globalToLocal(self.E,   self.localE )
+        self.dax.globalToLocal(self.A,   self.localA )
         
         
         cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
@@ -507,8 +511,12 @@ cdef class PETScMatrix(object):
         cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
+        
         cdef np.ndarray[np.float64_t, ndim=1] p   = self.dax.getVecArray(self.localP  )[...]
         cdef np.ndarray[np.float64_t, ndim=1] n   = self.dax.getVecArray(self.localN  )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] u   = self.dax.getVecArray(self.localU  )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] e   = self.dax.getVecArray(self.localE  )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] a   = self.dax.getVecArray(self.localA  )[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] h  = h0 + h1  + h2
         cdef np.ndarray[np.float64_t, ndim=2] hh = h0 + h1h + h2h
@@ -529,6 +537,13 @@ cdef class PETScMatrix(object):
                 integral = 0.25 * ( n[ix-1] + 2. * n[ix] + n[ix+1] )
                 
                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+            
+            # moments
+            y[iy, self.nv+1] = n[ix] / self.hv - (f[ix]            ).sum()
+            y[iy, self.nv+2] = u[ix] / self.hv - (f[ix] * self.v   ).sum()
+            y[iy, self.nv+3] = e[ix] / self.hv - (f[ix] * self.v**2).sum()
+            y[iy, self.nv+4] = a[ix] * (n[ix] * e[ix] - u[ix] * u[ix]) - n[ix]
+            
             
             # Vlasov Equation
             for j in np.arange(0, self.nv):

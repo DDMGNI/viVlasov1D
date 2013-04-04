@@ -674,10 +674,12 @@ class petscVP1D():
             self.petsc_matrix.update_external(self.p_ext)
             
             
-#             self.initial_guess()
-            
             # calculate initial guess
             self.snes_linear.solve(None, self.x)
+
+            self.calculate_collision_factor()
+            self.copy_a_to_x()
+            
             
             # nonlinear solve
             self.snes.solve(None, self.x)
