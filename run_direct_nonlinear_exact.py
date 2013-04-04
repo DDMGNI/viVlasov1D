@@ -18,10 +18,10 @@ from petsc4py import PETSc
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian 
 
-from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
+# from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-# from vlasov.vi.PETScSimpleMatrixCollT     import PETScMatrix
+from vlasov.vi.PETScSimpleMatrixCollTexact     import PETScMatrix
 from vlasov.vi.PETScSimpleNLFunctionCollTexact import PETScFunction
 from vlasov.vi.PETScSimpleNLJacobianCollTexact import PETScJacobian
 
@@ -85,7 +85,7 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-#        OptDB.setValue('snes_lag_preconditioner', 5)
+#         OptDB.setValue('snes_lag_preconditioner', 3)
         
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -219,32 +219,32 @@ class petscVP1D():
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.charge, coll_freq=self.coll_freq)
         
-#        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
-#                                        self.h0, self.vGrid,
-#                                        self.nx, self.nv, self.ht, self.hx, self.hv,
-#                                        self.charge, coll_freq=self.coll_freq)
+        self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
+                                        self.h0, self.vGrid,
+                                        self.nx, self.nv, self.ht, self.hx, self.hv,
+                                        self.charge)#, coll_freq=self.coll_freq)
         
         
         # initialise matrix
-#         self.A = self.da2.createMat()
-#         self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-#         self.A.setUp()
+        self.A = self.da2.createMat()
+        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.A.setUp()
 
         # initialise Jacobian
         self.J = self.da2.createMat()
         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.J.setUp()
 
-#        # create linear solver
-#        self.snes_linear = PETSc.SNES().create()
-#        self.snes_linear.setType('ksponly')
-#        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.F)
-#        self.snes_linear.setJacobian(self.updateMatrix, self.A)
-#        self.snes_linear.setFromOptions()
-#        self.snes_linear.getKSP().setType('preonly')
-#        self.snes_linear.getKSP().getPC().setType('lu')
-##        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+        # create linear solver
+        self.snes_linear = PETSc.SNES().create()
+        self.snes_linear.setType('ksponly')
+        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
+        self.snes_linear.setJacobian(self.updateMatrix, self.A)
+        self.snes_linear.setFromOptions()
+        self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().getPC().setType('lu')
+#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
 
         
         # create nonlinear solver
@@ -279,9 +279,6 @@ class petscVP1D():
 #        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
-        
-#         # RK4 predictor
-#         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.h0, self.nx, self.nv, self.ht, self.hx, self.hv)
         
         
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -395,12 +392,12 @@ class petscVP1D():
         # copy external potential
         self.petsc_jacobian.update_external(self.p_ext)
         self.petsc_function.update_external(self.p_ext)
-#        self.petsc_matrix.update_external(self.p_ext)
+        self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
-#        self.petsc_matrix.update_history(self.f, self.h1)
+        self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
         
         
         # create HDF5 output file
@@ -629,14 +626,13 @@ class petscVP1D():
         self.hdf5_viewer(self.h2)
 
     
-#    def updateMatrix(self, snes, X, J, P):
-#        self.petsc_matrix.formMat(J)
+    def updateMatrix(self, snes, X, J, P):
+        self.petsc_matrix.formMat(J)
     
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
         self.petsc_jacobian.formMat(J)
-#         self.petsc_jacobian.formMat(P)
         
     
 #     def initial_guess(self):
@@ -675,13 +671,13 @@ class petscVP1D():
             self.calculate_external(current_time)
             self.petsc_jacobian.update_external(self.p_ext)
             self.petsc_function.update_external(self.p_ext)
-#            self.petsc_matrix.update_external(self.p_ext)
+            self.petsc_matrix.update_external(self.p_ext)
             
             
 #             self.initial_guess()
             
-#            # calculate initial guess
-#            self.snes_linear.solve(None, self.x)
+            # calculate initial guess
+            self.snes_linear.solve(None, self.x)
             
             # nonlinear solve
             self.snes.solve(None, self.x)
@@ -720,7 +716,7 @@ class petscVP1D():
             # update history
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
-#            self.petsc_matrix.update_history(self.f, self.h1)
+            self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
             
             # save to hdf5
             self.save_to_hdf5(itime)

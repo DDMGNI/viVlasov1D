@@ -169,10 +169,10 @@ cdef class PETScJacobian(object):
         cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=1] Np = self.dax.getVecArray(self.localNp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Up = self.dax.getVecArray(self.localUp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ep = self.dax.getVecArray(self.localEp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ap = self.dax.getVecArray(self.localAp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getVecArray(self.localEp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2 + h2h)
@@ -220,19 +220,6 @@ cdef class PETScJacobian(object):
                     col.field = self.nv+1
                     A.setValueStencil(row, col, value)
 
-#                 # charge density: velocity integral of f
-#                 for index, value in [
-#                         ((i-1,), 1. * poss_fac * self.hv),
-#                         ((i,  ), 2. * poss_fac * self.hv),
-#                         ((i+1,), 1. * poss_fac * self.hv),
-#                     ]:
-#                     
-#                     col.index = index
-#                       
-#                     for j in np.arange(0, self.nv):
-#                         col.field = j
-#                         A.setValueStencil(row, col, value)
-                
                 # Laplace operator
                 for index, value in [
                         ((i-1,), - 1. * self.hx2_inv),
@@ -290,8 +277,6 @@ cdef class PETScJacobian(object):
             # temperature
             row.field = self.nv+4
             col.field = self.nv+4
-            
-#             A.setValueStencil(row, col, 1.)
             
             afac = ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
              
