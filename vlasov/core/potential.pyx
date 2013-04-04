@@ -36,6 +36,7 @@ class Potential(object):
         self.E0 = 0.0
         self.E  = 0.0
         self.E_error = 0.0
+        self.Efield = 0.0
         
 #        self.poisson = Poisson(grid, poisson_const)
         self.poisson_const = poisson_const

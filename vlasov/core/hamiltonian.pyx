@@ -183,8 +183,11 @@ class Hamiltonian(object):
         if potential == None:
             self.h1[:,:] = 0.0
         else:
+            phimean = potential.phi.mean()
+            phi     = potential.phi - phimean
+            
             for ix in range(0, self.grid.nx):
-                self.h1[ix,:] = potential.phi[ix]
+                self.h1[ix,:] = phi[ix]
             
         self.h[:,:] = self.h0 + self.h1
         
@@ -230,130 +233,130 @@ class Hamiltonian(object):
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.h2h
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.fh
         
-        if self.linear_diagnostics:
-            h1h -= self.h1h.mean()
-            h2h -= self.h2h.mean()
-        
-            if f != None and fh != None:
-                for ix in np.arange(0, nx):
-                    ixp = (ix+1) % nx
+#         if self.linear_diagnostics:
+#             h1h -= self.h1h.mean()
+#             h2h -= self.h2h.mean()
+#         
+#             if f != None and fh != None:
+#                 for ix in np.arange(0, nx):
+#                     ixp = (ix+1) % nx
+#                     
+#                     for iv in np.arange(0, nv-1):
+#                         
+#                         Ekin += 0.5 * ( 
+#                                 + f[ix,  iv  ]
+#                                 + f[ixp, iv  ]
+#                                 + f[ixp, iv+1]
+#                                 + f[ix,  iv+1]
+#                               ) * ( 
+#                                 + h0[ix,  iv  ]
+#                                 + h0[ixp, iv  ]
+#                                 + h0[ixp, iv+1]
+#                                 + h0[ix,  iv+1]
+#                                 )
+#                         
+#                         Ekin += 0.5 * ( 
+#                                 + fh[ix,  iv  ]
+#                                 + fh[ixp, iv  ]
+#                                 + fh[ixp, iv+1]
+#                                 + fh[ix,  iv+1]
+#                               ) * ( 
+#                                 + h0[ix,  iv  ]
+#                                 + h0[ixp, iv  ]
+#                                 + h0[ixp, iv+1]
+#                                 + h0[ix,  iv+1]
+#                                 )
+#                         
+#                         Epot += 0.5 * ( 
+#                                 + fh[ix,  iv  ]
+#                                 + fh[ixp, iv  ]
+#                                 + fh[ixp, iv+1]
+#                                 + fh[ix,  iv+1]
+#                               ) * ( 
+#                                 + h1[ix,  iv  ]
+#                                 + h1[ixp, iv  ]
+#                                 + h1[ixp, iv+1]
+#                                 + h1[ix,  iv+1]
+#                                 )
+#             
+#                         Epot += 0.5 * ( 
+#                                 + f[ix,  iv  ]
+#                                 + f[ixp, iv  ]
+#                                 + f[ixp, iv+1]
+#                                 + f[ix,  iv+1]
+#                               ) * ( 
+#                                 + h1h[ix,  iv  ]
+#                                 + h1h[ixp, iv  ]
+#                                 + h1h[ixp, iv+1]
+#                                 + h1h[ix,  iv+1]
+#                                 )
+#             
+#                         Epot += 0.5 * ( 
+#                                 + fh[ix,  iv  ]
+#                                 + fh[ixp, iv  ]
+#                                 + fh[ixp, iv+1]
+#                                 + fh[ix,  iv+1]
+#                               ) * ( 
+#                                 + h2[ix,  iv  ]
+#                                 + h2[ixp, iv  ]
+#                                 + h2[ixp, iv+1]
+#                                 + h2[ix,  iv+1]
+#                                 )        
+#             
+#                         Epot += 0.5 * ( 
+#                                 + f[ix,  iv  ]
+#                                 + f[ixp, iv  ]
+#                                 + f[ixp, iv+1]
+#                                 + f[ix,  iv+1]
+#                               ) * ( 
+#                                 + h2h[ix,  iv  ]
+#                                 + h2h[ixp, iv  ]
+#                                 + h2h[ixp, iv+1]
+#                                 + h2h[ix,  iv+1]
+#                                 )        
+#         
+#         else:
+        if f != None:
+            for ix in np.arange(0, nx):
+                ixp = (ix+1) % nx
+                
+                for iv in np.arange(0, nv-1):
                     
-                    for iv in np.arange(0, nv-1):
-                        
-                        Ekin += 0.5 * ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h0[ix,  iv  ]
-                                + h0[ixp, iv  ]
-                                + h0[ixp, iv+1]
-                                + h0[ix,  iv+1]
-                                )
-                        
-                        Ekin += 0.5 * ( 
-                                + fh[ix,  iv  ]
-                                + fh[ixp, iv  ]
-                                + fh[ixp, iv+1]
-                                + fh[ix,  iv+1]
-                              ) * ( 
-                                + h0[ix,  iv  ]
-                                + h0[ixp, iv  ]
-                                + h0[ixp, iv+1]
-                                + h0[ix,  iv+1]
-                                )
-                        
-                        Epot += 0.5 * ( 
-                                + fh[ix,  iv  ]
-                                + fh[ixp, iv  ]
-                                + fh[ixp, iv+1]
-                                + fh[ix,  iv+1]
-                              ) * ( 
-                                + h1[ix,  iv  ]
-                                + h1[ixp, iv  ]
-                                + h1[ixp, iv+1]
-                                + h1[ix,  iv+1]
-                                )
-            
-                        Epot += 0.5 * ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h1h[ix,  iv  ]
-                                + h1h[ixp, iv  ]
-                                + h1h[ixp, iv+1]
-                                + h1h[ix,  iv+1]
-                                )
-            
-                        Epot += 0.5 * ( 
-                                + fh[ix,  iv  ]
-                                + fh[ixp, iv  ]
-                                + fh[ixp, iv+1]
-                                + fh[ix,  iv+1]
-                              ) * ( 
-                                + h2[ix,  iv  ]
-                                + h2[ixp, iv  ]
-                                + h2[ixp, iv+1]
-                                + h2[ix,  iv+1]
-                                )        
-            
-                        Epot += 0.5 * ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h2h[ix,  iv  ]
-                                + h2h[ixp, iv  ]
-                                + h2h[ixp, iv+1]
-                                + h2h[ix,  iv+1]
-                                )        
-        
-        else:
-            if f != None:
-                for ix in np.arange(0, nx):
-                    ixp = (ix+1) % nx
+                    Ekin += ( 
+                            + f[ix,  iv  ]
+                            + f[ixp, iv  ]
+                            + f[ixp, iv+1]
+                            + f[ix,  iv+1]
+                          ) * ( 
+                            + h0[ix,  iv  ]
+                            + h0[ixp, iv  ]
+                            + h0[ixp, iv+1]
+                            + h0[ix,  iv+1]
+                            )
                     
-                    for iv in np.arange(0, nv-1):
-                        
-                        Ekin += ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h0[ix,  iv  ]
-                                + h0[ixp, iv  ]
-                                + h0[ixp, iv+1]
-                                + h0[ix,  iv+1]
-                                )
-                        
-                        Epot += ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h1[ix,  iv  ]
-                                + h1[ixp, iv  ]
-                                + h1[ixp, iv+1]
-                                + h1[ix,  iv+1]
-                                )
-            
-                        Epot += ( 
-                                + f[ix,  iv  ]
-                                + f[ixp, iv  ]
-                                + f[ixp, iv+1]
-                                + f[ix,  iv+1]
-                              ) * ( 
-                                + h2[ix,  iv  ]
-                                + h2[ixp, iv  ]
-                                + h2[ixp, iv+1]
-                                + h2[ix,  iv+1]
-                                )
+                    Epot += ( 
+                            + f[ix,  iv  ]
+                            + f[ixp, iv  ]
+                            + f[ixp, iv+1]
+                            + f[ix,  iv+1]
+                          ) * ( 
+                            + h1[ix,  iv  ]
+                            + h1[ixp, iv  ]
+                            + h1[ixp, iv+1]
+                            + h1[ix,  iv+1]
+                            )
+        
+                    Epot += ( 
+                            + f[ix,  iv  ]
+                            + f[ixp, iv  ]
+                            + f[ixp, iv+1]
+                            + f[ix,  iv+1]
+                          ) * ( 
+                            + h2[ix,  iv  ]
+                            + h2[ixp, iv  ]
+                            + h2[ixp, iv+1]
+                            + h2[ix,  iv+1]
+                            )
         
         self.Ekin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
         self.Epot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
@@ -382,6 +385,13 @@ class Hamiltonian(object):
         '''
         Calculates total momentum w.r.t. the given distribution function.
         '''
+        
+        cdef np.uint64_t nx = self.grid.nx
+        cdef np.uint64_t nv = self.grid.nv
+        
+        cdef np.uint64_t ix, ixp, iv
+        
+        cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         
         self.P = 0.0
         

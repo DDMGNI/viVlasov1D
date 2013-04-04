@@ -18,6 +18,7 @@ from petsc4py import PETSc
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian 
 
+from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
 # from vlasov.vi.PETScSimpleMatrixCollT     import PETScMatrix
@@ -101,7 +102,7 @@ class petscVP1D():
                                     stencil_width=1,
                                     stencil_type='box')
         
-        # create DA for 2d grid (f and phi)
+        # create DA for 2d grid (f, phi and moments)
         self.da2 = PETSc.DA().create(dim=1, dof=self.nv+5,
                                      sizes=[self.nx],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize()],
@@ -126,11 +127,9 @@ class petscVP1D():
         
         
         # initialise grid
-        self.da1.setUniformCoordinates(xmin=0.0,  xmax=L,
-                                       ymin=vMin, ymax=vMax)
-        
-        self.dax.setUniformCoordinates(xmin=0.0, xmax=L)
-        
+        self.da1.setUniformCoordinates(xmin=0.0,  xmax=L)
+        self.da2.setUniformCoordinates(xmin=0.0,  xmax=L)
+        self.dax.setUniformCoordinates(xmin=0.0,  xmax=L)
         self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
         
         
@@ -164,7 +163,6 @@ class petscVP1D():
         # create solution and RHS vector
         self.x  = self.da2.createGlobalVec()
         self.b  = self.da2.createGlobalVec()
-        self.F  = self.da2.createGlobalVec()
         
         # create solution and RHS vector for Vlasov and Poisson solver
         self.pb = self.dax.createGlobalVec()
@@ -200,6 +198,14 @@ class petscVP1D():
         self.p_ext.setName('phi_ext')
         
         
+        # initialise kinetic hamiltonian
+        (xs, xe), = self.da1.getRanges()
+        
+        h0_arr = self.da1.getVecArray(self.h0)
+        
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
+                h0_arr[i, j] = 0.5 * self.vGrid[j]**2 # * self.mass
         
         
         # create Jacobian, Function, and linear Matrix objects
@@ -220,9 +226,9 @@ class petscVP1D():
         
         
         # initialise matrix
-        self.A = self.da2.createMat()
-        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.A.setUp()
+#         self.A = self.da2.createMat()
+#         self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+#         self.A.setUp()
 
         # initialise Jacobian
         self.J = self.da2.createMat()
@@ -243,11 +249,12 @@ class petscVP1D():
         
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
-        self.snes.setFunction(self.petsc_function.snes_mult, self.F)
+        self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-#        self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().setType('preonly')
+#         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
@@ -273,16 +280,8 @@ class petscVP1D():
         self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
         
-        
-        # set initial data
-        n0 = self.dax.createGlobalVec()
-        T0 = self.dax.createGlobalVec()
-        
-        n0_arr = self.dax.getVecArray(n0)
-        T0_arr = self.dax.getVecArray(T0)
-        
-        n0.setName('n0')
-        T0.setName('T0')
+#         # RK4 predictor
+#         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.h0, self.nx, self.nv, self.ht, self.hx, self.hv)
         
         
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -309,17 +308,24 @@ class petscVP1D():
             print()
         
         
-        f_arr = self.da1.getVecArray(self.f)
+        # set initial data
+        n0 = self.dax.createGlobalVec()
+        T0 = self.dax.createGlobalVec()
         
-        (xs, xe), = self.da1.getRanges()
+        n0.setName('n0')
+        T0.setName('T0')
+        
+        n0_arr = self.dax.getVecArray(n0)
+        T0_arr = self.dax.getVecArray(T0)
+        f_arr  = self.da1.getVecArray(self.f)
+        
         
         if self.cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + self.cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-#                    if j == 0 or j == self.nv-1:
-                    if j <= 1 or j >= self.nv-2:
+                    if j == 0 or j == self.nv-1:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
@@ -350,8 +356,7 @@ class petscVP1D():
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-#                    if j == 0 or j == self.nv-1:
-                    if j <= 1 or j >= self.nv-2:
+                    if j == 0 or j == self.nv-1:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
@@ -359,17 +364,14 @@ class petscVP1D():
         
         # normalise f to fit density
         nave = self.f.sum() * self.hv / self.nx
-        
-        for i in range(xs, xe):
-            for j in range(0, self.nv):
-                f_arr[i,j] /= nave
+        self.f.scale(1./nave)
         
         
-        self.calculate_potential()            # calculate initial potential
         self.calculate_density()              # calculate density
         self.calculate_velocity()             # calculate mean velocity density
         self.calculate_energy()               # calculate mean energy density
         self.calculate_collision_factor()     # 
+        self.calculate_potential()            # calculate initial potential
 
         self.copy_f_to_x()                    # copy distribution function to solution vector
         self.copy_p_to_x()                    # copy potential to solution vector
@@ -377,14 +379,7 @@ class petscVP1D():
         self.copy_u_to_x()                    # copy velocity to solution vector
         self.copy_e_to_x()                    # copy energy to solution vector
         self.copy_a_to_x()                    # copy collision factor to solution vector
-        
-        
-        # initialise kinetic hamiltonian
-        h0_arr = self.da1.getVecArray(self.h0)
-        
-        for i in range(xs, xe):
-            for j in range(0, self.nv):
-                h0_arr[i, j] = 0.5 * self.vGrid[j]**2 # * self.mass
+        self.copy_p_to_h()                    # copy potential to Hamiltonian
         
         
         # check for external potential
@@ -434,13 +429,13 @@ class petscVP1D():
     def calculate_potential(self):
         
         self.poisson_mat.formMat(self.poisson_A)
-        self.poisson_mat.formRHS(self.f, self.pb)
+        self.poisson_mat.formRHS(self.n, self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
         phisum = self.p.sum()
         
-        self.copy_p_to_x()
-        self.copy_p_to_h()
+#         self.copy_p_to_x()
+#         self.copy_p_to_h()
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
@@ -450,9 +445,8 @@ class petscVP1D():
     def calculate_density(self):
         (xs, xe), = self.da1.getRanges()
         
-        # copy solution to f and p vectors
-        f_arr  = self.da1.getVecArray(self.f)
-        n_arr  = self.dax.getVecArray(self.n)
+        f_arr = self.da1.getVecArray(self.f)
+        n_arr = self.dax.getVecArray(self.n)
         
         n_arr[xs:xe] = f_arr[xs:xe, :].sum(axis=1) * self.hv
     
@@ -460,37 +454,33 @@ class petscVP1D():
     def calculate_velocity(self):
         (xs, xe), = self.da1.getRanges()
         
-        # copy solution to f and p vectors
-        f_arr  = self.da1.getVecArray(self.f)
-        u_arr  = self.dax.getVecArray(self.u)
+        f_arr = self.da1.getVecArray(self.f)
+        u_arr = self.dax.getVecArray(self.u)
         
         for i in range(xs, xe):
-            u_arr[i] = (f_arr[i, :] * self.vGrid[:]).sum() * self.hv
+            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv
         
     
     def calculate_energy(self):
         (xs, xe), = self.da1.getRanges()
         
-        # copy solution to f and p vectors
-        f_arr  = self.da1.getVecArray(self.f)
-        e_arr  = self.dax.getVecArray(self.e)
+        f_arr = self.da1.getVecArray(self.f)
+        e_arr = self.dax.getVecArray(self.e)
         
         for i in range(xs, xe):
-            e_arr[i] = (f_arr[i, :] * self.vGrid[:]**2).sum() * self.hv
+            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv
         
     
     def calculate_collision_factor(self):
         (xs, xe), = self.da1.getRanges()
         
-        # copy solution to f and p vectors
-        n_arr  = self.dax.getVecArray(self.n)[...]
-        u_arr  = self.dax.getVecArray(self.u)[...]
-        e_arr  = self.dax.getVecArray(self.e)[...]
-        a_arr  = self.dax.getVecArray(self.a)[...]
+        n_arr = self.dax.getVecArray(self.n)
+        u_arr = self.dax.getVecArray(self.u)
+        e_arr = self.dax.getVecArray(self.e)
+        a_arr = self.dax.getVecArray(self.a)
         
         for i in range(xs, xe):
-            ix = i-xs
-            a_arr[ix] = n_arr[ix] / ( n_arr[ix] * e_arr[ix] - u_arr[ix] * u_arr[ix] )
+            a_arr[i] = n_arr[i] / ( n_arr[i] * e_arr[i] - u_arr[i]**2 )
         
     
     def calculate_external(self, t):
@@ -541,17 +531,23 @@ class petscVP1D():
     def copy_p_to_h(self):
         p_arr = self.dax.getVecArray(self.p )[...]
         h_arr = self.da1.getVecArray(self.h1)[...]
-    
+        
+        phisum = self.p.sum()
+        phiave = phisum / self.nx
+        
         for j in range(0, self.nv):
-            h_arr[:, j] = p_arr[:]
+            h_arr[:, j] = p_arr[:] - phiave
         
 
     def copy_pext_to_h(self):
         p_arr = self.dax.getVecArray(self.p_ext)[...]
         h_arr = self.da1.getVecArray(self.h2   )[...]
     
+        phisum = self.p_ext.sum()
+        phiave = phisum / self.nx
+        
         for j in range(0, self.nv):
-            h_arr[:, j] = p_arr[:]
+            h_arr[:, j] = p_arr[:] - phiave
         
 
     def copy_x_to_n(self):
@@ -640,7 +636,30 @@ class petscVP1D():
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
         self.petsc_jacobian.formMat(J)
+#         self.petsc_jacobian.formMat(P)
+        
     
+#     def initial_guess(self):
+#         # calculate initial guess for distribution function
+#         self.arakawa_rk4.rk4(self.f, self.h1)
+#         self.copy_f_to_x()
+#         
+#         if PETSc.COMM_WORLD.getRank() == 0:
+#             print("     RK4")
+#         
+#         self.calculate_density()              # calculate density
+#         self.calculate_velocity()             # calculate mean velocity density
+#         self.calculate_energy()               # calculate mean energy density
+#         self.calculate_collision_factor()     # 
+#         self.calculate_potential()            # calculate initial potential
+# 
+# #         self.copy_f_to_x()                    # copy distribution function to solution vector
+# #         self.copy_p_to_x()                    # copy potential to solution vector
+#         self.copy_n_to_x()                    # copy density to solution vector
+#         self.copy_u_to_x()                    # copy velocity to solution vector
+#         self.copy_e_to_x()                    # copy energy to solution vector
+#         self.copy_a_to_x()                    # copy collision factor to solution vector
+        
     
     def run(self):
         for itime in range(1, self.nt+1):
@@ -659,6 +678,8 @@ class petscVP1D():
 #            self.petsc_matrix.update_external(self.p_ext)
             
             
+#             self.initial_guess()
+            
 #            # calculate initial guess
 #            self.snes_linear.solve(None, self.x)
             
@@ -674,10 +695,19 @@ class petscVP1D():
             if self.snes.getConvergedReason() < 0:
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print()
-                    print("Solver not converging... quitting!   %i" % (self.snes.getConvergedReason()))
+                    print("Solver not converging...   %i" % (self.snes.getConvergedReason()))
                     print()
            
            
+#             if PETSc.COMM_WORLD.getRank() == 0:
+#                 mat_viewer = PETSc.Viewer().createDraw(size=(800,800), comm=PETSc.COMM_WORLD)
+#                 mat_viewer(self.J)
+#                 
+#                 print
+#                 input('Hit any key to continue.')
+#                 print
+            
+            
             # update data vectors
             self.copy_x_to_f()
             self.copy_x_to_p()
@@ -838,6 +868,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-#     petscvp.run()
-    petscvp.check_jacobian()
+    petscvp.run()
+#     petscvp.check_jacobian()
     

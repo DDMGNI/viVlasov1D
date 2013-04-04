@@ -160,8 +160,11 @@ cdef class PETScFunction(object):
         e[xs:xe] = x[xs:xe,   self.nv+3]
         a[xs:xe] = x[xs:xe,   self.nv+4]
         
+        phisum = self.Pp.sum()
+        phiave = phisum / self.nx
+        
         for j in np.arange(0, self.nv):
-            h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe]
+            h[xs:xe, j] = h0[xs:xe, j] + p[xs:xe] - phiave
         
         
         self.matrix_mult(F, H, Y)
@@ -237,16 +240,27 @@ cdef class PETScFunction(object):
             else:
                     
                 laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
-                integral = 0.25 * ( 1. * Np[ix-1] + 2. * Np[ix  ] + 1. * Np[ix+1] )
+                integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
+
+#                 integral = ( \
+#                              + 1. * fp[ix-1, :].sum() \
+#                              + 2. * fp[ix,   :].sum() \
+#                              + 1. * fp[ix+1, :].sum() \
+#                            ) * 0.25 * self.hv
                 
-                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+#                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+                y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
             
             
             # moments
-            y[iy, self.nv+1] = Np[ix] - self.hv * fp[ix].sum()
-            y[iy, self.nv+2] = Up[ix] - self.hv * (fp[ix, :] * self.v).sum()
-            y[iy, self.nv+3] = Ep[ix] - self.hv * (fp[ix, :] * self.v * self.v).sum()
-            y[iy, self.nv+4] = Ap[ix] - Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
+#             y[iy, self.nv+1] = Np[ix] / self.hv
+#             y[iy, self.nv+2] = Up[ix] / self.hv
+#             y[iy, self.nv+3] = Ep[ix] / self.hv
+#             y[iy, self.nv+4] = Ap[ix]
+            y[iy, self.nv+1] = Np[ix] / self.hv - (fp[ix]            ).sum()
+            y[iy, self.nv+2] = Up[ix] / self.hv - (fp[ix] * self.v   ).sum()
+            y[iy, self.nv+3] = Ep[ix] / self.hv - (fp[ix] * self.v**2).sum()
+            y[iy, self.nv+4] = Ap[ix] * (Np[ix] * Ep[ix] - Up[ix] * Up[ix]) - Np[ix]
             
             
             # Vlasov equation
@@ -259,7 +273,7 @@ cdef class PETScFunction(object):
                     y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
                              - self.toolbox.time_derivative(fh, ix, j) \
                              + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                            - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
+                            - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                            - self.nu * self.toolbox.collT2(f_ave, ix, j)
 

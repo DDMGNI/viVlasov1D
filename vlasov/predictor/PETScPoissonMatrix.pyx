@@ -49,7 +49,7 @@ cdef class PETScPoissonMatrix(object):
         
         # create local vectors
         self.localX = dax.createLocalVec()
-        self.localF = da1.createLocalVec()
+        self.localN = dax.createLocalVec()
 
         
     
@@ -92,18 +92,18 @@ cdef class PETScPoissonMatrix(object):
         
         A.assemble()
         
-        
+    
     @cython.boundscheck(False)
-    def formRHS(self, Vec F, Vec B):
+    def formRHS(self, Vec N, Vec B):
         cdef np.int64_t i, ix, iy
         cdef np.int64_t xs, xe
         
-        cdef np.float64_t fsum = F.sum() * self.hv / self.nx
+        cdef np.float64_t nmean = N.sum() / self.nx
         
-        self.da1.globalToLocal(F, self.localF)
+        self.dax.globalToLocal(N, self.localN)
         
         cdef np.ndarray[np.float64_t, ndim = 1] b = self.dax.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim = 2] f = self.da1.getVecArray(self.localF)[...]
+        cdef np.ndarray[np.float64_t, ndim = 1] n = self.dax.getVecArray(self.localN)[...]
         
         
         (xs, xe), = self.dax.getRanges()
@@ -116,11 +116,5 @@ cdef class PETScPoissonMatrix(object):
                 b[iy] = 0.
                 
             else:
-                integral = (\
-                             + 1. * f[ix-1, :].sum() \
-                             + 2. * f[ix,   :].sum() \
-                             + 1. * f[ix+1, :].sum() \
-                           ) * 0.25 * self.hv
-                
-                b[iy] = -(integral - fsum) * self.poisson_const
+                b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.poisson_const
         

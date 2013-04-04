@@ -307,16 +307,15 @@ class PlotSpecies(object):
 #        print("  Epot = %24.16E" % (self.hamiltonian.Epot))
 #        print("  Etot = %24.16E" % (self.hamiltonian.E))
         
-        E0 = self.hamiltonian.E0
-        E  = self.hamiltonian.E
+#         E0 = self.hamiltonian.E0
+#         E  = self.hamiltonian.E
         
-#        E0 = self.hamiltonian.Ekin0 - self.potential.poisson_const * self.potential.E0
-#        E  = self.hamiltonian.Ekin  - self.potential.poisson_const * self.potential.E
+        E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
+        E  = self.hamiltonian.Ekin  + self.potential.poisson_const * self.potential.E
         
 #        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + self.potential.E0
 #        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + self.potential.E
         
-#        E_error   = E / E0 - 1.
         E_error   = (E - E0) / E0
         
 #        if E0 != 0.0:
@@ -325,9 +324,9 @@ class PlotSpecies(object):
 #            E_error = 0.0
         
         self.ekin   [self.iTime] = self.hamiltonian.Ekin
-        self.epot   [self.iTime] = self.hamiltonian.Epot * 0.5
+#         self.epot   [self.iTime] = self.hamiltonian.Epot * 0.5
 #        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
-#        self.epot   [self.iTime] = self.potential.E
+        self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
         self.energy [self.iTime] = E_error
 #        self.energy_f[self.iTime] = E_f_error
 #        self.energy_p[self.iTime] = E_p_error

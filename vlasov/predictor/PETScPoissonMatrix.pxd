@@ -32,5 +32,5 @@ cdef class PETScPoissonMatrix(object):
     cdef DA da1
     
     cdef Vec localX
-    cdef Vec localF
+    cdef Vec localN
     

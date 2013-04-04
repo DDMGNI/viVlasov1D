@@ -124,8 +124,11 @@ cdef class PETScJacobian(object):
         e[xs:xe] = x[xs:xe,   self.nv+3]
         a[xs:xe] = x[xs:xe,   self.nv+4]
         
+        phisum = self.Pp.sum()
+        phiave = phisum / self.nx
+        
         for j in np.arange(0, self.nv):
-            h1[xs:xe, j] = p[xs:xe]
+            h1[xs:xe, j] = p[xs:xe] - phiave
         
         
     
@@ -212,10 +215,23 @@ cdef class PETScJacobian(object):
                         ((i,  ), 2. * poss_fac),
                         ((i+1,), 1. * poss_fac),
                     ]:
-                    
+                       
                     col.index = index
                     col.field = self.nv+1
                     A.setValueStencil(row, col, value)
+
+#                 # charge density: velocity integral of f
+#                 for index, value in [
+#                         ((i-1,), 1. * poss_fac * self.hv),
+#                         ((i,  ), 2. * poss_fac * self.hv),
+#                         ((i+1,), 1. * poss_fac * self.hv),
+#                     ]:
+#                     
+#                     col.index = index
+#                       
+#                     for j in np.arange(0, self.nv):
+#                         col.field = j
+#                         A.setValueStencil(row, col, value)
                 
                 # Laplace operator
                 for index, value in [
@@ -231,67 +247,74 @@ cdef class PETScJacobian(object):
         
         
         # moments
-        for i in np.arange(xs, xe):
+#         for i in np.arange(xs, xe):
             ix = i-xs+1
             
             row.index = (i,)
             col.index = (i,)
             
+            
             # density
             row.field = self.nv+1
+            col.field = self.nv+1
             
-            A.setValueStencil(row, row, 1.)
+            A.setValueStencil(row, col, 1. / self.hv)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.hv)
-            
+                A.setValueStencil(row, col, - 1.)
+             
             
             # average velocity density
             row.field = self.nv+2
+            col.field = self.nv+2
             
-            A.setValueStencil(row, row, 1.)
+            A.setValueStencil(row, col, 1. / self.hv)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j] * self.hv)
+                A.setValueStencil(row, col, - self.v[j])
             
-                
+            
             # average energy density
             row.field = self.nv+3
+            col.field = self.nv+3
             
-            A.setValueStencil(row, row, 1.)
+            A.setValueStencil(row, col, 1. / self.hv)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j] * self.v[j] * self.hv)
-            
+                A.setValueStencil(row, col, - self.v[j]**2)
                 
+            
             # temperature
             row.field = self.nv+4
+            col.field = self.nv+4
+            
+#             A.setValueStencil(row, col, 1.)
             
             afac = ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
-            
-            A.setValueStencil(row, row, 1.)
-            
+             
+            A.setValueStencil(row, col, afac)
+             
             col.field = self.nv+1
-            A.setValueStencil(row, col, - 1. / afac - Np[ix] * Ep[ix] / afac**2)
-            
+            A.setValueStencil(row, col, - 1. - Np[ix] * Ep[ix] / afac)
+             
             col.field = self.nv+2
-            A.setValueStencil(row, col, + 2. * Np[ix] * Up[ix] / afac**2)
-            
+            A.setValueStencil(row, col, + 2. * Np[ix] * Up[ix] / afac)
+             
             col.field = self.nv+3
-            A.setValueStencil(row, col, - 1. * Np[ix] * Np[ix] * Ep[ix] / afac**2)
+            A.setValueStencil(row, col, - 1. * Np[ix] * Np[ix] / afac)
         
         
         
         # Vlasov Equation
-        for i in np.arange(xs, xe):
+#         for i in np.arange(xs, xe):
             ix = i-xs+1
             
             row.index = (i,)
+#             col.index = (i,)
                 
-            # Vlasov equation
             for j in np.arange(0, self.nv):
                 row.field = j
                 
