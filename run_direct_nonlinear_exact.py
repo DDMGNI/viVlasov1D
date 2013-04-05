@@ -676,7 +676,10 @@ class petscVP1D():
             
             # calculate initial guess
             self.snes_linear.solve(None, self.x)
-
+ 
+            self.copy_x_to_n()
+            self.copy_x_to_u()
+            self.copy_x_to_e()
             self.calculate_collision_factor()
             self.copy_a_to_x()
             
@@ -866,6 +869,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1D(args.runfile)
-#     petscvp.run()
-    petscvp.check_jacobian()
+    petscvp.run()
+#     petscvp.check_jacobian()
     
