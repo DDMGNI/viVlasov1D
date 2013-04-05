@@ -238,16 +238,16 @@ class petscVP1D():
         
         self.ksp = None
         
-        # create linear solver
-        self.snes_linear = PETSc.SNES().create()
-        self.snes_linear.setType('ksponly')
-        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
-        self.snes_linear.setJacobian(self.updateMatrix, self.A)
-        self.snes_linear.setFromOptions()
-        self.snes_linear.getKSP().setType('preonly')
-        self.snes_linear.getKSP().getPC().setType('lu')
-#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+#         # create linear solver
+#         self.snes_linear = PETSc.SNES().create()
+#         self.snes_linear.setType('ksponly')
+#         self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
+#         self.snes_linear.setJacobian(self.updateMatrix, self.A)
+#         self.snes_linear.setFromOptions()
+#         self.snes_linear.getKSP().setType('preonly')
+#         self.snes_linear.getKSP().getPC().setType('lu')
+# #        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+#         self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
 
         
         # create nonlinear solver
@@ -638,28 +638,6 @@ class petscVP1D():
         self.petsc_jacobian.formMat(J)
         
     
-#     def initial_guess(self):
-#         # calculate initial guess for distribution function
-#         self.arakawa_rk4.rk4(self.f, self.h1)
-#         self.copy_f_to_x()
-#         
-#         if PETSc.COMM_WORLD.getRank() == 0:
-#             print("     RK4")
-#         
-#         self.calculate_density()              # calculate density
-#         self.calculate_velocity()             # calculate mean velocity density
-#         self.calculate_energy()               # calculate mean energy density
-#         self.calculate_collision_factor()     # 
-#         self.calculate_potential()            # calculate initial potential
-# 
-# #         self.copy_f_to_x()                    # copy distribution function to solution vector
-# #         self.copy_p_to_x()                    # copy potential to solution vector
-#         self.copy_n_to_x()                    # copy density to solution vector
-#         self.copy_u_to_x()                    # copy velocity to solution vector
-#         self.copy_e_to_x()                    # copy energy to solution vector
-#         self.copy_a_to_x()                    # copy collision factor to solution vector
-        
-    
     def initial_guess(self):
         self.ksp = PETSc.KSP().create()
         self.ksp.setFromOptions()
@@ -678,14 +656,13 @@ class petscVP1D():
         # solve
         self.ksp.solve(self.b, self.x)
         
-        # update data vectors
-        self.copy_x_to_f()
-        self.copy_x_to_p()
+        # compute correct collision factor
+        self.copy_x_to_n()
+        self.copy_x_to_u()
+        self.copy_x_to_e()
+        self.calculate_collision_factor()
+        self.copy_a_to_x()
         
-#        self.remove_average_from_potential()
-#    
-#        self.copy_p_to_x()
-        self.copy_p_to_h()
         
         del self.ksp
         
@@ -708,12 +685,7 @@ class petscVP1D():
             
             
             # calculate initial guess
-#             self.snes_linear.solve(None, self.x)
- 
             self.initial_guess()
-            
-            self.calculate_collision_factor()
-            self.copy_a_to_x()
             
             
             # nonlinear solve
