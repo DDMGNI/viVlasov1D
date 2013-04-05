@@ -73,11 +73,13 @@ cdef class PETScArakawa(object):
         cdef np.uint64_t ix, iy, i, j
         cdef np.uint64_t xs, xe
         
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
+        
         (xs, xe), = self.da1.getRanges()
         
         
-        for j in np.arange(0, self.nv):
-            for i in np.arange(xs, xe):
+        for i in np.arange(xs, xe):
+            for j in np.arange(0, self.nv):
                 ix = i-xs+1
                 iy = i-xs
                 
@@ -87,6 +89,6 @@ cdef class PETScArakawa(object):
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = - self.arakawa(x, h0 + h1, ix, j)
+                    y[iy, j] = - self.arakawa(x, h, ix, j)
                     
     

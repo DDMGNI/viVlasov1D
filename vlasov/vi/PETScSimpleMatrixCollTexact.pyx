@@ -612,7 +612,7 @@ cdef class PETScMatrix(object):
                              - self.toolbox.time_derivative(fh, ix, j) \
                              + 0.5 * self.toolbox.arakawa(f, hh, ix, j) \
                              + 0.5 * self.toolbox.arakawa(fh, h, ix, j) \
-                            - self.nu * self.toolbox.collT1(f, Nh, Uh, Eh, Ah, ix, j) \
-                            - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                             - self.nu * self.toolbox.collT1(f, Nh, Uh, Eh, Ah, ix, j) \
+                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
 
 

@@ -18,7 +18,7 @@ from petsc4py import PETSc
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian 
 
-# from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
+from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
 from vlasov.vi.PETScSimpleMatrixCollTexact     import PETScMatrix
@@ -222,7 +222,7 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)#, coll_freq=self.coll_freq)
+                                        self.charge, coll_freq=self.coll_freq)
         
         
         # initialise matrix
@@ -282,6 +282,9 @@ class petscVP1D():
 #        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
         
+        
+        # create Arakawa RK4 solver object
+        self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.h0, self.nx, self.nv, 0.01*self.ht, self.hx, self.hv)
         
         
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -437,9 +440,9 @@ class petscVP1D():
 #         self.copy_p_to_x()
 #         self.copy_p_to_h()
         
-        if PETSc.COMM_WORLD.getRank() == 0:
-            print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
-            print("                                   sum(phi) = %24.16E" % (phisum))
+#         if PETSc.COMM_WORLD.getRank() == 0:
+#             print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
+#             print("                                   sum(phi) = %24.16E" % (phisum))
     
         
     def calculate_density(self):
@@ -604,8 +607,18 @@ class petscVP1D():
         x_arr = self.da2.getVecArray(self.x)[...]
         
         x_arr[:, self.nv+4] = a_arr[:]
+    
+    
+    def update_data_vectors(self):
+        self.copy_x_to_f()
+        self.copy_x_to_p()
+        self.copy_x_to_n()
+        self.copy_x_to_u()
+        self.copy_x_to_e()
+        self.copy_x_to_a()
+        self.copy_p_to_h()
         
-        
+    
     def save_to_hdf5(self, itime):
         
         self.calculate_density()
@@ -638,6 +651,25 @@ class petscVP1D():
         self.petsc_jacobian.formMat(J)
         
     
+    def initial_guess_rk4(self):
+        # calculate initial guess for distribution function
+        self.arakawa_rk4.rk4(self.f, self.h1)
+         
+        self.calculate_density()              # calculate density
+        self.calculate_velocity()             # calculate mean velocity density
+        self.calculate_energy()               # calculate mean energy density
+        self.calculate_collision_factor()     # calculate collision factor
+        self.calculate_potential()            # calculate initial potential
+ 
+        self.copy_f_to_x()                    # copy distribution function to solution vector
+        self.copy_p_to_x()                    # copy potential to solution vector
+        self.copy_n_to_x()                    # copy density to solution vector
+        self.copy_u_to_x()                    # copy velocity to solution vector
+        self.copy_e_to_x()                    # copy energy to solution vector
+        self.copy_a_to_x()                    # copy collision factor to solution vector
+        self.copy_p_to_h()
+    
+    
     def initial_guess(self):
         self.ksp = PETSc.KSP().create()
         self.ksp.setFromOptions()
@@ -646,23 +678,18 @@ class petscVP1D():
         self.ksp.getPC().setType('lu')
 #        self.ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.ksp.getPC().setFactorSolverPackage('mumps')
-    
-        # build matrix
-        self.petsc_matrix.formMat(self.A)
         
-        # build RHS
+        
+        self.petsc_matrix.formMat(self.A)
         self.petsc_matrix.formRHS(self.b)
         
-        # solve
         self.ksp.solve(self.b, self.x)
         
+        self.update_data_vectors()
+        
         # compute correct collision factor
-        self.copy_x_to_n()
-        self.copy_x_to_u()
-        self.copy_x_to_e()
         self.calculate_collision_factor()
         self.copy_a_to_x()
-        
         
         del self.ksp
         
@@ -685,7 +712,15 @@ class petscVP1D():
             
             
             # calculate initial guess
-            self.initial_guess()
+            for i in range(0,100):
+                self.initial_guess_rk4()
+#             self.initial_guess_rk4()
+
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("     RK4")
+            
+            
+#             self.initial_guess()
             
             
             # nonlinear solve
@@ -714,13 +749,7 @@ class petscVP1D():
             
             
             # update data vectors
-            self.copy_x_to_f()
-            self.copy_x_to_p()
-            self.copy_x_to_n()
-            self.copy_x_to_u()
-            self.copy_x_to_e()
-            self.copy_x_to_a()
-            self.copy_p_to_h()
+            self.update_data_vectors()
             
             # update history
             self.petsc_jacobian.update_history(self.f, self.h1)
