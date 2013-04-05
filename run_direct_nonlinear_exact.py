@@ -87,6 +87,9 @@ class petscVP1D():
         
 #         OptDB.setValue('snes_lag_preconditioner', 3)
         
+#         OptDB.setValue('snes_ls', 'basic')
+        OptDB.setValue('snes_ls', 'quadratic')
+
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
         
