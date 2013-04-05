@@ -455,9 +455,6 @@ cdef class PETScMatrix(object):
         
 #         cdef np.float64_t nmean = self.Nh.sum() / self.nx
         
-#         cdef np.float64_t coll1_fac = - self.nu * 0.25 * 0.5 / self.hv
-#         cdef np.float64_t coll2_fac = - self.nu * 0.25 * self.hv2_inv
-        
         
         for i in np.arange(xs, xe):
             ix = i-xs+1
@@ -575,7 +572,7 @@ cdef class PETScMatrix(object):
         cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getVecArray(self.localEh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getVecArray(self.localAh)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] f_ave = f  + fh
+        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (f  + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h     = h0 + h1  + h2
         cdef np.ndarray[np.float64_t, ndim=2] hh    = h0 + h1h + h2h
         
