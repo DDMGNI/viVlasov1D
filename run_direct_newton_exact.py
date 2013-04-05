@@ -257,8 +257,9 @@ class petscVP1D():
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-#         self.snes.getKSP().setType('gmres')
-        self.snes.getKSP().setType('preonly')
+        self.snes.setType('ksponly')
+        self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().setType('preonly')
 #         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
@@ -733,19 +734,36 @@ class petscVP1D():
             
             
             # nonlinear solve
-            self.snes.solve(None, self.x)
+            i = 0
+            while True:
+                i+=1
+                
+                self.snes.solve(None, self.x)
+                
+                self.petsc_function.mult(self.x, self.b)
+                fnorm = self.b.norm()
+                
+                if fnorm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
+                    if PETSc.COMM_WORLD.getRank() == 0:
+                        print("  Nonlin Solver:  %5i iterations,   funcnorm = %24.16E" % (i, fnorm) )
+                
+                    break
             
-            # output some solver info
-            if PETSc.COMM_WORLD.getRank() == 0:
-                print()
-                print("  Nonlin Solver:  %5i iterations,   funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
-                print()
             
-            if self.snes.getConvergedReason() < 0:
-                if PETSc.COMM_WORLD.getRank() == 0:
-                    print()
-                    print("Solver not converging...   %i" % (self.snes.getConvergedReason()))
-                    print()
+#             # nonlinear solve
+#             self.snes.solve(None, self.x)
+#             
+#             # output some solver info
+#             if PETSc.COMM_WORLD.getRank() == 0:
+#                 print()
+#                 print("  Nonlin Solver:  %5i iterations,   funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
+#                 print()
+#             
+#             if self.snes.getConvergedReason() < 0:
+#                 if PETSc.COMM_WORLD.getRank() == 0:
+#                     print()
+#                     print("Solver not converging...   %i" % (self.snes.getConvergedReason()))
+#                     print()
            
            
 #             if PETSc.COMM_WORLD.getRank() == 0:
@@ -770,12 +788,12 @@ class petscVP1D():
             
             
 #            # some solver output
-            phisum = self.p.sum()
+#             phisum = self.p.sum()
 #            
 #            
-            if PETSc.COMM_WORLD.getRank() == 0:
+#             if PETSc.COMM_WORLD.getRank() == 0:
 #                print("     Solver")
-                print("     sum(phi) = %24.16E" % (phisum))
+#                 print("     sum(phi) = %24.16E" % (phisum))
 ##                print("     Solver:   %5i iterations,   sum(phi) = %24.16E" % (phisum))
 ##                print("                               res(solver)  = %24.16E" % (res_solver))
 ##                print("                               res(vlasov)  = %24.16E" % (res_vlasov))
