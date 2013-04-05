@@ -87,13 +87,13 @@ class petscVP1D():
         
 #         OptDB.setValue('snes_lag_preconditioner', 3)
         
-        OptDB.setValue('snes_ls', 'basic')
+#         OptDB.setValue('snes_ls', 'basic')
         
-        OptDB.setValue('ksp_monitor',  '')
-        OptDB.setValue('snes_monitor', '')
+#         OptDB.setValue('ksp_monitor',  '')
+#         OptDB.setValue('snes_monitor', '')
         
-#        OptDB.setValue('log_info',    '')
-#        OptDB.setValue('log_summary', '')
+#         OptDB.setValue('log_info',    '')
+#         OptDB.setValue('log_summary', '')
         
         
         # create DA for 2d grid (f only)
@@ -733,6 +733,13 @@ class petscVP1D():
             self.copy_a_to_x()
             
             
+            self.petsc_function.mult(self.x, self.b)
+            fnorm = self.b.norm()
+            
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("  Initial Guess:                         funcnorm = %24.16E" % (fnorm) )
+            
+            
             # nonlinear solve
             i = 0
             while True:
@@ -745,7 +752,7 @@ class petscVP1D():
                 
                 if fnorm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
                     if PETSc.COMM_WORLD.getRank() == 0:
-                        print("  Nonlin Solver:  %5i iterations,   funcnorm = %24.16E" % (i, fnorm) )
+                        print("  Nonlinear Solver:  %5i iterations,   funcnorm = %24.16E" % (i, fnorm) )
                 
                     break
             
