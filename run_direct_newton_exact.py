@@ -87,6 +87,8 @@ class petscVP1D():
         
 #         OptDB.setValue('snes_lag_preconditioner', 3)
         
+        OptDB.setValue('snes_ls', 'basic')
+        
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
         
@@ -238,16 +240,16 @@ class petscVP1D():
         
         self.ksp = None
         
-#         # create linear solver
-#         self.snes_linear = PETSc.SNES().create()
-#         self.snes_linear.setType('ksponly')
-#         self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
-#         self.snes_linear.setJacobian(self.updateMatrix, self.A)
-#         self.snes_linear.setFromOptions()
-#         self.snes_linear.getKSP().setType('preonly')
-#         self.snes_linear.getKSP().getPC().setType('lu')
-# #        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-#         self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+        # create linear solver
+        self.snes_linear = PETSc.SNES().create()
+        self.snes_linear.setType('ksponly')
+        self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
+        self.snes_linear.setJacobian(self.updateMatrix, self.A)
+        self.snes_linear.setFromOptions()
+        self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().getPC().setType('lu')
+#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
 
         
         # create nonlinear solver
@@ -435,8 +437,8 @@ class petscVP1D():
         self.poisson_mat.formRHS(self.n, self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
-        phisum = self.p.sum()
-        
+#         phisum = self.p.sum()
+#         
 #         self.copy_p_to_x()
 #         self.copy_p_to_h()
         
@@ -712,15 +714,22 @@ class petscVP1D():
             
             
             # calculate initial guess
-            for i in range(0,100):
-                self.initial_guess_rk4()
+#             for i in range(0,100):
+#                 self.initial_guess_rk4()
 #             self.initial_guess_rk4()
-
-            if PETSc.COMM_WORLD.getRank() == 0:
-                print("     RK4")
-            
-            
+# 
+#             if PETSc.COMM_WORLD.getRank() == 0:
+#                 print("     RK4")
+#             
+#             
 #             self.initial_guess()
+            
+            self.snes_linear.solve(None, self.x)
+            self.update_data_vectors()
+            
+            # compute correct collision factor
+            self.calculate_collision_factor()
+            self.copy_a_to_x()
             
             
             # nonlinear solve
