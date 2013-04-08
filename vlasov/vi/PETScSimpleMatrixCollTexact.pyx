@@ -181,16 +181,30 @@ cdef class PETScMatrix(object):
                 A.setValueStencil(row, col, 1.)
                 
             else:
-                # charge density
+#                 # charge density
+#                 for index, value in [
+#                         ((i-1,), 0.25 * self.charge),
+#                         ((i,  ), 0.50 * self.charge),
+#                         ((i+1,), 0.25 * self.charge),
+#                     ]:
+#                        
+#                     col.index = index
+#                     col.field = self.nv+1
+#                     A.setValueStencil(row, col, value)
+                
+                
+                # charge density (velocity integral of f)
                 for index, value in [
-                        ((i-1,), 0.25 * self.charge),
-                        ((i,  ), 0.50 * self.charge),
-                        ((i+1,), 0.25 * self.charge),
+                        ((i-1,), 0.25 * self.charge * self.hv),
+                        ((i,  ), 0.50 * self.charge * self.hv),
+                        ((i+1,), 0.25 * self.charge * self.hv),
                     ]:
-                       
+                        
                     col.index = index
-                    col.field = self.nv+1
-                    A.setValueStencil(row, col, value)
+                    
+                    for j in np.arange(0, self.nv):
+                        col.field = j
+                        A.setValueStencil(row, col, value)
                 
                 
                 # Laplace operator
@@ -454,6 +468,7 @@ cdef class PETScMatrix(object):
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2
         
 #         cdef np.float64_t nmean = self.Nh.sum() / self.nx
+        cdef np.float64_t nmean = self.Fh.sum() * self.hv / self.nx
         
         
         for i in np.arange(xs, xe):
@@ -465,8 +480,8 @@ cdef class PETScMatrix(object):
                 b[iy, self.nv] = 0.
                 
             else:
-                b[iy, self.nv] = self.charge
-#                 b[iy, self.nv] = nmean * self.charge
+#                 b[iy, self.nv] = self.charge
+                b[iy, self.nv] = nmean * self.charge
             
             
             # moments
@@ -530,6 +545,7 @@ cdef class PETScMatrix(object):
         cdef np.float64_t laplace, integral
         
 #         cdef np.float64_t nmean = self.N.sum() / self.nx
+        cdef np.float64_t nmean = self.F.sum() * self.hv / self.nx
         
         (xs, xe), = self.da2.getRanges()
         
@@ -591,8 +607,8 @@ cdef class PETScMatrix(object):
                 laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
                 integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
                 
-                y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
-#                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+#                 y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
+                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
             # moments
             y[iy, self.nv+1] = N[ix] / self.hv - (f[ix]            ).sum()

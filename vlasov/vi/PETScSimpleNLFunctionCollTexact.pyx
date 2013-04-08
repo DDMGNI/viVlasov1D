@@ -172,9 +172,10 @@ cdef class PETScFunction(object):
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
-        cdef np.float64_t laplace, integral, nmean
+        cdef np.float64_t laplace, integral
         
-        nmean  = self.Np.sum() / self.nx
+#         cdef np.float64_t nmean = self.Np.sum() / self.nx
+        cdef np.float64_t nmean = self.Fp.sum() * self.hv / self.nx
         
         (xs, xe), = self.da2.getRanges()
         
@@ -235,10 +236,16 @@ cdef class PETScFunction(object):
             else:
                     
                 laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
-                integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
+#                 integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
+                integral = ( \
+                             + 1. * fp[ix-1, :].sum() \
+                             + 2. * fp[ix,   :].sum() \
+                             + 1. * fp[ix+1, :].sum() \
+                           ) * 0.25 * self.hv
+                
 
-#                 y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
-                y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
+                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+#                 y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
             
             
             # moments

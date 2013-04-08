@@ -188,7 +188,6 @@ cdef class PETScJacobian(object):
         
         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
-        cdef np.float64_t poss_fac = 0.25 * self.charge
         
         cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
         cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
@@ -211,17 +210,31 @@ cdef class PETScJacobian(object):
                 A.setValueStencil(row, col, 1.)
                 
             else:
-                # charge density
+#                 # charge density
+#                 for index, value in [
+#                         ((i-1,), 0.25 * self.charge),
+#                         ((i,  ), 0.50 * self.charge),
+#                         ((i+1,), 0.25 * self.charge),
+#                     ]:
+#                        
+#                     col.index = index
+#                     col.field = self.nv+1
+#                     A.setValueStencil(row, col, value)
+                
+                # charge density (velocity integral of f)
                 for index, value in [
-                        ((i-1,), 1. * poss_fac),
-                        ((i,  ), 2. * poss_fac),
-                        ((i+1,), 1. * poss_fac),
+                        ((i-1,), 0.25 * self.charge * self.hv),
+                        ((i,  ), 0.50 * self.charge * self.hv),
+                        ((i+1,), 0.25 * self.charge * self.hv),
                     ]:
-                       
+                        
                     col.index = index
-                    col.field = self.nv+1
-                    A.setValueStencil(row, col, value)
-
+                    
+                    for j in np.arange(0, self.nv):
+                        col.field = j
+                        A.setValueStencil(row, col, value)
+                
+                
                 # Laplace operator
                 for index, value in [
                         ((i-1,), - 1. * self.hx2_inv),
