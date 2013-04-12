@@ -174,8 +174,7 @@ cdef class PETScFunction(object):
         
         cdef np.float64_t laplace, integral
         
-#         cdef np.float64_t nmean = self.Np.sum() / self.nx
-        cdef np.float64_t nmean = self.Fp.sum() * self.hv / self.nx
+        cdef np.float64_t nmean = self.Np.sum() / self.nx
         
         (xs, xe), = self.da2.getRanges()
         
@@ -230,22 +229,10 @@ cdef class PETScFunction(object):
             iy = i-xs
             
             # Poisson equation
-            if i == 0:
-                y[iy, self.nv] = Pp[ix]
+            laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
+            integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
             
-            else:
-                    
-                laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
-#                 integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
-                integral = ( \
-                             + 1. * fp[ix-1, :].sum() \
-                             + 2. * fp[ix,   :].sum() \
-                             + 1. * fp[ix+1, :].sum() \
-                           ) * 0.25 * self.hv
-                
-
-                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
-#                 y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
+            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
             
             # moments

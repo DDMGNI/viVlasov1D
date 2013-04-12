@@ -72,22 +72,14 @@ cdef class PETScPoissonMatrix(object):
             row.field = 0
             col.field = 0
             
-            if i == 0:
-                A.setValueStencil(row, row, 1.)
+            for index, value in [
+                    ((i-1,), -1. * self.hx2_inv),
+                    ((i,  ), +2. * self.hx2_inv),
+                    ((i+1,), -1. * self.hx2_inv),
+                ]:
                 
-#                for j in np.arange(0, self.nx):
-#                    col.index = (j,)
-#                    A.setValueStencil(row, col, 1.)
-            
-            else:
-                for index, value in [
-                        ((i-1,), -1. * self.hx2_inv),
-                        ((i,  ), +2. * self.hx2_inv),
-                        ((i+1,), -1. * self.hx2_inv),
-                    ]:
-                    
-                    col.index = index
-                    A.setValueStencil(row, col, value)
+                col.index = index
+                A.setValueStencil(row, col, value)
             
         
         A.assemble()
@@ -112,9 +104,5 @@ cdef class PETScPoissonMatrix(object):
             ix = i - xs + 1
             iy = i - xs
             
-            if i == 0:
-                b[iy] = 0.
-                
-            else:
-                b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.poisson_const
+            b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.poisson_const
         

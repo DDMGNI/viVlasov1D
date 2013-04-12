@@ -467,8 +467,7 @@ cdef class PETScMatrix(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2
         
-#         cdef np.float64_t nmean = self.Nh.sum() / self.nx
-        cdef np.float64_t nmean = self.Fh.sum() * self.hv / self.nx
+        cdef np.float64_t nmean = self.Nh.sum() / self.nx
         
         
         for i in np.arange(xs, xe):
@@ -476,12 +475,7 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            if i == 0:
-                b[iy, self.nv] = 0.
-                
-            else:
-#                 b[iy, self.nv] = self.charge
-                b[iy, self.nv] = nmean * self.charge
+            b[iy, self.nv] = nmean * self.charge
             
             
             # moments
@@ -544,8 +538,7 @@ cdef class PETScMatrix(object):
         
         cdef np.float64_t laplace, integral
         
-#         cdef np.float64_t nmean = self.N.sum() / self.nx
-        cdef np.float64_t nmean = self.F.sum() * self.hv / self.nx
+        cdef np.float64_t nmean = self.N.sum() / self.nx
         
         (xs, xe), = self.da2.getRanges()
         
@@ -598,17 +591,11 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
+            laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
+            integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
             
-            if i == 0:
-                y[iy, self.nv] = p[ix]
+            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
-            else:
-                    
-                laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
-                integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
-                
-#                 y[iy, self.nv] = - laplace + self.charge * (integral - 1.)
-                y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
             # moments
             y[iy, self.nv+1] = N[ix] / self.hv - (f[ix]            ).sum()

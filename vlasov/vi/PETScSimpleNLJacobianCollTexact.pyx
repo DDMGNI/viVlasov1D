@@ -204,47 +204,27 @@ cdef class PETScJacobian(object):
             row.index = (i,)
             row.field = self.nv
             
-            if i == 0:
-                col.index = (i,)
+            # charge density
+            for index, value in [
+                    ((i-1,), 0.25 * self.charge),
+                    ((i,  ), 0.50 * self.charge),
+                    ((i+1,), 0.25 * self.charge),
+                ]:
+                    
+                col.index = index
+                col.field = self.nv+1
+                A.setValueStencil(row, col, value)
+            
+            # Laplace operator
+            for index, value in [
+                    ((i-1,), - 1. * self.hx2_inv),
+                    ((i,  ), + 2. * self.hx2_inv),
+                    ((i+1,), - 1. * self.hx2_inv),
+                ]:
+                
+                col.index = index
                 col.field = self.nv
-                A.setValueStencil(row, col, 1.)
-                
-            else:
-#                 # charge density
-#                 for index, value in [
-#                         ((i-1,), 0.25 * self.charge),
-#                         ((i,  ), 0.50 * self.charge),
-#                         ((i+1,), 0.25 * self.charge),
-#                     ]:
-#                        
-#                     col.index = index
-#                     col.field = self.nv+1
-#                     A.setValueStencil(row, col, value)
-                
-                # charge density (velocity integral of f)
-                for index, value in [
-                        ((i-1,), 0.25 * self.charge * self.hv),
-                        ((i,  ), 0.50 * self.charge * self.hv),
-                        ((i+1,), 0.25 * self.charge * self.hv),
-                    ]:
-                        
-                    col.index = index
-                    
-                    for j in np.arange(0, self.nv):
-                        col.field = j
-                        A.setValueStencil(row, col, value)
-                
-                
-                # Laplace operator
-                for index, value in [
-                        ((i-1,), - 1. * self.hx2_inv),
-                        ((i,  ), + 2. * self.hx2_inv),
-                        ((i+1,), - 1. * self.hx2_inv),
-                    ]:
-                    
-                    col.index = index
-                    col.field = self.nv
-                    A.setValueStencil(row, col, value)
+                A.setValueStencil(row, col, value)
                     
         
         

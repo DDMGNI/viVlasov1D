@@ -135,6 +135,8 @@ class petscVP1D():
         self.dax.setUniformCoordinates(xmin=0.0,  xmax=L)
         self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
         
+        # get local index ranges
+        (xs, xe), = self.da1.getRanges()
         
         # get coordinate vectors
         coords_x = self.dax.getCoordinates()
@@ -166,9 +168,11 @@ class petscVP1D():
         # create solution and RHS vector
         self.x  = self.da2.createGlobalVec()
         self.b  = self.da2.createGlobalVec()
+        self.x_nvec = self.da2.createGlobalVec()
         
         # create solution and RHS vector for Vlasov and Poisson solver
         self.pb = self.dax.createGlobalVec()
+        self.p_nvec = self.dax.createGlobalVec()
         
         # create vectors for
         # Hamiltonians
@@ -201,9 +205,21 @@ class petscVP1D():
         self.p_ext.setName('phi_ext')
         
         
-        # initialise kinetic hamiltonian
-        (xs, xe), = self.da1.getRanges()
+        # initialise nullspace basis vectors
+        self.p_nvec.set(1.)
+        self.p_nvec.normalize()
         
+        self.x_nvec.set(0.)
+        x_nvec_arr = self.da2.getVecArray(self.x_nvec)[...]
+        p_nvec_arr = self.dax.getVecArray(self.p_nvec)[...]
+        
+        x_nvec_arr[:, self.nv] = p_nvec_arr[:]  
+        self.x_nvec.normalize()
+        
+        self.nullspace = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
+        
+        
+        # initialise kinetic hamiltonian
         h0_arr = self.da1.getVecArray(self.h0)
         
         for i in range(xs, xe):
@@ -249,6 +265,8 @@ class petscVP1D():
 #        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
 
+#         self.snes_linear_nsp = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
+#         self.snes_linear.getKSP().setNullSpace(self.snes_linear_nsp)
         
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
@@ -261,6 +279,9 @@ class petscVP1D():
         self.snes.getKSP().getPC().setType('lu')
 #        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
         self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
+        
+#         self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
+#         self.snes.getKSP().setNullSpace(self.snes_nsp)
         
         
         # create Poisson object
@@ -281,6 +302,9 @@ class petscVP1D():
         self.poisson_ksp.getPC().setType('lu')
 #        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
         self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+        
+        self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
+        self.poisson_ksp.setNullSpace(self.poisson_nsp)
         
         
         
@@ -631,11 +655,19 @@ class petscVP1D():
     
     def updateMatrix(self, snes, X, J, P):
         self.petsc_matrix.formMat(J)
+        
+        J.setNullSpace(self.nullspace)
+        if J != P:
+            P.setNullSpace(self.nullspace)
     
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
         self.petsc_jacobian.formMat(J)
+        
+        J.setNullSpace(self.nullspace)
+        if J != P:
+            P.setNullSpace(self.nullspace)
         
     
 #     def initial_guess(self):
@@ -680,6 +712,7 @@ class petscVP1D():
             # calculate initial guess
             self.snes_linear.solve(None, self.x)
  
+            self.copy_x_to_p()
             self.copy_x_to_n()
             self.copy_x_to_u()
             self.copy_x_to_e()
