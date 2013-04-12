@@ -213,7 +213,7 @@ class petscVP1D():
         x_nvec_arr = self.da2.getVecArray(self.x_nvec)[...]
         p_nvec_arr = self.dax.getVecArray(self.p_nvec)[...]
         
-        x_nvec_arr[:, self.nv] = p_nvec_arr[:]  
+        x_nvec_arr[:, self.nv] = 1.  
         self.x_nvec.normalize()
         
         self.nullspace = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
