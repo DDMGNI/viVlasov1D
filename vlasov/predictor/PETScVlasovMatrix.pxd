@@ -13,7 +13,7 @@ from petsc4py.PETSc cimport DA, Mat, Vec
 from vlasov.predictor.PETScArakawa cimport PETScArakawa
 
 
-cdef class PETScMatrix(object):
+cdef class PETScVlasovMatrix(object):
 
     cdef np.uint64_t  nx
     cdef np.uint64_t  nv
@@ -24,8 +24,8 @@ cdef class PETScMatrix(object):
     
     cdef np.float64_t time_fac
     cdef np.float64_t arak_fac
-    cdef np.float64_t dvdv_fac
-    cdef np.float64_t coll_fac 
+#     cdef np.float64_t dvdv_fac
+#     cdef np.float64_t coll_fac 
     
     cdef np.ndarray v
     
@@ -34,13 +34,13 @@ cdef class PETScMatrix(object):
     cdef DA dax
     cdef DA da1
     
-    cdef Vec VF
+#     cdef Vec VF
     cdef Vec H0
     
     cdef Vec localB
     cdef Vec localFh
     
-    cdef Vec localVF
+#     cdef Vec localVF
     cdef Vec localH0
     cdef Vec localH1
     
@@ -50,8 +50,8 @@ cdef class PETScMatrix(object):
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
                                             np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j)
+#     cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+#                                  np.uint64_t i, np.uint64_t j)
+#     
+#     cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+#                                  np.uint64_t i, np.uint64_t j)

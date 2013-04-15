@@ -16,7 +16,7 @@ from petsc4py.PETSc cimport DA, Mat, Vec#, PetscMat, PetscScalar
 from vlasov.predictor.PETScArakawa import PETScArakawa
 
 
-cdef class PETScMatrix(object):
+cdef class PETScVlasovMatrix(object):
     '''
     The ScipySparse class implements a couple of solvers for the Vlasov-Poisson system
     built on top of the SciPy Sparse package.
@@ -26,7 +26,7 @@ cdef class PETScMatrix(object):
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.float64_t alpha=0.):
+                 np.float64_t coll_freq=0.):
         '''
         Constructor
         '''
@@ -45,8 +45,8 @@ cdef class PETScMatrix(object):
         
         self.time_fac = 1.0 / (16. * self.ht)
         self.arak_fac = 0.5 / (12. * self.hx * self.hv)
-        self.dvdv_fac = 0.5 * self.alpha * 0.25 / self.hv**2
-        self.coll_fac = 0.5 * self.alpha * 0.25 * 0.5 / self.hv 
+#         self.dvdv_fac = 0.5 * self.alpha * 0.25 / self.hv**2
+#         self.coll_fac = 0.5 * self.alpha * 0.25 * 0.5 / self.hv 
         
         
         # velocity grid
@@ -56,33 +56,33 @@ cdef class PETScMatrix(object):
         self.H0 = H0
         
         # collision parameter
-        self.alpha = alpha
+        self.alpha = coll_freq
         
         # create working vectors
-        self.VF  = self.da1.createGlobalVec()
+#         self.VF  = self.da1.createGlobalVec()
         
         # create local vectors
         self.localB   = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
         self.localH0  = da1.createLocalVec()
         self.localH1  = da1.createLocalVec()
-        self.localVF  = da1.createLocalVec()
+#         self.localVF  = da1.createLocalVec()
 
         # create Arakawa solver object
         self.arakawa     = PETScArakawa(da1, nx, nv, hx, hv)
         
     
-    @cython.boundscheck(False)
-    def calculate_moments(self, Vec F):
-        cdef np.uint64_t xe, xs, ye, ys
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
-        
-        for j in np.arange(0, ye-ys):
-            vf[:, j] = gf[:, j] * self.v[j]
+#     @cython.boundscheck(False)
+#     def calculate_moments(self, Vec F):
+#         cdef np.uint64_t xe, xs, ye, ys
+#         
+#         (xs, xe), (ys, ye) = self.da1.getRanges()
+#         
+#         cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
+#         cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
+#         
+#         for j in np.arange(0, ye-ys):
+#             vf[:, j] = gf[:, j] * self.v[j]
         
         
     
@@ -121,44 +121,19 @@ cdef class PETScMatrix(object):
                 
                 else:
                     for index, field, value in [
-                            ((i-1,), j-1, 1. * self.time_fac \
-                                        - (h[ix-1, j  ] - h[ix,   j-1]) * self.arak_fac \
-                                        - 1. * self.dvdv_fac),
-                                                
-                            ((i-1,), j  , 2. * self.time_fac \
-                                        - (h[ix,   j+1] - h[ix,   j-1]) * self.arak_fac \
-                                        - (h[ix-1, j+1] - h[ix-1, j-1]) * self.arak_fac \
-                                        + 2. * self.dvdv_fac),
-                                                
-                            ((i-1,), j+1, 1. * self.time_fac \
-                                        - (h[ix,   j+1] - h[ix-1, j  ]) * self.arak_fac \
-                                        - 1. * self.dvdv_fac),
-                                                
-                            ((i,  ), j-1, 2. * self.time_fac \
-                                        + (h[ix+1, j  ] - h[ix-1, j  ]) * self.arak_fac \
-                                        + (h[ix+1, j-1] - h[ix-1, j-1]) * self.arak_fac \
-                                        - 2. * self.dvdv_fac),
-                                                
-                            ((i,  ), j  , 4. * self.time_fac \
-                                        + 4. * self.dvdv_fac),
-                                                
-                            ((i,  ), j+1, 2. * self.time_fac \
-                                        - (h[ix+1, j  ] - h[ix-1, j  ]) * self.arak_fac \
-                                        - (h[ix+1, j+1] - h[ix-1, j+1]) * self.arak_fac \
-                                        - 2. * self.dvdv_fac),
-                                                
-                            ((i+1,), j-1, 1. * self.time_fac \
-                                        + (h[ix+1, j  ] - h[ix,   j-1]) * self.arak_fac \
-                                        - 1. * self.dvdv_fac),
-                                                
-                            ((i+1,), j  , 2. * self.time_fac \
-                                        + (h[ix,   j+1] - h[ix,   j-1]) * self.arak_fac \
-                                        + (h[ix+1, j+1] - h[ix+1, j-1]) * self.arak_fac \
-                                        + 2. * self.dvdv_fac),
-                                                
-                            ((i+1,), j+1, 1. * self.time_fac \
-                                        + (h[ix,   j+1] - h[ix+1, j  ]) * self.arak_fac \
-                                        - 1. * self.dvdv_fac),
+                            ((i-1,), j-1, 1. * self.time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * self.arak_fac),
+                            ((i-1,), j  , 2. * self.time_fac - (h[ix,   j+1] - h[ix,   j-1]) * self.arak_fac \
+                                                             - (h[ix-1, j+1] - h[ix-1, j-1]) * self.arak_fac),
+                            ((i-1,), j+1, 1. * self.time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * self.arak_fac),
+                            ((i,  ), j-1, 2. * self.time_fac + (h[ix+1, j  ] - h[ix-1, j  ]) * self.arak_fac \
+                                                             + (h[ix+1, j-1] - h[ix-1, j-1]) * self.arak_fac),
+                            ((i,  ), j  , 4. * self.time_fac),
+                            ((i,  ), j+1, 2. * self.time_fac - (h[ix+1, j  ] - h[ix-1, j  ]) * self.arak_fac \
+                                                             - (h[ix+1, j+1] - h[ix-1, j+1]) * self.arak_fac),
+                            ((i+1,), j-1, 1. * self.time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * self.arak_fac),
+                            ((i+1,), j  , 2. * self.time_fac + (h[ix,   j+1] - h[ix,   j-1]) * self.arak_fac \
+                                                             + (h[ix+1, j+1] - h[ix+1, j-1]) * self.arak_fac),
+                            ((i+1,), j+1, 1. * self.time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * self.arak_fac),
                         ]:
                         
                         col.index = index
@@ -206,8 +181,8 @@ cdef class PETScMatrix(object):
                     
                 else:
                     b[iy, j] = self.time_derivative(fh, ix, j) \
-                             - 0.5 * self.arakawa.arakawa(fh, h,  ix, j) \
-                             + self.dvdv(fh,  ix, j) #\
+                             - 0.5 * self.arakawa.arakawa(fh, h,  ix, j)# \
+#                              + self.dvdv(fh,  ix, j) #\
 #                             + self.coll(vfh, ix, j)
     
 
@@ -237,46 +212,46 @@ cdef class PETScMatrix(object):
     
     
     
-    @cython.boundscheck(False)
-    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * x[i-1, j-1] \
-                     + 1. * x[i-1, j+1] \
-                     - 2. * x[i-1, j  ] \
-                     + 1. * x[i+1, j-1] \
-                     + 1. * x[i+1, j+1] \
-                     - 2. * x[i+1, j  ] \
-                     + 2. * x[i,   j-1] \
-                     + 2. * x[i,   j+1] \
-                     - 4. * x[i,   j  ] \
-                 ) * self.dvdv_fac
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * ( x[i-1, j+1] - x[i-1, j-1] ) \
-                   + 2. * ( x[i,   j+1] - x[i,   j-1] ) \
-                   + 1. * ( x[i+1, j+1] - x[i+1, j-1] ) \
-                 ) * self.coll_fac
-        
-        return result
+#     @cython.boundscheck(False)
+#     cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
+#                                  np.uint64_t i, np.uint64_t j):
+#         '''
+#         Time Derivative
+#         '''
+#         
+#         cdef np.float64_t result
+#         
+#         result = ( \
+#                      + 1. * x[i-1, j-1] \
+#                      + 1. * x[i-1, j+1] \
+#                      - 2. * x[i-1, j  ] \
+#                      + 1. * x[i+1, j-1] \
+#                      + 1. * x[i+1, j+1] \
+#                      - 2. * x[i+1, j  ] \
+#                      + 2. * x[i,   j-1] \
+#                      + 2. * x[i,   j+1] \
+#                      - 4. * x[i,   j  ] \
+#                  ) * self.dvdv_fac
+#         
+#         return result
+#     
+#     
+#     
+#     @cython.boundscheck(False)
+#     cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
+#                                  np.uint64_t i, np.uint64_t j):
+#         '''
+#         Time Derivative
+#         '''
+#         
+#         cdef np.float64_t result
+#         
+#         result = ( \
+#                    + 1. * ( x[i-1, j+1] - x[i-1, j-1] ) \
+#                    + 2. * ( x[i,   j+1] - x[i,   j-1] ) \
+#                    + 1. * ( x[i+1, j+1] - x[i+1, j-1] ) \
+#                  ) * self.coll_fac
+#         
+#         return result
     
     
