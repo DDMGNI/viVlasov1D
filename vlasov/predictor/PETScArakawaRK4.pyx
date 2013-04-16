@@ -84,22 +84,22 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getVecArray(self.localX )[...]
         
         tx1 = self.da1.getVecArray(self.X1)[...]
-        self.toolbox.arakawa_timestep_J1(x, tx1, h0, h1)
+        self.toolbox.arakawa_J1_timestep(x, tx1, h0, h1)
         
         self.da1.globalToLocal(self.X1, self.localX1)
         tx1 = self.da1.getVecArray(self.localX1)[...]
         tx2 = self.da1.getVecArray(self.X2)[...]
-        self.toolbox.arakawa_timestep_J1(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.toolbox.arakawa_J1_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         self.da1.globalToLocal(self.X2, self.localX2)
         tx2 = self.da1.getVecArray(self.localX2)[...]
         tx3 = self.da1.getVecArray(self.X3)[...]
-        self.toolbox.arakawa_timestep_J1(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.toolbox.arakawa_J1_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         self.da1.globalToLocal(self.X3, self.localX3)
         tx3 = self.da1.getVecArray(self.localX3)[...]
         tx4 = self.da1.getVecArray(self.X4)[...]
-        self.toolbox.arakawa_timestep_J1(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.toolbox.arakawa_J1_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getVecArray(X)[...]
         tx1 = self.da1.getVecArray(self.X1)[...]
@@ -130,22 +130,22 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getVecArray(self.localX )[...]
         
         tx1 = self.da1.getVecArray(self.X1)[...]
-        self.toolbox.arakawa_timestep_J2(x, tx1, h0, h1)
+        self.toolbox.arakawa_J2_timestep(x, tx1, h0, h1)
         
         self.da1.globalToLocal(self.X1, self.localX1)
         tx1 = self.da1.getVecArray(self.localX1)[...]
         tx2 = self.da1.getVecArray(self.X2)[...]
-        self.toolbox.arakawa_timestep_J2(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.toolbox.arakawa_J2_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         self.da1.globalToLocal(self.X2, self.localX2)
         tx2 = self.da1.getVecArray(self.localX2)[...]
         tx3 = self.da1.getVecArray(self.X3)[...]
-        self.toolbox.arakawa_timestep_J2(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.toolbox.arakawa_J2_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         self.da1.globalToLocal(self.X3, self.localX3)
         tx3 = self.da1.getVecArray(self.localX3)[...]
         tx4 = self.da1.getVecArray(self.X4)[...]
-        self.toolbox.arakawa_timestep_J2(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.toolbox.arakawa_J2_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getVecArray(X)[...]
         tx1 = self.da1.getVecArray(self.X1)[...]
@@ -176,22 +176,22 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getVecArray(self.localX )[...]
         
         tx1 = self.da1.getVecArray(self.X1)[...]
-        self.toolbox.arakawa_timestep_J4(x, tx1, h0, h1)
+        self.toolbox.arakawa_J4_timestep(x, tx1, h0, h1)
         
         self.da1.globalToLocal(self.X1, self.localX1)
         tx1 = self.da1.getVecArray(self.localX1)[...]
         tx2 = self.da1.getVecArray(self.X2)[...]
-        self.toolbox.arakawa_timestep_J4(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.toolbox.arakawa_J4_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         self.da1.globalToLocal(self.X2, self.localX2)
         tx2 = self.da1.getVecArray(self.localX2)[...]
         tx3 = self.da1.getVecArray(self.X3)[...]
-        self.toolbox.arakawa_timestep_J4(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.toolbox.arakawa_J4_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         self.da1.globalToLocal(self.X3, self.localX3)
         tx3 = self.da1.getVecArray(self.localX3)[...]
         tx4 = self.da1.getVecArray(self.X4)[...]
-        self.toolbox.arakawa_timestep_J4(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.toolbox.arakawa_J4_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getVecArray(X)[...]
         tx1 = self.da1.getVecArray(self.X1)[...]
