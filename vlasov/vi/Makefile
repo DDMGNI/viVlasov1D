@@ -5,7 +5,7 @@ all:
 
 
 clean:
-	rm *.c
-	rm *.so
-	rm -R build
+	rm -f *.c
+	rm -f *.so
+	rm -fR build
 

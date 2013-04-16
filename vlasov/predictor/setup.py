@@ -44,13 +44,6 @@ INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.0.0/intel64/include']
 
 
 ext_modules = [
-        Extension("PETScArakawa",
-                  sources=["PETScArakawa.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
         Extension("PETScArakawaRK4",
                   sources=["PETScArakawaRK4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

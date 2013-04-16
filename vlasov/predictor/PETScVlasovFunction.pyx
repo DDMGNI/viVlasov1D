@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScVlasovFunction(object):
@@ -20,7 +20,8 @@ cdef class PETScVlasovFunction(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA dax, Vec H0,
+    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+                 np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
         '''
@@ -58,8 +59,8 @@ cdef class PETScVlasovFunction(object):
         self.localH1  = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
         
-        # create Arakawa solver object
-        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
     def update_history(self, Vec F, Vec H1):
@@ -107,32 +108,9 @@ cdef class PETScVlasovFunction(object):
                     y[iy, jy] = 0.0
                     
                 else:
-                    y[iy, jy] = self.time_derivative(f,  ix, jx) \
-                              - self.time_derivative(fh, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(f,  h0 + h1h, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(fh, h0 + h1,  ix, jx)
-                    
-        
+                    y[iy, jy] = self.toolbox.time_derivative_J1(f,  ix, jx) \
+                              - self.toolbox.time_derivative_J1(fh, ix, jx) \
+                              + 0.5 * self.toolbox.arakawa_J1(f,  h0 + h1h, ix, jx) \
+                              + 0.5 * self.toolbox.arakawa_J1(fh, h0 + h1,  ix, jx)
     
-#    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
-                                            np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * x[i-1, j-1] \
-                   + 2. * x[i-1, j  ] \
-                   + 1. * x[i-1, j+1] \
-                   + 2. * x[i,   j-1] \
-                   + 4. * x[i,   j  ] \
-                   + 2. * x[i,   j+1] \
-                   + 1. * x[i+1, j-1] \
-                   + 2. * x[i+1, j  ] \
-                   + 1. * x[i+1, j+1] \
-                 ) / (16. * self.ht)
-        
-        return result
+    

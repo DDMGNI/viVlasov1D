@@ -14,7 +14,7 @@ from petsc4py cimport PETSc
 
 from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 
-from vlasov.vi.Toolbox import Toolbox
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScFunction(object):

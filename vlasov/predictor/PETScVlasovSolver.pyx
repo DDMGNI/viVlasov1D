@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScVlasovSolver(object):
@@ -20,11 +20,11 @@ cdef class PETScVlasovSolver(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, Vec H0,
+    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 alpha=0.0):
+                 coll_freq=0.0):
         '''
         Constructor
         '''
@@ -46,7 +46,7 @@ cdef class PETScVlasovSolver(object):
         self.hv2     = hv**2
         self.hv2_inv = 1. / self.hv2 
         
-        self.alpha = alpha
+        self.nu = coll_freq
         
         # velocity grid
         self.v = v.copy()
@@ -58,9 +58,6 @@ cdef class PETScVlasovSolver(object):
         self.Fh  = self.da1.createGlobalVec()
         self.H1  = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
-
-        self.VF  = self.da1.createGlobalVec()
-        self.VFh = self.da1.createGlobalVec()
         
         # create local vectors
         self.localB   = da1.createLocalVec()
@@ -70,12 +67,9 @@ cdef class PETScVlasovSolver(object):
         self.localH0  = da1.createLocalVec()
         self.localH1  = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
-
-        self.localVF  = da1.createLocalVec()
-        self.localVFh = da1.createLocalVec()
         
-        # create Arakawa solver object
-        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
     def update_potential(self, Vec H1):
@@ -85,23 +79,6 @@ cdef class PETScVlasovSolver(object):
     def update_history(self, Vec F, Vec H1):
         F.copy(self.Fh)
         H1.copy(self.H1h)
-        
-        self.calculate_moments(F)
-        self.VF.copy(self.VFh)
-        
-    
-    @cython.boundscheck(False)
-    def calculate_moments(self, Vec F):
-        cdef np.int64_t j, xe, xs
-        
-        (xs, xe), = self.da1.getRanges()
-        
-        cdef np.ndarray[np.float64_t, ndim=2] gf = self.da1.getVecArray(F)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf = self.da1.getVecArray(self.VF)[...]
-        
-        for j in np.arange(0, self.nv):
-            vf[:, j] = gf[:, j] * self.v[j]
-        
         
     
     def mult(self, Mat mat, Vec X, Vec Y):
@@ -118,7 +95,6 @@ cdef class PETScVlasovSolver(object):
         
         self.da1.globalToLocal(F,        self.localF)
         self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(self.VF,  self.localVF)
         
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.H1,  self.localH1)
@@ -130,7 +106,6 @@ cdef class PETScVlasovSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vf  = self.da1.getVecArray(self.localVF )[...]
         
         
         for i in np.arange(xs, xe):
@@ -144,12 +119,10 @@ cdef class PETScVlasovSolver(object):
                     y[iy, j] = f[ix, j]
                     
                 else:
-                    y[iy, j] = self.time_derivative(f, ix, j) \
-                             + 0.5 * self.arakawa.arakawa(f,  h0,  ix, j) \
-                             + 0.5 * self.arakawa.arakawa(f,  h1h, ix, j) \
-                             + 0.5 * self.arakawa.arakawa(fh, h1,  ix, j) \
-                             - 0.5 * self.alpha * self.dvdv(f,  ix, j) \
-                             - 0.5 * self.alpha * self.coll(vf, ix, j)
+                    y[iy, j] = self.toolbox.time_derivative_J1(f, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J1(f,  h0,  ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J1(f,  h1h, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J1(fh, h1,  ix, j)
                     
         
     
@@ -162,12 +135,10 @@ cdef class PETScVlasovSolver(object):
         
         self.da1.globalToLocal(self.H0,  self.localH0)
         self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(self.VFh, self.localVFh)
         
         cdef np.ndarray[np.float64_t, ndim=2] b   = self.da1.getVecArray(B)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] vfh = self.da1.getVecArray(self.localVFh)[...]
         
         
         for i in np.arange(xs, xe):
@@ -181,77 +152,6 @@ cdef class PETScVlasovSolver(object):
                     b[iy, j] = 0.0
                     
                 else:
-                    b[iy, j] = self.time_derivative(fh, ix, j) \
-                             - 0.5 * self.arakawa.arakawa(fh, h0,  ix, j) \
-                             + 0.5 * self.alpha * self.dvdv(fh,  ix, j) \
-                             + 0.5 * self.alpha * self.coll(vfh, ix, j)
-    
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
-                                            np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * x[i-1, j-1] \
-                   + 2. * x[i-1, j  ] \
-                   + 1. * x[i-1, j+1] \
-                   + 2. * x[i,   j-1] \
-                   + 4. * x[i,   j  ] \
-                   + 2. * x[i,   j+1] \
-                   + 1. * x[i+1, j-1] \
-                   + 2. * x[i+1, j  ] \
-                   + 1. * x[i+1, j+1] \
-                 ) / (16. * self.ht)
-        
-        return result
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t dvdv(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
-        '''
-        d^2 x / dv^2
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                     + 1. * x[i-1, j-1] \
-                     + 1. * x[i-1, j+1] \
-                     - 2. * x[i-1, j  ] \
-                     + 1. * x[i+1, j-1] \
-                     + 1. * x[i+1, j+1] \
-                     - 2. * x[i+1, j  ] \
-                     + 2. * x[i,   j-1] \
-                     + 2. * x[i,   j+1] \
-                     - 4. * x[i,   j  ] \
-                 ) * 0.25 * self.hv2_inv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t coll(self, np.ndarray[np.float64_t, ndim=2] x,
-                                 np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * ( x[i-1, j+1] - x[i-1, j-1] ) \
-                   + 2. * ( x[i,   j+1] - x[i,   j-1] ) \
-                   + 1. * ( x[i+1, j+1] - x[i+1, j-1] ) \
-                 ) * 0.25 / (2. * self.hv)
-        
-        return result
-    
+                    b[iy, j] = self.toolbox.time_derivative_J1(fh, ix, j) \
+                             - 0.5 * self.toolbox.arakawa_J1(fh, h0,  ix, j)
     

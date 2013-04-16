@@ -9,7 +9,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Vec
 
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.Toolbox cimport Toolbox
 
 
 cdef class PETScArakawaRK4(object):
@@ -38,8 +38,4 @@ cdef class PETScArakawaRK4(object):
     cdef Vec localH0
     cdef Vec localH1
     
-    cdef PETScArakawa arakawa
-    
-    
-#    cpdef rk4(self, Vec X, np.ndarray[np.float64_t, ndim=1] h0)
-
+    cdef Toolbox toolbox

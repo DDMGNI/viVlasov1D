@@ -13,7 +13,7 @@ from petsc4py import PETSc
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.vi.Toolbox import Toolbox
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScJacobian(object):

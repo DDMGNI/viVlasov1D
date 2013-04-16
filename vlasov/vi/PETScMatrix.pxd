@@ -10,7 +10,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.vi.Toolbox cimport Toolbox
+from vlasov.Toolbox cimport Toolbox
 
 
 

@@ -13,8 +13,6 @@ from petsc4py import PETSc
 
 from petsc4py.PETSc cimport DA, Mat, Vec  # , PetscMat, PetscScalar
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
-
 
 cdef class PETScPoissonMatrix(object):
     '''
@@ -25,7 +23,7 @@ cdef class PETScPoissonMatrix(object):
     def __init__(self, DA da1, DA dax,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const):
+                 np.float64_t charge):
         '''
         Constructor
         '''
@@ -45,7 +43,7 @@ cdef class PETScPoissonMatrix(object):
         self.hx2_inv = 1. / self.hx2 
         
         # poisson constant
-        self.poisson_const = poisson_const
+        self.charge = charge
         
         # create local vectors
         self.localX = dax.createLocalVec()
@@ -104,5 +102,5 @@ cdef class PETScPoissonMatrix(object):
             ix = i - xs + 1
             iy = i - xs
             
-            b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.poisson_const
+            b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.charge
         

@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScVlasovJacobian(object):
@@ -20,7 +20,8 @@ cdef class PETScVlasovJacobian(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA dax, Vec H0,
+    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+                 np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
         '''
@@ -65,8 +66,8 @@ cdef class PETScVlasovJacobian(object):
         self.localH1p = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
         
-        # create Arakawa solver object
-        self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
     def update_previous(self, Vec F, Vec H1):
@@ -79,7 +80,7 @@ cdef class PETScVlasovJacobian(object):
         H1.copy(self.H1)
         
     
-#    @cython.boundscheck(False)
+    @cython.boundscheck(False)
     def mult(self, Mat mat, Vec X, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
@@ -100,11 +101,9 @@ cdef class PETScVlasovJacobian(object):
         cdef np.ndarray[np.float64_t, ndim=2] df = self.da1.getVecArray(self.localX)[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getVecArray(self.localFp)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] hh = h0 + h1h
         
         
         for i in np.arange(xs, xe):
@@ -120,32 +119,5 @@ cdef class PETScVlasovJacobian(object):
                     y[iy, jy] = df[ix, jx]
                     
                 else:
-                    y[iy, jy] = self.time_derivative(df, ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(df, h0,  ix, jx) \
-                              + 0.5 * self.arakawa.arakawa(df, h1h, ix, jx)
-#                              + 0.5 * self.arakawa.arakawa(df, h0 + h1h, ix, jx)
-                    
-        
-    
-#    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
-                                            np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * x[i-1, j-1] \
-                   + 2. * x[i-1, j  ] \
-                   + 1. * x[i-1, j+1] \
-                   + 2. * x[i,   j-1] \
-                   + 4. * x[i,   j  ] \
-                   + 2. * x[i,   j+1] \
-                   + 1. * x[i+1, j-1] \
-                   + 2. * x[i+1, j  ] \
-                   + 1. * x[i+1, j+1] \
-                 ) / (16. * self.ht)
-        
-        return result
+                    y[iy, jy] = self.toolbox.time_derivative_J1(df, ix, jx) \
+                              + 0.5 * self.toolbox.arakawa_J1(df, hh,  ix, jx)

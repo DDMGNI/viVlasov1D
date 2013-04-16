@@ -10,8 +10,6 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
-
 
 cdef class PETScPoissonMatrix(object):
 
@@ -25,7 +23,7 @@ cdef class PETScPoissonMatrix(object):
     cdef np.float64_t hx2
     cdef np.float64_t hx2_inv
     
-    cdef np.float64_t poisson_const
+    cdef np.float64_t charge
     
     
     cdef DA dax
@@ -33,4 +31,3 @@ cdef class PETScPoissonMatrix(object):
     
     cdef Vec localX
     cdef Vec localN
-    

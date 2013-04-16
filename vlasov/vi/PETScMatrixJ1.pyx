@@ -13,7 +13,7 @@ from petsc4py import PETSc
 
 from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 
-from vlasov.vi.Toolbox import Toolbox
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScMatrix(object):

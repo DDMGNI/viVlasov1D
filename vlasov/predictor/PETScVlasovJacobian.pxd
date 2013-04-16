@@ -10,7 +10,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Mat, Vec
 
-from vlasov.predictor.PETScArakawa cimport PETScArakawa
+from vlasov.Toolbox cimport Toolbox
 
 
 cdef class PETScVlasovJacobian(object):
@@ -48,8 +48,4 @@ cdef class PETScVlasovJacobian(object):
     cdef Vec localH1p
     cdef Vec localH1h
     
-    cdef PETScArakawa arakawa
-
-
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] x,
-                                            np.uint64_t i, np.uint64_t j)
+    cdef Toolbox toolbox

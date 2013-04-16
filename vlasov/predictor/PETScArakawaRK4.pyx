@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport DA, Vec
 
-from vlasov.predictor.PETScArakawa import PETScArakawa
+from vlasov.Toolbox import Toolbox
 
 
 cdef class PETScArakawaRK4(object):
@@ -20,10 +20,10 @@ cdef class PETScArakawaRK4(object):
     '''
     
     
-    def __cinit__(self, DA da1, Vec H0,
-                  np.uint64_t nx, np.uint64_t nv,
-                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                  PETScArakawa arakawa = None):
+    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+                 np.ndarray[np.float64_t, ndim=1] v,
+                 np.uint64_t nx, np.uint64_t nv,
+                 np.float64_t ht, np.float64_t hx, np.float64_t hv):
         '''
         Constructor
         '''
@@ -38,6 +38,9 @@ cdef class PETScArakawaRK4(object):
 
         # distributed array
         self.da1 = da1
+        
+        # velocity grid
+        self.v = v.copy()
         
         # kinetic Hamiltonian
         self.H0 = H0
@@ -57,11 +60,8 @@ cdef class PETScArakawaRK4(object):
         self.localH0 = da1.createLocalVec()
         self.localH1 = da1.createLocalVec()
         
-        # create Arakawa solver object
-        if arakawa != None:
-            self.arakawa = arakawa
-        else:
-            self.arakawa = PETScArakawa(da1, nx, nv, hx, hv)
+        # create toolbox object
+        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
      
     def rk4(self, Vec X, Vec H1):

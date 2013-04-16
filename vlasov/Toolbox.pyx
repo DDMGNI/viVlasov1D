@@ -48,15 +48,12 @@ cdef class Toolbox(object):
         
         # velocity grid
         self.v = v.copy()
-        
-        # create local vectors
-        self.localF   = da1.createLocalVec()
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t arakawa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                    np.ndarray[np.float64_t, ndim=2] h,
-                                    np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t arakawa_J1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.ndarray[np.float64_t, ndim=2] h,
+                                       np.uint64_t i, np.uint64_t j):
         '''
         Arakawa Bracket
         '''
@@ -82,8 +79,95 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
-                                            np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t arakawa_J2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.ndarray[np.float64_t, ndim=2] h,
+                                       np.uint64_t i, np.uint64_t j):
+        '''
+        Arakawa Bracket
+        '''
+        
+        cdef np.float64_t jcc, jpc, jcp, result
+        
+        jcc = (f[i+1, j+1] - f[i-1, j-1]) * (h[i-1, j+1] - h[i+1, j-1]) \
+            - (f[i-1, j+1] - f[i+1, j-1]) * (h[i+1, j+1] - h[i-1, j-1])
+        
+        jpc = f[i+2, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
+            - f[i-2, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
+            - f[i,   j+2] * (h[i+1, j+1] - h[i-1, j+1]) \
+            + f[i,   j-2] * (h[i+1, j-1] - h[i-1, j-1])
+        
+        jcp = f[i+1, j+1] * (h[i,   j+2] - h[i+2, j  ]) \
+            - f[i-1, j-1] * (h[i-2, j  ] - h[i,   j-2]) \
+            - f[i-1, j+1] * (h[i,   j+2] - h[i-2, j  ]) \
+            + f[i+1, j-1] * (h[i+2, j  ] - h[i,   j-2])
+        
+        result = (jcc + jpc + jcp) / (24. * self.hx * self.hv)
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                   np.ndarray[np.float64_t, ndim=2] y,
+                                   np.ndarray[np.float64_t, ndim=2] h0,
+                                   np.ndarray[np.float64_t, ndim=2] h1):
+        
+        cdef np.uint64_t ix, iy, i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        
+        for i in np.arange(xs, xe):
+            for j in np.arange(0, self.nv):
+                ix = i-xs+1
+                iy = i-xs
+                
+                if j == 0 or j == self.nv-1:
+                    # Dirichlet boundary conditions
+                    y[iy, j] = 0.0
+                    
+                else:
+                    # Vlasov equation
+                    y[iy, j] = - self.arakawa_J1(x, h, ix, j)
+                    
+    
+    
+    @cython.boundscheck(False)
+    cdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                   np.ndarray[np.float64_t, ndim=2] y,
+                                   np.ndarray[np.float64_t, ndim=2] h0,
+                                   np.ndarray[np.float64_t, ndim=2] h1):
+        
+        cdef np.uint64_t ix, iy, i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        
+        for i in np.arange(xs, xe):
+            for j in np.arange(0, self.nv):
+                ix = i-xs+1
+                iy = i-xs
+                
+                if j == 0 or j == self.nv-1:
+                    # Dirichlet boundary conditions
+                    y[iy, j] = 0.0
+                    
+                else:
+                    # Vlasov equation
+                    y[iy, j] = - self.arakawa_J2(x, h, ix, j)
+                    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t average_J1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.uint64_t i, np.uint64_t j):
         '''
         Time Derivative
         '''
@@ -100,52 +184,59 @@ cdef class Toolbox(object):
                    + 1. * f[i+1, j-1] \
                    + 2. * f[i+1, j  ] \
                    + 1. * f[i+1, j+1] \
-                 ) / (16. * self.ht)
+                 ) / 16.
         
         return result
     
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t coll41(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t average_J2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.uint64_t i, np.uint64_t j):
         '''
-        Collision Operator
+        Time Derivative
         '''
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
         cdef np.float64_t result
         
-        result = 0.25 * ( \
-                          + 1. * ( v[j+2] * f[i-1, j+2] - 2. * v[j+1] * f[i-1, j+1] + 2. * v[j-1] * f[i-1, j-1] - v[j-2] * f[i-1, j-2] ) \
-                          + 2. * ( v[j+2] * f[i,   j+2] - 2. * v[j+1] * f[i,   j+1] + 2. * v[j-1] * f[i,   j-1] - v[j-2] * f[i,   j-2] ) \
-                          + 1. * ( v[j+2] * f[i+1, j+2] - 2. * v[j+1] * f[i+1, j+1] + 2. * v[j-1] * f[i+1, j-1] - v[j-2] * f[i+1, j-2] ) \
-                        ) * 0.5 / self.hv**3
+        result = ( \
+                   + 1. * f[i-2, j  ] \
+                   + 2. * f[i-1, j-1] \
+                   + 2. * f[i-1, j+1] \
+                   + 1. * f[i,   j-2] \
+                   + 4. * f[i,   j  ] \
+                   + 1. * f[i,   j+2] \
+                   + 2. * f[i+1, j-1] \
+                   + 2. * f[i+1, j+1] \
+                   + 1. * f[i+2, j  ] \
+                 ) / 16.
         
         return result
     
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t coll42(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
+                                               np.uint64_t i, np.uint64_t j):
         '''
-        Collision Operator
+        Time Derivative
         '''
         
-        cdef np.float64_t result
+        return self.average_J1(f, i, j) * self.ht_inv
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t time_derivative_J2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                               np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
         
-        result = 0.25 * ( \
-                          + 1. * ( f[i-1, j+2] - 4. * f[i-1, j+1] + 6. * f[i-1, j  ] - 4. * f[i-1, j-1] + f[i-1, j-2] ) \
-                          + 2. * ( f[i,   j+2] - 4. * f[i,   j+1] + 6. * f[i,   j  ] - 4. * f[i,   j-1] + f[i,   j-2] ) \
-                          + 1. * ( f[i+1, j+2] - 4. * f[i+1, j+1] + 6. * f[i+1, j  ] - 4. * f[i+1, j-1] + f[i+1, j-2] ) \
-                        ) / self.hv**4
-        
-        return result
-
-
-
+        return self.average_J2(f, i, j) * self.ht_inv
+    
+    
+    
     @cython.boundscheck(False)
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
