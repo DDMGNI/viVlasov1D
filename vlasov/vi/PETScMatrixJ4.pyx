@@ -476,10 +476,8 @@ cdef class PETScMatrix(object):
                     b[iy, j] = 0.0
                     
                 else:
-                    b[iy, j] = 2.0 * self.toolbox.time_derivative_J1(fh, ix, j) \
-                             - 1.0 * self.toolbox.time_derivative_J2(fh, ix, j) \
-                             - 1.0 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J2(fh, h, ix, j) \
+                    b[iy, j] = self.toolbox.time_derivative_J4(fh, ix, j) \
+                             - 0.5 * self.toolbox.arakawa_J4(fh, h, ix, j) \
                              + 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
 
 
@@ -596,13 +594,9 @@ cdef class PETScMatrix(object):
                     y[iy, j] = f[ix, j]
                     
                 else:
-                    y[iy, j] = 2.0 * self.toolbox.time_derivative_J1(f,  ix, j) \
-                             - 1.0 * self.toolbox.time_derivative_J2(f,  ix, j) \
-                             - 2.0 * self.toolbox.time_derivative_J1(fh, ix, j) \
-                             + 1.0 * self.toolbox.time_derivative_J2(fh, ix, j) \
-                             + 1.0 * self.toolbox.arakawa_J1(f, hh, ix, j) \
-                             + 1.0 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                             - 0.5 * self.toolbox.arakawa_J2(f, hh, ix, j) \
-                             - 0.5 * self.toolbox.arakawa_J2(fh, h, ix, j) \
+                    y[iy, j] = self.toolbox.time_derivative_J4(f,  ix, j) \
+                             - self.toolbox.time_derivative_J4(fh, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(f, hh, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(fh, h, ix, j) \
                              - self.nu * self.toolbox.collT1(f, Nh, Uh, Eh, Ah, ix, j) \
                              - self.nu * self.toolbox.collT2(f_ave, ix, j)

@@ -251,12 +251,9 @@ cdef class PETScFunction(object):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = 2.0 * self.toolbox.time_derivative_J1(fp, ix, j) \
-                             - 2.0 * self.toolbox.time_derivative_J1(fh, ix, j) \
-                             - 1.0 * self.toolbox.time_derivative_J2(fp, ix, j) \
-                             + 1.0 * self.toolbox.time_derivative_J2(fh, ix, j) \
-                             + 2.0 * self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
-                             - 1.0 * self.toolbox.arakawa_J2(f_ave, h_ave, ix, j) \
+                    y[iy, j] = self.toolbox.time_derivative_J4(fp, ix, j) \
+                             - self.toolbox.time_derivative_J4(fh, ix, j) \
+                             + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
                              - self.nu * self.toolbox.collT2(f_ave, ix, j)
