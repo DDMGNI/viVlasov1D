@@ -419,20 +419,8 @@ class petscVP1D():
         nave = self.f.sum() * self.hv / self.nx
         self.f.scale(1./nave)
         
-        
-        self.calculate_density()              # calculate density
-        self.calculate_velocity()             # calculate mean velocity density
-        self.calculate_energy()               # calculate mean energy density
-        self.calculate_collision_factor()     # 
-        self.calculate_potential()            # calculate initial potential
-
-        self.copy_f_to_x()                    # copy distribution function to solution vector
-        self.copy_p_to_x()                    # copy potential to solution vector
-        self.copy_n_to_x()                    # copy density to solution vector
-        self.copy_u_to_x()                    # copy velocity to solution vector
-        self.copy_e_to_x()                    # copy energy to solution vector
-        self.copy_a_to_x()                    # copy collision factor to solution vector
-        self.copy_p_to_h()                    # copy potential to Hamiltonian
+        # calculate potential and moments
+        self.calculate_moments()
         
         
         # check for external potential
@@ -698,18 +686,21 @@ class petscVP1D():
     
     def updateMatrix(self, snes, X, J, P):
         self.petsc_matrix.formMat(J)
-        
         J.setNullSpace(self.nullspace)
+        
         if J != P:
+            self.petsc_matrix.formMat(P)
             P.setNullSpace(self.nullspace)
     
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
-        self.petsc_jacobian.formMat(J)
         
+        self.petsc_jacobian.formMat(J)
         J.setNullSpace(self.nullspace)
+        
         if J != P:
+            self.petsc_jacobian.formMat(P)
             P.setNullSpace(self.nullspace)
         
     

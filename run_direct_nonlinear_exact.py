@@ -253,6 +253,11 @@ class petscVP1D():
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
                                         self.charge, coll_freq=self.coll_freq)
         
+        # create Arakawa RK4 solver object
+        self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
+                                           self.h0, self.vGrid,
+                                           self.nx, self.nv, self.ht, self.hx, self.hv)
+        
         
         # initialise matrix
         self.A = self.da2.createMat()
@@ -357,7 +362,8 @@ class petscVP1D():
         if self.cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + self.cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
             
-            print("Initialising distribution function with Python function.")
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("Initialising distribution function with Python function.")
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
@@ -373,7 +379,8 @@ class petscVP1D():
             if self.cfg['initial_data']['density_python'] != None:
                 init_data = __import__("runs." + self.cfg['initial_data']['density_python'], globals(), locals(), ['density'], 0)
                 
-                print("Initialising density function with Python function.")
+                if PETSc.COMM_WORLD.getRank() == 0:
+                    print("Initialising density function with Python function.")
             
                 for i in range(xs, xe):
                     n0_arr[i] = init_data.density(self.xGrid[i], L) 
@@ -385,7 +392,8 @@ class petscVP1D():
             if self.cfg['initial_data']['temperature_python'] != None:
                 init_data = __import__("runs." + self.cfg['initial_data']['temperature_python'], globals(), locals(), ['temperature'], 0)
                 
-                print("Initialising temperature function with Python function.")
+                if PETSc.COMM_WORLD.getRank() == 0:
+                    print("Initialising temperature function with Python function.")
             
                 for i in range(xs, xe):
                     T0_arr[i] = init_data.temperature(self.xGrid[i]) 
@@ -394,7 +402,8 @@ class petscVP1D():
                 T0_arr[xs:xe] = self.cfg['initial_data']['temperature']            
             
             
-            print("Initialising distribution function with Maxwellian.")
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("Initialising distribution function with Maxwellian.")
             
             for i in range(xs, xe):
                 for j in range(0, self.nv):
@@ -409,20 +418,8 @@ class petscVP1D():
         nave = self.f.sum() * self.hv / self.nx
         self.f.scale(1./nave)
         
-        
-        self.calculate_density()              # calculate density
-        self.calculate_velocity()             # calculate mean velocity density
-        self.calculate_energy()               # calculate mean energy density
-        self.calculate_collision_factor()     # 
-        self.calculate_potential()            # calculate initial potential
-
-        self.copy_f_to_x()                    # copy distribution function to solution vector
-        self.copy_p_to_x()                    # copy potential to solution vector
-        self.copy_n_to_x()                    # copy density to solution vector
-        self.copy_u_to_x()                    # copy velocity to solution vector
-        self.copy_e_to_x()                    # copy energy to solution vector
-        self.copy_a_to_x()                    # copy collision factor to solution vector
-        self.copy_p_to_h()                    # copy potential to Hamiltonian
+        # calculate potential and moments
+        self.calculate_moments()
         
         
         # check for external potential
@@ -469,6 +466,21 @@ class petscVP1D():
         self.save_hdf5_vectors()
         
         
+    def calculate_moments(self):
+        self.calculate_density()              # calculate density
+        self.calculate_velocity()             # calculate mean velocity density
+        self.calculate_energy()               # calculate mean energy density
+        self.calculate_collision_factor()     # 
+        self.calculate_potential()            # calculate initial potential
+ 
+        self.copy_n_to_x()                    # copy density to solution vector
+        self.copy_u_to_x()                    # copy velocity to solution vector
+        self.copy_e_to_x()                    # copy energy to solution vector
+        self.copy_a_to_x()                    # copy collision factor to solution vector
+        self.copy_p_to_x()                    # copy potential to solution vector
+        self.copy_p_to_h()
+    
+    
     def calculate_potential(self):
         
         self.poisson_mat.formMat(self.poisson_A)
@@ -477,12 +489,8 @@ class petscVP1D():
         
         phisum = self.p.sum()
         
-#         self.copy_p_to_x()
-#         self.copy_p_to_h()
-        
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("     Poisson:  %5i iterations,   residual = %24.16E" % (self.poisson_ksp.getIterationNumber(), self.poisson_ksp.getResidualNorm()) )
-            print("                                   sum(phi) = %24.16E" % (phisum))
+            print("  Poisson:                            sum(phi) = %24.16E" % (phisum))
     
         
     def calculate_density(self):
@@ -674,42 +682,51 @@ class petscVP1D():
     
     def updateMatrix(self, snes, X, J, P):
         self.petsc_matrix.formMat(J)
-        
         J.setNullSpace(self.nullspace)
+        
         if J != P:
+            self.petsc_matrix.formMat(P)
             P.setNullSpace(self.nullspace)
     
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
-        self.petsc_jacobian.formMat(J)
         
+        self.petsc_jacobian.formMat(J)
         J.setNullSpace(self.nullspace)
+        
         if J != P:
+            self.petsc_jacobian.formMat(P)
             P.setNullSpace(self.nullspace)
         
     
-#     def initial_guess(self):
-#         # calculate initial guess for distribution function
-#         self.arakawa_rk4.rk4(self.f, self.h1)
-#         self.copy_f_to_x()
-#         
-#         if PETSc.COMM_WORLD.getRank() == 0:
-#             print("     RK4")
-#         
-#         self.calculate_density()              # calculate density
-#         self.calculate_velocity()             # calculate mean velocity density
-#         self.calculate_energy()               # calculate mean energy density
-#         self.calculate_collision_factor()     # 
-#         self.calculate_potential()            # calculate initial potential
-# 
-# #         self.copy_f_to_x()                    # copy distribution function to solution vector
-# #         self.copy_p_to_x()                    # copy potential to solution vector
-#         self.copy_n_to_x()                    # copy density to solution vector
-#         self.copy_u_to_x()                    # copy velocity to solution vector
-#         self.copy_e_to_x()                    # copy energy to solution vector
-#         self.copy_a_to_x()                    # copy collision factor to solution vector
+    def initial_guess_rk4(self):
+        # calculate initial guess for distribution function
+#         self.arakawa_rk4.rk4_J1(self.f, self.h1)
+#         self.arakawa_rk4.rk4_J2(self.f, self.h1)
+        self.arakawa_rk4.rk4_J4(self.f, self.h1)
         
+        self.copy_f_to_x()
+        self.calculate_moments()
+        
+        self.petsc_function.mult(self.x, self.b)
+        rknorm = self.b.norm()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("  RK4 Initial Guess:                  funcnorm = %24.16E" % (rknorm))
+         
+    
+    def initial_guess(self):
+        self.snes_linear.solve(None, self.x)
+        self.calculate_moments()
+        
+        self.petsc_function.mult(self.x, self.b)
+        corr_norm = self.b.norm()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("  Linear Solver:                      funcnorm = %24.16E" % (corr_norm))
+        
+    
     
     def run(self):
         for itime in range(1, self.nt+1):
@@ -729,23 +746,16 @@ class petscVP1D():
             
             
             self.petsc_function.mult(self.x, self.b)
-            corr_norm = self.b.norm()
+            prev_norm = self.b.norm()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Previous Step:                      funcnorm = %24.16E" % (corr_norm))
+                print("  Previous Step:                      funcnorm = %24.16E" % (prev_norm))
             
             # calculate initial guess via RK4
-#             self.initial_guess_rk4()
+            self.initial_guess_rk4()
             
             # calculate initial guess via linear solver
-            self.snes_linear.solve(None, self.x)
- 
-            self.copy_x_to_p()
-            self.copy_x_to_n()
-            self.copy_x_to_u()
-            self.copy_x_to_e()
-            self.calculate_collision_factor()
-            self.copy_a_to_x()
+#             self.initial_guess()
             
             
             # nonlinear solve
@@ -753,7 +763,6 @@ class petscVP1D():
             
             # output some solver info
             if PETSc.COMM_WORLD.getRank() == 0:
-                print()
                 print("  Nonlin Solver:  %5i iterations,   funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
                 print()
             
