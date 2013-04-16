@@ -22,9 +22,17 @@ from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
 from vlasov.predictor.PETScVlasovMatrix  import PETScVlasovMatrix
 from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
 
-from vlasov.vi.PETScSimpleMatrixCollTexact     import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionCollTexact import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianCollTexact import PETScJacobian
+from vlasov.vi.PETScMatrixJ1     import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ1 import PETScFunction
+from vlasov.vi.PETScNLJacobianJ1 import PETScJacobian
+
+# from vlasov.vi.PETScMatrixJ2     import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ2 import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ2 import PETScJacobian
+
+# from vlasov.vi.PETScMatrixJ4     import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ4 import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ4 import PETScJacobian
 
 
 class petscVP1D():
@@ -103,7 +111,7 @@ class petscVP1D():
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=2,
                                     stencil_type='box')
         
         # create DA for 2d grid (f, phi and moments)
@@ -111,7 +119,7 @@ class petscVP1D():
                                      sizes=[self.nx],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                      boundary_type=('periodic'),
-                                     stencil_width=1,
+                                     stencil_width=2,
                                      stencil_type='box')
         
         
@@ -120,7 +128,7 @@ class petscVP1D():
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=2,
                                     stencil_type='box')
         
         # create DA for y grid

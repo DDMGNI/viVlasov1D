@@ -44,27 +44,6 @@ INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
 
 
 ext_modules = [
-        Extension("PETScMatrix",
-                  sources=["PETScMatrix.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLFunction",
-                  sources=["PETScNLFunction.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLJacobian",
-                  sources=["PETScNLJacobian.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
         Extension("PETScMatrixJ1",
                   sources=["PETScMatrixJ1.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -102,6 +81,27 @@ ext_modules = [
                  ),
         Extension("PETScNLJacobianJ2",
                   sources=["PETScNLJacobianJ2.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScMatrixJ4",
+                  sources=["PETScMatrixJ4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLFunctionJ4",
+                  sources=["PETScNLFunctionJ4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLJacobianJ4",
+                  sources=["PETScNLJacobianJ4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,

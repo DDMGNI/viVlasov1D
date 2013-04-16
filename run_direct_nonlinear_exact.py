@@ -18,12 +18,22 @@ from petsc4py import PETSc
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian 
 
-# from vlasov.predictor.PETScArakawaRK4    import PETScArakawaRK4
-from vlasov.predictor.PETScPoissonMatrix import PETScPoissonMatrix
+from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 
-from vlasov.vi.PETScSimpleMatrixCollTexact     import PETScMatrix
-from vlasov.vi.PETScSimpleNLFunctionCollTexact import PETScFunction
-from vlasov.vi.PETScSimpleNLJacobianCollTexact import PETScJacobian
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+
+from vlasov.vi.PETScMatrixJ2                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
+
+# from vlasov.vi.PETScMatrixJ4                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
 
 
 class petscVP1D():
@@ -102,7 +112,7 @@ class petscVP1D():
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=2,
                                     stencil_type='box')
         
         # create DA for 2d grid (f, phi and moments)
@@ -110,7 +120,7 @@ class petscVP1D():
                                      sizes=[self.nx],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                      boundary_type=('periodic'),
-                                     stencil_width=1,
+                                     stencil_width=2,
                                      stencil_type='box')
         
         
@@ -119,7 +129,7 @@ class petscVP1D():
                                     sizes=[self.nx],
                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                     boundary_type=('periodic'),
-                                    stencil_width=1,
+                                    stencil_width=2,
                                     stencil_type='box')
         
         # create DA for y grid
@@ -347,9 +357,11 @@ class petscVP1D():
         if self.cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + self.cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
             
+            print("Initialising distribution function with Python function.")
+            
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-                    if j == 0 or j == self.nv-1:
+                    if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
@@ -359,8 +371,10 @@ class petscVP1D():
         
         else:
             if self.cfg['initial_data']['density_python'] != None:
-                init_data = __import__("runs." + self.cfg['initial_data']['density_python'], globals(), locals(), ['distribution'], 0)
+                init_data = __import__("runs." + self.cfg['initial_data']['density_python'], globals(), locals(), ['density'], 0)
                 
+                print("Initialising density function with Python function.")
+            
                 for i in range(xs, xe):
                     n0_arr[i] = init_data.density(self.xGrid[i], L) 
             
@@ -369,8 +383,10 @@ class petscVP1D():
             
             
             if self.cfg['initial_data']['temperature_python'] != None:
-                init_data = __import__("runs." + self.cfg['initial_data']['temperature_python'], globals(), locals(), ['distribution'], 0)
+                init_data = __import__("runs." + self.cfg['initial_data']['temperature_python'], globals(), locals(), ['temperature'], 0)
                 
+                print("Initialising temperature function with Python function.")
+            
                 for i in range(xs, xe):
                     T0_arr[i] = init_data.temperature(self.xGrid[i]) 
             
@@ -378,13 +394,16 @@ class petscVP1D():
                 T0_arr[xs:xe] = self.cfg['initial_data']['temperature']            
             
             
+            print("Initialising distribution function with Maxwellian.")
+            
             for i in range(xs, xe):
                 for j in range(0, self.nv):
-                    if j == 0 or j == self.nv-1:
+                    if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
         
+        print("")
         
         # normalise f to fit density
         nave = self.f.sum() * self.hv / self.nx
@@ -709,7 +728,16 @@ class petscVP1D():
             self.petsc_matrix.update_external(self.p_ext)
             
             
-            # calculate initial guess
+            self.petsc_function.mult(self.x, self.b)
+            corr_norm = self.b.norm()
+            
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("  Previous Step:                      funcnorm = %24.16E" % (corr_norm))
+            
+            # calculate initial guess via RK4
+#             self.initial_guess_rk4()
+            
+            # calculate initial guess via linear solver
             self.snes_linear.solve(None, self.x)
  
             self.copy_x_to_p()
@@ -804,9 +832,11 @@ class petscVP1D():
         Fxp = self.da2.createGlobalVec()
         
         
-#        sx = -1
-        sx =  0
-#        sx = +1
+#         sx = -2
+#         sx = -1
+#         sx =  0
+        sx = +1
+#         sx = +2
         
         nfield=self.nv+5
         
@@ -863,13 +893,13 @@ class petscVP1D():
                 dF_arr = self.da2.getVecArray(dF)[...][:, tfield]
                 
                 
-#                print("Jacobian:")
-#                print(Jx_arr)
-#                print()
-#                
-#                print("[F(x+dx) - F(x-dx)] / [2 eps]:")
-#                print(dF_arr)
-#                print()
+                print("Jacobian:")
+                print(Jx_arr)
+                print()
+                  
+                print("[F(x+dx) - F(x-dx)] / [2 eps]:")
+                print(dF_arr)
+                print()
 #                
 #                print("Difference:")
 #                print(Jx_arr - dF_arr)

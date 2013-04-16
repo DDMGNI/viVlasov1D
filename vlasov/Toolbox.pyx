@@ -107,6 +107,17 @@ cdef class Toolbox(object):
     
     
     
+    cdef np.float64_t arakawa_J4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.ndarray[np.float64_t, ndim=2] h,
+                                       np.uint64_t i, np.uint64_t j):
+        '''
+        Arakawa Bracket 4th order
+        '''
+        
+        return 2. * self.arakawa_J1(f, h, i, j) - 1. * self.arakawa_J2(f, h, i, j) 
+    
+    
+    
     @cython.boundscheck(False)
     cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
@@ -123,7 +134,7 @@ cdef class Toolbox(object):
         
         for i in np.arange(xs, xe):
             for j in np.arange(0, self.nv):
-                ix = i-xs+1
+                ix = i-xs+2
                 iy = i-xs
                 
                 if j == 0 or j == self.nv-1:
@@ -152,7 +163,7 @@ cdef class Toolbox(object):
         
         for i in np.arange(xs, xe):
             for j in np.arange(0, self.nv):
-                ix = i-xs+1
+                ix = i-xs+2
                 iy = i-xs
                 
                 if j == 0 or j == self.nv-1:
@@ -166,10 +177,39 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    cdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                   np.ndarray[np.float64_t, ndim=2] y,
+                                   np.ndarray[np.float64_t, ndim=2] h0,
+                                   np.ndarray[np.float64_t, ndim=2] h1):
+        
+        cdef np.uint64_t ix, iy, i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        
+        for i in np.arange(xs, xe):
+            for j in np.arange(0, self.nv):
+                ix = i-xs+2
+                iy = i-xs
+                
+                if j == 0 or j == self.nv-1:
+                    # Dirichlet boundary conditions
+                    y[iy, j] = 0.0
+                    
+                else:
+                    # Vlasov equation
+                    y[iy, j] = - 2. * self.arakawa_J1(x, h, ix, j) + 1. * self.arakawa_J2(x, h, ix, j)
+    
+    
+    
+    @cython.boundscheck(False)
     cdef np.float64_t average_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.uint64_t i, np.uint64_t j):
         '''
-        Time Derivative
+        Average
         '''
         
         cdef np.float64_t result
@@ -194,7 +234,7 @@ cdef class Toolbox(object):
     cdef np.float64_t average_J2(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.uint64_t i, np.uint64_t j):
         '''
-        Time Derivative
+        Average
         '''
         
         cdef np.float64_t result
@@ -212,6 +252,16 @@ cdef class Toolbox(object):
                  ) / 16.
         
         return result
+    
+    
+    
+    cdef np.float64_t average_J4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.uint64_t i, np.uint64_t j):
+        '''
+        Average
+        '''
+        
+        return 2. * self.average_J1(f, i, j) - 1. * self.average_J2(f, i, j) 
     
     
     
@@ -234,6 +284,17 @@ cdef class Toolbox(object):
         '''
         
         return self.average_J2(f, i, j) * self.ht_inv
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t time_derivative_J4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                               np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        return self.average_J4(f, i, j) * self.ht_inv
     
     
     

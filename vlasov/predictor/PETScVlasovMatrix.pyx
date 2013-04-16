@@ -89,7 +89,7 @@ cdef class PETScVlasovMatrix(object):
         
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             
             for j in np.arange(0, self.nv):
                 
@@ -145,7 +145,7 @@ cdef class PETScVlasovMatrix(object):
         (xs, xe), = self.da1.getRanges()
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
             for j in np.arange(0, self.nv):

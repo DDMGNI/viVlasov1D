@@ -225,7 +225,7 @@ cdef class PETScFunction(object):
         
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
             # Poisson equation
@@ -244,14 +244,14 @@ cdef class PETScFunction(object):
             
             # Vlasov equation
             for j in np.arange(0, self.nv):
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
-                             - self.toolbox.time_derivative(fh, ix, j) \
-                             + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
+                    y[iy, j] = self.toolbox.time_derivative_J1(fp, ix, j) \
+                             - self.toolbox.time_derivative_J1(fh, ix, j) \
+                             + self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
                             - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
                             - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
                             - self.nu * self.toolbox.collT2(f_ave, ix, j)

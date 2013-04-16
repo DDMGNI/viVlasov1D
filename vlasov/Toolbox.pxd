@@ -44,26 +44,44 @@ cdef class Toolbox(object):
                                        np.ndarray[np.float64_t, ndim=2] h,
                                        np.uint64_t i, np.uint64_t j)
     
+    cdef np.float64_t arakawa_J4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.ndarray[np.float64_t, ndim=2] h,
+                                       np.uint64_t i, np.uint64_t j)
+    
+    
     cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
                                    np.ndarray[np.float64_t, ndim=2] h0,
                                    np.ndarray[np.float64_t, ndim=2] h1)
-
+    
     cdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
                                    np.ndarray[np.float64_t, ndim=2] h0,
                                    np.ndarray[np.float64_t, ndim=2] h1)
 
+    cdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                   np.ndarray[np.float64_t, ndim=2] y,
+                                   np.ndarray[np.float64_t, ndim=2] h0,
+                                   np.ndarray[np.float64_t, ndim=2] h1)
+    
+    
     cdef np.float64_t average_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.uint64_t i, np.uint64_t j)
     
     cdef np.float64_t average_J2(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.uint64_t i, np.uint64_t j)
     
+    cdef np.float64_t average_J4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                       np.uint64_t i, np.uint64_t j)
+    
+    
     cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                                np.uint64_t i, np.uint64_t j)
     
     cdef np.float64_t time_derivative_J2(self, np.ndarray[np.float64_t, ndim=2] f,
+                                               np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t time_derivative_J4(self, np.ndarray[np.float64_t, ndim=2] f,
                                                np.uint64_t i, np.uint64_t j)
     
     

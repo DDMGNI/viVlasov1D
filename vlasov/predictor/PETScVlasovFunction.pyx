@@ -96,7 +96,7 @@ cdef class PETScVlasovFunction(object):
         
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
             for j in np.arange(ys, ye):

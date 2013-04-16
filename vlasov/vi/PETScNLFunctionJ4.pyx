@@ -172,7 +172,7 @@ cdef class PETScFunction(object):
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
-        cdef np.float64_t laplace, integral
+        cdef np.float64_t laplace_J1, laplace_J2, integral_J1, integral_J2
         
         cdef np.float64_t nmean = self.Np.sum() / self.nx
         
@@ -225,14 +225,16 @@ cdef class PETScFunction(object):
         
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
             # Poisson equation
-            laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
-            integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
+            laplace_J1  =        ( Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix] ) * self.hx2_inv
+            laplace_J2  = 0.25 * ( Pp[ix-2] + Pp[ix+2] - 2. * Pp[ix] ) * self.hx2_inv
+            integral_J1 = 0.25 * ( Np[ix-1] + Np[ix+1] + 2. * Np[ix] )
+            integral_J2 = 0.25 * ( Np[ix-2] + Np[ix+2] + 2. * Np[ix] )
             
-            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+            y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
             
             
             # moments
@@ -244,15 +246,17 @@ cdef class PETScFunction(object):
             
             # Vlasov equation
             for j in np.arange(0, self.nv):
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
-                             - self.toolbox.time_derivative(fh, ix, j) \
-                             + self.toolbox.arakawa(f_ave, h_ave, ix, j) \
-                            - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
-                            - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                            - self.nu * self.toolbox.collT2(f_ave, ix, j)
-
+                    y[iy, j] = 2.0 * self.toolbox.time_derivative_J1(fp, ix, j) \
+                             - 2.0 * self.toolbox.time_derivative_J1(fh, ix, j) \
+                             - 1.0 * self.toolbox.time_derivative_J2(fp, ix, j) \
+                             + 1.0 * self.toolbox.time_derivative_J2(fh, ix, j) \
+                             + 2.0 * self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
+                             - 1.0 * self.toolbox.arakawa_J2(f_ave, h_ave, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                             - self.nu * self.toolbox.collT2(f_ave, ix, j)

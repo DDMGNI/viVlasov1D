@@ -68,10 +68,10 @@ cdef class PETScPoissonSolver(object):
         
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1])
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) / self.hx**2
         
     
     @cython.boundscheck(False)
@@ -90,7 +90,7 @@ cdef class PETScPoissonSolver(object):
         (xs, xe), = self.dax.getRanges()
         
         for i in np.arange(xs, xe):
-            ix = i-xs+1
+            ix = i-xs+2
             iy = i-xs
             
             integral = ( \
@@ -99,5 +99,5 @@ cdef class PETScPoissonSolver(object):
                          + 1. * f[ix+1, :].sum() \
                        ) * 0.25 * self.hv
             
-            b[iy] = - (integral - fsum) * self.poisson_const * self.hx**2
+            b[iy] = - (integral - fsum) * self.poisson_const
         

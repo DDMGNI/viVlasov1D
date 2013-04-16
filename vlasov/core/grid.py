@@ -36,7 +36,7 @@ class Grid(object):
             self.vGrid = hdf5_in['v'][:]
             
             if ntMax > 0 and len(self.tGrid) > ntMax+1:
-                 self.tGrid = self.tGrid[:ntMax+1]
+                self.tGrid = self.tGrid[:ntMax+1]
             
             self.ht = self.tGrid[1] - self.tGrid[0]
             self.nt = len(self.tGrid)-1

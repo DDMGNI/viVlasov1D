@@ -39,7 +39,7 @@ cdef class PETScPoissonMatrix(object):
         self.hx = hx
         self.hv = hv
         
-        self.hx2 = hx ** 2
+        self.hx2 = hx**2
         self.hx2_inv = 1. / self.hx2 
         
         # poisson constant
@@ -99,8 +99,8 @@ cdef class PETScPoissonMatrix(object):
         (xs, xe), = self.dax.getRanges()
         
         for i in np.arange(xs, xe):
-            ix = i - xs + 1
-            iy = i - xs
+            ix = i-xs+2
+            iy = i-xs
             
             b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.charge
         
