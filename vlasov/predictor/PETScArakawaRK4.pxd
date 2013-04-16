@@ -23,6 +23,8 @@ cdef class PETScArakawaRK4(object):
     
     cdef DA da1
     
+    cdef np.ndarray v
+    
     cdef Vec H0
     
     cdef Vec X1
