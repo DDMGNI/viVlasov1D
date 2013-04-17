@@ -25,15 +25,23 @@ from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 # from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixJ2                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
-from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ2                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+# # from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
 
-# from vlasov.vi.PETScMatrixJ4                import PETScMatrix
-# from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
-# from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+from vlasov.vi.PETScMatrixJ4                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 # from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+
+
+# solver_package = 'superlu_dist'
+solver_package = 'mumps'
+# solver_package = 'pastix'
+
 
 
 class petscVP1D():
@@ -277,8 +285,7 @@ class petscVP1D():
         self.snes_linear.setFromOptions()
         self.snes_linear.getKSP().setType('preonly')
         self.snes_linear.getKSP().getPC().setType('lu')
-#        self.snes_linear.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes_linear.getKSP().getPC().setFactorSolverPackage('mumps')
+        self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
 
 #         self.snes_linear_nsp = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
 #         self.snes_linear.getKSP().setNullSpace(self.snes_linear_nsp)
@@ -292,8 +299,7 @@ class petscVP1D():
         self.snes.getKSP().setType('preonly')
 #         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
-#        self.snes.getKSP().getPC().setFactorSolverPackage('superlu_dist')
-        self.snes.getKSP().getPC().setFactorSolverPackage('mumps')
+        self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
         
 #         self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
 #         self.snes.getKSP().setNullSpace(self.snes_nsp)
@@ -315,8 +321,7 @@ class petscVP1D():
         self.poisson_ksp.setOperators(self.poisson_A)
         self.poisson_ksp.setType('preonly')
         self.poisson_ksp.getPC().setType('lu')
-#        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
-        self.poisson_ksp.getPC().setFactorSolverPackage('mumps')
+        self.poisson_ksp.getPC().setFactorSolverPackage(solver_package)
         
         self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
         self.poisson_ksp.setNullSpace(self.poisson_nsp)
@@ -843,8 +848,8 @@ class petscVP1D():
         
 #         sx = -2
 #         sx = -1
-#         sx =  0
-        sx = +1
+        sx =  0
+#         sx = +1
 #         sx = +2
         
         nfield=self.nv+5
@@ -902,17 +907,17 @@ class petscVP1D():
                 dF_arr = self.da2.getVecArray(dF)[...][:, tfield]
                 
                 
-                print("Jacobian:")
-                print(Jx_arr)
-                print()
-                  
-                print("[F(x+dx) - F(x-dx)] / [2 eps]:")
-                print(dF_arr)
-                print()
-#                
-#                print("Difference:")
-#                print(Jx_arr - dF_arr)
-#                print()
+#                 print("Jacobian:")
+#                 print(Jx_arr)
+#                 print()
+#                   
+#                 print("[F(x+dx) - F(x-dx)] / [2 eps]:")
+#                 print(dF_arr)
+#                 print()
+#                 
+#                 print("Difference:")
+#                 print(Jx_arr - dF_arr)
+#                 print()
                 
                 
 #                if ifield == 3 and tfield == 2:

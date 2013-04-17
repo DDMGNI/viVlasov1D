@@ -70,15 +70,10 @@ cdef class PETScPoissonMatrix(object):
             row.field = 0
             col.field = 0
             
-#             for index, value in [
-#                     ((i-2,), - 0.25 * self.hx2_inv),
-#                     ((i,  ), + 0.50 * self.hx2_inv),
-#                     ((i+2,), - 0.25 * self.hx2_inv),
-#                 ]:
             for index, value in [
-                    ((i-1,), -1. * self.hx2_inv),
-                    ((i,  ), +2. * self.hx2_inv),
-                    ((i+1,), -1. * self.hx2_inv),
+                    ((i-2,), - 0.25 * self.hx2_inv),
+                    ((i,  ), + 0.50 * self.hx2_inv),
+                    ((i+2,), - 0.25 * self.hx2_inv),
                 ]:
                 
                 col.index = index
@@ -107,6 +102,5 @@ cdef class PETScPoissonMatrix(object):
             ix = i-xs+2
             iy = i-xs
             
-#             b[iy] = - ( 0.25 * ( n[ix-2] + 2. * n[ix  ] + n[ix+2] ) - nmean) * self.charge
-            b[iy] = - ( 0.25 * ( n[ix-1] + 2. * n[ix  ] + n[ix+1] ) - nmean) * self.charge
+            b[iy] = - ( 0.25 * ( n[ix-2] + 2. * n[ix  ] + n[ix+2] ) - nmean) * self.charge
         

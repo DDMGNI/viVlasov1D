@@ -234,7 +234,13 @@ cdef class PETScFunction(object):
             integral_J1 = 0.25 * ( Np[ix-1] + Np[ix+1] + 2. * Np[ix] )
             integral_J2 = 0.25 * ( Np[ix-2] + Np[ix+2] + 2. * Np[ix] )
             
-            y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
+            laplace_J4  = ( Pp[ix-2] + 2. * Pp[ix-1] + 2. * Pp[ix+1] + Pp[ix+2] - 6.  * Pp[ix] ) * self.hx2_inv / 6.
+            integral_J4 = ( Np[ix-2] + 8. * Np[ix-1] + 8. * Np[ix+1] + Np[ix+2] + 18. * Np[ix] ) / 36.
+            
+#             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
+            y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             
             
             # moments

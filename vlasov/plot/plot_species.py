@@ -310,24 +310,46 @@ class PlotSpecies(object):
 #         E0 = self.hamiltonian.E0
 #         E  = self.hamiltonian.E
         
-        E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
-        E  = self.hamiltonian.Ekin  + self.potential.poisson_const * self.potential.E
+#         E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
+#         E  = self.hamiltonian.Ekin  + self.potential.poisson_const * self.potential.E
         
 #        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + self.potential.E0
 #        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + self.potential.E
-        
-        E_error   = (E - E0) / E0
         
 #        if E0 != 0.0:
 #            E_error = (E-E0)/E0
 #        else:
 #            E_error = 0.0
         
-        self.ekin   [self.iTime] = self.hamiltonian.Ekin
-#         self.epot   [self.iTime] = self.hamiltonian.Epot * 0.5
+#         self.ekin   [self.iTime] = self.hamiltonian.EJ1_kin
+#         self.epot   [self.iTime] = self.hamiltonian.EJ1_pot * 0.5
+        
+#         self.ekin   [self.iTime] = self.hamiltonian.EJ2_kin
+#         self.epot   [self.iTime] = self.hamiltonian.EJ2_pot * 0.5
+        
+        self.ekin   [self.iTime] = self.hamiltonian.EJ4_kin
+        self.epot   [self.iTime] = self.hamiltonian.EJ4_pot * 0.5
+        
 #        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
-        self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
-        self.energy [self.iTime] = E_error
+#         self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
+        
+#         E0 = self.hamiltonian.EJ1_0
+#         E  = self.hamiltonian.EJ1
+        
+#         E0 = self.hamiltonian.EJ2_0
+#         E  = self.hamiltonian.EJ2
+        
+        E0 = self.hamiltonian.EJ4_0
+        E  = self.hamiltonian.EJ4
+        
+#         E0 = self.hamiltonian.EJ1_0 + self.hamiltonian.EJ2_0
+#         E  = self.hamiltonian.EJ1   + self.hamiltonian.EJ2
+        
+#         E  = self.ekin[self.iTime] + self.epot[self.iTime]
+#         E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
+#         E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 * 0.5
+        
+        self.energy [self.iTime] = (E - E0) / E0
 #        self.energy_f[self.iTime] = E_f_error
 #        self.energy_p[self.iTime] = E_p_error
         self.partnum  [self.iTime] = self.distribution.N_error

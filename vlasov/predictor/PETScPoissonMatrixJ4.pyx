@@ -70,13 +70,25 @@ cdef class PETScPoissonMatrix(object):
             row.field = 0
             col.field = 0
             
+#             for index, value in [
+#                     ((i-2,), + 0.25 * self.hx2_inv),
+#                     ((i-1,), - 2.   * self.hx2_inv),
+#                     ((i,  ), + 3.5  * self.hx2_inv),
+#                     ((i+1,), - 2.   * self.hx2_inv),
+#                     ((i+2,), + 0.25 * self.hx2_inv),
+#                 ]:
             for index, value in [
-                    ((i-2,), + 0.25 * self.hx2_inv),
-                    ((i-1,), - 2.   * self.hx2_inv),
-                    ((i,  ), + 3.5  * self.hx2_inv),
-                    ((i+1,), - 2.   * self.hx2_inv),
-                    ((i+2,), + 0.25 * self.hx2_inv),
+                    ((i-1,), - 1. * self.hx2_inv),
+                    ((i,  ), + 2. * self.hx2_inv),
+                    ((i+1,), - 1. * self.hx2_inv),
                 ]:
+#             for index, value in [
+#                     ((i-2,), + 1. * self.hx2_inv / 6.),
+#                     ((i-1,), + 2. * self.hx2_inv / 6.),
+#                     ((i,  ), - 6. * self.hx2_inv / 6.),
+#                     ((i+1,), + 2. * self.hx2_inv / 6.),
+#                     ((i+2,), + 1. * self.hx2_inv / 6.),
+#                 ]:
                 
                 col.index = index
                 A.setValueStencil(row, col, value)
@@ -104,5 +116,4 @@ cdef class PETScPoissonMatrix(object):
             ix = i-xs+2
             iy = i-xs
             
-            b[iy] = - (0.25 * ( - n[ix-2] + 2. * n[ix-1] + 2. * n[ix  ] + 2. * n[ix+1] - n[ix+2] ) - nmean) * self.charge
-        
+            b[iy] = - ( ( n[ix-2] + 8. * n[ix-1] + 8. * n[ix+1] + n[ix+2] + 18. * n[ix] ) / 36. - nmean) * self.charge
