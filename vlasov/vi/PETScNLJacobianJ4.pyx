@@ -188,7 +188,7 @@ cdef class PETScJacobian(object):
 #         cdef np.float64_t coll1_fac   = 0.
 #         cdef np.float64_t coll2_fac   = 0.
         
-        cdef np.float64_t time_fac = 1.0 / (64. * self.ht)
+        cdef np.float64_t time_fac    = 1.0  / (64. * self.ht)
 #         cdef np.float64_t time_fac = 1.0 / (36. * self.ht)
 #         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac_J1 = 0.25 / (12. * self.hx * self.hv)

@@ -154,8 +154,10 @@ cdef class PETScMatrix(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h + h2h
         
-        cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
-        cdef np.float64_t arak_fac = 0.5 / (12. * self.hx * self.hv)
+        cdef np.float64_t time_fac    = 1.0  / (64. * self.ht)
+        cdef np.float64_t arak_fac_J1 = 0.25 / (12. * self.hx * self.hv)
+        cdef np.float64_t arak_fac_J2 = 0.25 / (24. * self.hx * self.hv)
+        cdef np.float64_t poisson_fac = self.charge / 36. 
         
         cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 / self.hv
         cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
@@ -175,12 +177,19 @@ cdef class PETScMatrix(object):
             row.field = self.nv
             
             # charge density
+#             for index, value in [
+#                     ((i-2,), - 0.25 * self.charge),
+#                     ((i-1,), + 0.50 * self.charge),
+#                     ((i,  ), + 0.50 * self.charge),
+#                     ((i+1,), + 0.50 * self.charge),
+#                     ((i+2,), - 0.25 * self.charge),
+#                 ]:
             for index, value in [
-                    ((i-2,), - 0.25 * self.charge),
-                    ((i-1,), + 0.50 * self.charge),
-                    ((i,  ), + 0.50 * self.charge),
-                    ((i+1,), + 0.50 * self.charge),
-                    ((i+2,), - 0.25 * self.charge),
+                    ((i-2,), 1.  * poisson_fac),
+                    ((i-1,), 8.  * poisson_fac),
+                    ((i,  ), 18. * poisson_fac),
+                    ((i+1,), 8.  * poisson_fac),
+                    ((i+2,), 1.  * poisson_fac),
                 ]:
                     
                 col.index = index
@@ -189,12 +198,17 @@ cdef class PETScMatrix(object):
             
             
             # Laplace operator
+#             for index, value in [
+#                     ((i-2,), + 0.25 * self.hx2_inv),
+#                     ((i-1,), - 2.   * self.hx2_inv),
+#                     ((i,  ), + 3.5  * self.hx2_inv),
+#                     ((i+1,), - 2.   * self.hx2_inv),
+#                     ((i+2,), + 0.25 * self.hx2_inv),
+#                 ]:
             for index, value in [
-                    ((i-2,), + 0.25 * self.hx2_inv),
-                    ((i-1,), - 2.   * self.hx2_inv),
-                    ((i,  ), + 3.5  * self.hx2_inv),
-                    ((i+1,), - 2.   * self.hx2_inv),
-                    ((i+2,), + 0.25 * self.hx2_inv),
+                    ((i-1,), - 1. * self.hx2_inv),
+                    ((i,  ), + 2. * self.hx2_inv),
+                    ((i+1,), - 1. * self.hx2_inv),
                 ]:
                 
                 col.index = index
@@ -289,40 +303,64 @@ cdef class PETScMatrix(object):
 #                         ]:
                         
                     for index, field, value in [
-                            ((i-1,), j-1, 1. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac \
-                                                        - 1. * coll1_fac * ( Nh[ix-1] * v[j-1] - Uh[ix-1] ) * Ah[ix-1] \
-                                                        + 1. * coll2_fac),
-                            ((i-1,), j  , 2. * time_fac - (h[ix,   j+1] - h[ix,   j-1]) * arak_fac \
-                                                        - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac \
-                                                        - 2. * coll2_fac),
-                            ((i-1,), j+1, 1. * time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * arak_fac \
-                                                        + 1. * coll1_fac * ( Nh[ix-1] * v[j+1] - Uh[ix-1] ) * Ah[ix-1] \
-                                                        + 1. * coll2_fac),
-                            ((i,  ), j-1, 2. * time_fac + (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac \
-                                                        + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac \
-                                                        - 2. * coll1_fac * ( Nh[ix  ] * v[j-1] - Uh[ix  ] ) * Ah[ix  ] \
-                                                        + 2. * coll2_fac),
-                            ((i,  ), j  , 4. * time_fac \
-                                                        - 4. * coll2_fac),
-                            ((i,  ), j+1, 2. * time_fac - (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac \
-                                                        - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac \
-                                                        + 2. * coll1_fac * ( Nh[ix  ] * v[j+1] - Uh[ix  ] ) * Ah[ix  ] \
-                                                        + 2. * coll2_fac),
-                            ((i+1,), j-1, 1. * time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * arak_fac \
-                                                        - 1. * coll1_fac * ( Nh[ix+1] * v[j-1] - Uh[ix+1] ) * Ah[ix+1] \
-                                                        + 1. * coll2_fac),
-                            ((i+1,), j  , 2. * time_fac + (h[ix,   j+1] - h[ix,   j-1]) * arak_fac \
-                                                        + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac \
-                                                        - 2. * coll2_fac),
-                            ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac \
-                                                        + 1. * coll1_fac * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) * Ah[ix+1] \
-                                                        + 1. * coll2_fac),
-                            ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac \
-                                                 + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac),
-                            ((i,  ), self.nv,    + 1. * (fh[ix-1, j-1] - fh[ix+1, j-1]) * arak_fac \
-                                                 + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac),
-                            ((i+1,), self.nv,    + 2. * (fh[ix,   j-1] - fh[ix,   j+1]) * arak_fac \
-                                                 + 1. * (fh[ix+1, j-1] - fh[ix+1, j+1]) * arak_fac),
+                            ((i-2,), j  , + 1. * time_fac - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac_J2),
+                            ((i-1,), j-1, + 2. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac_J1 \
+                                                          - (h[ix-2, j  ] - h[ix,   j-2]) * arak_fac_J2 \
+                                                          - (h[ix-1, j+1] - h[ix+1, j-1]) * arak_fac_J2 \
+                                                          - 1. * coll1_fac * ( Nh[ix-1] * v[j-1] - Uh[ix-1] ) * Ah[ix-1] \
+                                                          + 1. * coll2_fac),
+                            ((i-1,), j  , + 8. * time_fac - (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
+                                                          - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac_J1 \
+                                                          - 2. * coll2_fac),
+                            ((i-1,), j+1, + 2. * time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * arak_fac_J1 \
+                                                          - (h[ix,   j+2] - h[ix-2, j  ]) * arak_fac_J2 \
+                                                          - (h[ix+1, j+1] - h[ix-1, j-1]) * arak_fac_J2 \
+                                                          + 1. * coll1_fac * ( Nh[ix-1] * v[j+1] - Uh[ix-1] ) * Ah[ix-1] \
+                                                          + 1. * coll2_fac),
+                            ((i,  ), j-2, + 1. * time_fac + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac_J2),
+                            ((i,  ), j-1, + 8. * time_fac + (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
+                                                          + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac_J1 \
+                                                          - 2. * coll1_fac * ( Nh[ix  ] * v[j-1] - Uh[ix  ] ) * Ah[ix  ] \
+                                                          + 2. * coll2_fac),
+                            ((i,  ), j  , + 20.* time_fac - 4. * coll2_fac),
+                            ((i,  ), j+1, + 8. * time_fac - (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
+                                                          - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac_J1 \
+                                                          + 2. * coll1_fac * ( Nh[ix  ] * v[j+1] - Uh[ix  ] ) * Ah[ix  ] \
+                                                          + 2. * coll2_fac),
+                            ((i,  ), j+2, + 1. * time_fac - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac_J2),
+                            ((i+1,), j-1, + 2. * time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * arak_fac_J1 \
+                                                          + (h[ix+2, j  ] - h[ix,   j-2]) * arak_fac_J2 \
+                                                          + (h[ix+1, j+1] - h[ix-1, j-1]) * arak_fac_J2 \
+                                                          - 1. * coll1_fac * ( Nh[ix+1] * v[j-1] - Uh[ix+1] ) * Ah[ix+1] \
+                                                          + 1. * coll2_fac),
+                            ((i+1,), j  , + 8. * time_fac + (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
+                                                          + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac_J1 \
+                                                          - 2. * coll2_fac),
+                            ((i+1,), j+1, + 2. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1 \
+                                                          + (h[ix,   j+2] - h[ix+2, j  ]) * arak_fac_J2 \
+                                                          + (h[ix-1, j+1] - h[ix+1, j-1]) * arak_fac_J2 \
+                                                          + 1. * coll1_fac * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) * Ah[ix+1] \
+                                                          + 1. * coll2_fac),
+                            ((i+2,), j  , + 1. * time_fac + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac_J2),
+                            
+                            ((i-2,), self.nv,    + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J2),
+                            ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
+                                                 + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1 \
+                                                 + 1. * (fh[ix-1, j+1] - fh[ix+1, j-1]) * arak_fac_J2 \
+                                                 + 1. * (fh[ix+1, j+1] - fh[ix-1, j-1]) * arak_fac_J2 \
+                                                 + 1. * (fh[ix-2, j  ] - fh[ix,   j-2]) * arak_fac_J2 \
+                                                 + 1. * (fh[ix,   j+2] - fh[ix-2, j  ]) * arak_fac_J2),
+                            ((i,  ), self.nv,    - 1. * (fh[ix+1, j-1] - fh[ix-1, j-1]) * arak_fac_J1 \
+                                                 + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J1 \
+                                                 + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J2 \
+                                                 - 1. * (fh[ix+1, j-1] - fh[ix-1, j-1]) * arak_fac_J2),
+                            ((i+1,), self.nv,    - 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
+                                                 - 1. * (fh[ix+1, j+1] - fh[ix+1, j-1]) * arak_fac_J1 \
+                                                 - 1. * (fh[ix-1, j+1] - fh[ix+1, j-1]) * arak_fac_J2 \
+                                                 - 1. * (fh[ix+1, j+1] - fh[ix-1, j-1]) * arak_fac_J2 \
+                                                 - 1. * (fh[ix,   j+2] - fh[ix+2, j  ]) * arak_fac_J2 \
+                                                 - 1. * (fh[ix+2, j  ] - fh[ix,   j-2]) * arak_fac_J2),
+                            ((i+2,), self.nv,    - 1. * (fh[ix+1, j+1] - fh[ix+1, j-1]) * arak_fac_J2),
                         ]:
                         
                         col.index = index
@@ -574,8 +612,18 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
-            integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
+            laplace_J1  =        ( p[ix-1] + p[ix+1] - 2. * p[ix] ) * self.hx2_inv
+            laplace_J2  = 0.25 * ( p[ix-2] + p[ix+2] - 2. * p[ix] ) * self.hx2_inv
+            integral_J1 = 0.25 * ( N[ix-1] + N[ix+1] + 2. * N[ix] )
+            integral_J2 = 0.25 * ( N[ix-2] + N[ix+2] + 2. * N[ix] )
+            
+            laplace_J4  = ( p[ix-2] + 2. * p[ix-1] + 2. * p[ix+1] + p[ix+2] - 6.  * p[ix] ) * self.hx2_inv / 6.
+            integral_J4 = ( N[ix-2] + 8. * N[ix-1] + 8. * N[ix+1] + N[ix+2] + 18. * N[ix] ) / 36.
+            
+#             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
+            y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             
             y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             

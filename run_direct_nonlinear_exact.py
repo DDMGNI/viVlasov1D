@@ -34,8 +34,8 @@ from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.vi.PETScMatrixJ4                import PETScMatrix
 from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
 from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
-# from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -264,7 +264,7 @@ class petscVP1D():
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
                                            self.h0, self.vGrid,
-                                           self.nx, self.nv, self.ht, self.hx, self.hv)
+                                           self.nx, self.nv, 0.1 * self.ht, self.hx, self.hv)
         
         
         # initialise matrix
@@ -709,10 +709,12 @@ class petscVP1D():
         # calculate initial guess for distribution function
 #         self.arakawa_rk4.rk4_J1(self.f, self.h1)
 #         self.arakawa_rk4.rk4_J2(self.f, self.h1)
-        self.arakawa_rk4.rk4_J4(self.f, self.h1)
-        
-        self.copy_f_to_x()
-        self.calculate_moments()
+
+        for i in range(0,10):
+            self.arakawa_rk4.rk4_J4(self.f, self.h1)
+            
+            self.copy_f_to_x()
+            self.calculate_moments()
         
         self.petsc_function.mult(self.x, self.b)
         rknorm = self.b.norm()

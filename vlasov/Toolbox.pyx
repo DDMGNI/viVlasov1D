@@ -114,7 +114,8 @@ cdef class Toolbox(object):
         Arakawa Bracket 4th order
         '''
         
-        return 2. * self.arakawa_J1(f, h, i, j) - 1. * self.arakawa_J2(f, h, i, j) 
+#         return 2. * self.arakawa_J1(f, h, i, j) - 1. * self.arakawa_J2(f, h, i, j) 
+        return 0.5 * ( self.arakawa_J1(f, h, i, j) + self.arakawa_J2(f, h, i, j) ) 
     
     
     
@@ -201,7 +202,7 @@ cdef class Toolbox(object):
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = - 2. * self.arakawa_J1(x, h, ix, j) + 1. * self.arakawa_J2(x, h, ix, j)
+                    y[iy, j] = self.arakawa_J4(x, h, ix, j)
     
     
     
@@ -261,7 +262,65 @@ cdef class Toolbox(object):
         Average
         '''
         
-        return 2. * self.average_J1(f, i, j) - 1. * self.average_J2(f, i, j) 
+        cdef np.float64_t result
+        
+#         result = ( \
+#                    + 1. * f[i-1, j-1] \
+#                    + 2. * f[i-1, j  ] \
+#                    + 1. * f[i-1, j+1] \
+#                    + 2. * f[i,   j-1] \
+#                    + 4. * f[i,   j  ] \
+#                    + 2. * f[i,   j+1] \
+#                    + 1. * f[i+1, j-1] \
+#                    + 2. * f[i+1, j  ] \
+#                    + 1. * f[i+1, j+1] \
+#                  ) / 16.
+        
+#         result = ( \
+#                    - 1. * f[i-2, j  ] \
+#                    + 4. * f[i-1, j  ] \
+#                    - 1. * f[i,   j-2] \
+#                    + 4. * f[i,   j-1] \
+#                    + 4. * f[i,   j  ] \
+#                    + 4. * f[i,   j+1] \
+#                    - 1. * f[i,   j+2] \
+#                    + 4. * f[i+1, j  ] \
+#                    - 1. * f[i+2, j  ] \
+#                  ) / 16.
+        
+#         result = ( \
+#                    + 1. * f[i-2, j  ] \
+#                    + 2. * f[i-1, j-1] \
+#                    + 4. * f[i-1, j  ] \
+#                    + 2. * f[i-1, j+1] \
+#                    + 1. * f[i,   j-2] \
+#                    + 4. * f[i,   j-1] \
+#                    + 8. * f[i,   j  ] \
+#                    + 4. * f[i,   j+1] \
+#                    + 1. * f[i,   j+2] \
+#                    + 2. * f[i+1, j-1] \
+#                    + 4. * f[i+1, j  ] \
+#                    + 2. * f[i+1, j+1] \
+#                    + 1. * f[i+2, j  ] \
+#                  ) / 36.
+        
+        result = ( \
+                   + 1.  * f[i-2, j  ] \
+                   + 2.  * f[i-1, j-1] \
+                   + 8.  * f[i-1, j  ] \
+                   + 2.  * f[i-1, j+1] \
+                   + 1.  * f[i,   j-2] \
+                   + 8.  * f[i,   j-1] \
+                   + 20. * f[i,   j  ] \
+                   + 8.  * f[i,   j+1] \
+                   + 1.  * f[i,   j+2] \
+                   + 2.  * f[i+1, j-1] \
+                   + 8.  * f[i+1, j  ] \
+                   + 2.  * f[i+1, j+1] \
+                   + 1.  * f[i+2, j  ] \
+                 ) / 64.
+        
+        return result
     
     
     
