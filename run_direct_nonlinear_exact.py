@@ -19,6 +19,7 @@ from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian 
 
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
+from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
 # from vlasov.vi.PETScMatrixJ1                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
@@ -55,7 +56,9 @@ class petscVP1D():
         Constructor
         '''
         
-        self.nRK4 = 100
+        self.nInitial = 1
+#         self.nInitial = 10
+#         self.nInitial = 100
         
         # load run config file
         self.cfg = Config(cfgfile)
@@ -266,7 +269,11 @@ class petscVP1D():
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
                                            self.h0, self.vGrid,
-                                           self.nx, self.nv, self.ht / float(self.nRK4), self.hx, self.hv)
+                                           self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
+        
+        self.arakawa_gear = PETScArakawaGear(self.da1, self.da2, self.dax,
+                                             self.h0, self.vGrid,
+                                             self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
         
         
         # initialise matrix
@@ -449,6 +456,7 @@ class petscVP1D():
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
         self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
+        self.arakawa_gear.update_history(self.f, self.h1)
         
         
         # create HDF5 output file
@@ -733,7 +741,7 @@ class petscVP1D():
     def initial_guess_rk4(self):
         # calculate initial guess for distribution function
 
-        for i in range(0, self.nRK4):
+        for i in range(0, self.nInitial):
 #             self.arakawa_rk4.rk4_J1(self.f, self.h1)
 #             self.arakawa_rk4.rk4_J2(self.f, self.h1)
             self.arakawa_rk4.rk4_J4(self.f, self.h1)
@@ -748,13 +756,52 @@ class petscVP1D():
         
         
         self.petsc_function.mult(self.x, self.b)
-        rknorm = self.b.norm()
+        ignorm = self.b.norm()
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  RK4 Initial Guess:                  funcnorm = %24.16E" % (rknorm))
+            print("  RK4 Initial Guess:                  funcnorm = %24.16E" % (ignorm))
             print("                                      sum(phi) = %24.16E" % (phisum))
          
+    
+    def initial_guess_gear(self, itime):
+        if itime == 1:
+            self.initial_guess_rk4()
+        
+        else:
+            if itime == 2:
+                gear = self.arakawa_gear.gear2
+            elif itime == 3:
+                gear = self.arakawa_gear.gear3
+            elif itime >= 4:
+                gear = self.arakawa_gear.gear4
+                
+            
+            for i in range(0, self.nInitial):
+                gear(self.f)
+                
+                self.copy_f_to_x()
+                
+                self.calculate_moments(potential=False)
+                self.calculate_potential(output=False)
+                
+                self.copy_p_to_x()
+                self.copy_p_to_h()
+                
+                if i < self.nInitial - 1:
+                    self.arakawa_gear.update_history(self.f, self.h1)
+            
+            
+            self.petsc_function.mult(self.x, self.b)
+            ignorm = self.b.norm()
+            phisum = self.p.sum()
+            
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("  Gear Initial Guess:                 funcnorm = %24.16E" % (ignorm))
+                print("                                      sum(phi) = %24.16E" % (phisum))
+         
+        
+        
     
     def initial_guess(self):
         self.snes_linear.solve(None, self.x)
@@ -797,8 +844,11 @@ class petscVP1D():
             # calculate initial guess via RK4
 #             self.initial_guess_rk4()
             
+            # calculate initial guess via Gear
+            self.initial_guess_gear(itime)
+            
             # calculate initial guess via linear solver
-            self.initial_guess()
+#             self.initial_guess()
             
             
             # nonlinear solve
@@ -832,6 +882,7 @@ class petscVP1D():
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
             self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
+            self.arakawa_gear.update_history(self.f, self.h1)
             
             # save to hdf5
             self.save_to_hdf5(itime)

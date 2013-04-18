@@ -51,6 +51,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScArakawaGear",
+                  sources=["PETScArakawaGear.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScPoissonMatrixJ1",
                   sources=["PETScPoissonMatrixJ1.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

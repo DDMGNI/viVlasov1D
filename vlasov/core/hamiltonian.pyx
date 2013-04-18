@@ -342,7 +342,8 @@ class Hamiltonian(object):
         self.calculate_energy_error()
         self.calculate_momentum_error()
         
-        if iTime == 0 or iTime == 1:
+#         if iTime == 0 or iTime == 1:
+        if iTime == 0:
             self.EJ1_0 = self.EJ1
             self.EJ2_0 = self.EJ2
             self.EJ4_0 = self.EJ4
