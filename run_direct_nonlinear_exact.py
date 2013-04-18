@@ -55,6 +55,8 @@ class petscVP1D():
         Constructor
         '''
         
+        self.nRK4 = 100
+        
         # load run config file
         self.cfg = Config(cfgfile)
         
@@ -259,12 +261,12 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge, coll_freq=self.coll_freq)
+                                        self.charge)#, coll_freq=self.coll_freq)
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
                                            self.h0, self.vGrid,
-                                           self.nx, self.nv, 0.1 * self.ht, self.hx, self.hv)
+                                           self.nx, self.nv, self.ht / float(self.nRK4), self.hx, self.hv)
         
         
         # initialise matrix
@@ -385,7 +387,7 @@ class petscVP1D():
                 init_data = __import__("runs." + self.cfg['initial_data']['density_python'], globals(), locals(), ['density'], 0)
                 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("Initialising density function with Python function.")
+                    print("Initialising density with Python function.")
             
                 for i in range(xs, xe):
                     n0_arr[i] = init_data.density(self.xGrid[i], L) 
@@ -398,7 +400,7 @@ class petscVP1D():
                 init_data = __import__("runs." + self.cfg['initial_data']['temperature_python'], globals(), locals(), ['temperature'], 0)
                 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("Initialising temperature function with Python function.")
+                    print("Initialising temperature with Python function.")
             
                 for i in range(xs, xe):
                     T0_arr[i] = init_data.temperature(self.xGrid[i]) 
@@ -707,10 +709,10 @@ class petscVP1D():
     
     def initial_guess_rk4(self):
         # calculate initial guess for distribution function
-#         self.arakawa_rk4.rk4_J1(self.f, self.h1)
-#         self.arakawa_rk4.rk4_J2(self.f, self.h1)
 
-        for i in range(0,10):
+        for i in range(0, self.nRK4):
+#             self.arakawa_rk4.rk4_J1(self.f, self.h1)
+#             self.arakawa_rk4.rk4_J2(self.f, self.h1)
             self.arakawa_rk4.rk4_J4(self.f, self.h1)
             
             self.copy_f_to_x()
