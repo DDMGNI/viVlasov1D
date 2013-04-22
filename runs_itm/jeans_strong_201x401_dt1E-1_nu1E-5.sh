@@ -1,13 +1,12 @@
-#!/bin/bash
 #
 #$ -cwd
 #
-#$ -l h_cpu=96:00:00
+#$ -l h_rt=24:00:00
 #
-#$ -pe mpich2_tok_production 8
+#$ -pe impi_hydra 16
 #
-#$ -o /ptmp1/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu1E-5.out
-#$ -e /ptmp1/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu1E-5.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu1E-5.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu1E-5.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
