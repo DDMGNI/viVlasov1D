@@ -229,16 +229,16 @@ cdef class PETScFunction(object):
             iy = i-xs
             
             # Poisson equation
-            laplace  = (Pp[ix-1] + Pp[ix+1] - 2. * Pp[ix]) * self.hx2_inv
+            laplace  =        ( Pp[ix-1] - 2. * Pp[ix] + Pp[ix+1] )
             integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
             
-            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+            y[iy, self.nv] = (integral - nmean) * self.charge * self.hx2 - laplace
             
             
             # moments
-            y[iy, self.nv+1] = Np[ix] / self.hv - (fp[ix]            ).sum()
-            y[iy, self.nv+2] = Up[ix] / self.hv - (fp[ix] * self.v   ).sum()
-            y[iy, self.nv+3] = Ep[ix] / self.hv - (fp[ix] * self.v**2).sum()
+            y[iy, self.nv+1] = Np[ix] - (fp[ix]            ).sum() * self.hv
+            y[iy, self.nv+2] = Up[ix] - (fp[ix] * self.v   ).sum() * self.hv
+            y[iy, self.nv+3] = Ep[ix] - (fp[ix] * self.v**2).sum() * self.hv
             y[iy, self.nv+4] = Ap[ix] - Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
             
             

@@ -206,20 +206,20 @@ cdef class PETScJacobian(object):
             
             # charge density
             for index, value in [
-                    ((i-1,), 0.25 * self.charge),
-                    ((i,  ), 0.50 * self.charge),
-                    ((i+1,), 0.25 * self.charge),
+                    ((i-1,), 0.25 * self.charge * self.hx2),
+                    ((i,  ), 0.50 * self.charge * self.hx2),
+                    ((i+1,), 0.25 * self.charge * self.hx2),
                 ]:
-                    
+                
                 col.index = index
                 col.field = self.nv+1
                 A.setValueStencil(row, col, value)
             
             # Laplace operator
             for index, value in [
-                    ((i-1,), - 1. * self.hx2_inv),
-                    ((i,  ), + 2. * self.hx2_inv),
-                    ((i+1,), - 1. * self.hx2_inv),
+                    ((i-1,), - 1.),
+                    ((i,  ), + 2.),
+                    ((i+1,), - 1.),
                 ]:
                 
                 col.index = index
@@ -240,33 +240,33 @@ cdef class PETScJacobian(object):
             row.field = self.nv+1
             col.field = self.nv+1
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - 1.)
+                A.setValueStencil(row, col, - 1. * self.hv)
              
             
             # average velocity density
             row.field = self.nv+2
             col.field = self.nv+2
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j])
+                A.setValueStencil(row, col, - self.v[j] * self.hv)
             
             
             # average energy density
             row.field = self.nv+3
             col.field = self.nv+3
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j]**2)
+                A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
             # temperature
@@ -276,13 +276,13 @@ cdef class PETScJacobian(object):
             afac = 1. / ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
              
             A.setValueStencil(row, col, 1.)
-             
+            
             col.field = self.nv+1
             A.setValueStencil(row, col, - afac + Np[ix] * Ep[ix] * afac**2)
-             
+            
             col.field = self.nv+2
             A.setValueStencil(row, col,   - 2. * Np[ix] * Up[ix] * afac**2)
-             
+            
             col.field = self.nv+3
             A.setValueStencil(row, col,   + 1. * Np[ix] * Np[ix] * afac**2)
         
@@ -293,7 +293,6 @@ cdef class PETScJacobian(object):
             ix = i-xs+2
             
             row.index = (i,)
-#             col.index = (i,)
                 
             for j in np.arange(0, self.nv):
                 row.field = j
@@ -306,34 +305,34 @@ cdef class PETScJacobian(object):
 
                     for index, field, value in [
                             ((i-1,), j-1, 1. * time_fac_J1 - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                                        - 1. * coll1_fac * ( Np[ix-1] * v[j-1] - Up[ix-1] ) * Ap[ix-1] \
-                                                        + 1. * coll2_fac),
+                                                           - 1. * coll1_fac * ( Np[ix-1] * v[j-1] - Up[ix-1] ) * Ap[ix-1] \
+                                                           + 1. * coll2_fac),
                             ((i-1,), j  , 2. * time_fac_J1 - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                                        - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll2_fac),
+                                                           - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
+                                                           - 2. * coll2_fac),
                             ((i-1,), j+1, 1. * time_fac_J1 - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                                        + 1. * coll1_fac * ( Np[ix-1] * v[j+1] - Up[ix-1] ) * Ap[ix-1] \
-                                                        + 1. * coll2_fac),
+                                                           + 1. * coll1_fac * ( Np[ix-1] * v[j+1] - Up[ix-1] ) * Ap[ix-1] \
+                                                           + 1. * coll2_fac),
                             ((i,  ), j-1, 2. * time_fac_J1 + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                                        + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll1_fac * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * Ap[ix  ] \
-                                                        + 2. * coll2_fac),
+                                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
+                                                           - 2. * coll1_fac * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * Ap[ix  ] \
+                                                           + 2. * coll2_fac),
                             ((i,  ), j  , 4. * time_fac_J1 \
-                                                        - 4. * coll2_fac),
+                                                           - 4. * coll2_fac),
                             ((i,  ), j+1, 2. * time_fac_J1 - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                                        - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
-                                                        + 2. * coll1_fac * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * Ap[ix  ] \
-                                                        + 2. * coll2_fac),
+                                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
+                                                           + 2. * coll1_fac * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * Ap[ix  ] \
+                                                           + 2. * coll2_fac),
                             ((i+1,), j-1, 1. * time_fac_J1 + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                                        - 1. * coll1_fac * ( Np[ix+1] * v[j-1] - Up[ix+1] ) * Ap[ix+1] \
-                                                        + 1. * coll2_fac),
+                                                           - 1. * coll1_fac * ( Np[ix+1] * v[j-1] - Up[ix+1] ) * Ap[ix+1] \
+                                                           + 1. * coll2_fac),
                             ((i+1,), j  , 2. * time_fac_J1 + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                                        + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll2_fac),
+                                                           + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1 \
+                                                           - 2. * coll2_fac),
                             ((i+1,), j+1, 1. * time_fac_J1 + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1 \
-                                                        + 1. * coll1_fac * ( Np[ix+1] * v[j+1] - Up[ix+1] ) * Ap[ix+1] \
-                                                        + 1. * coll2_fac),
-                                                
+                                                           + 1. * coll1_fac * ( Np[ix+1] * v[j+1] - Up[ix+1] ) * Ap[ix+1] \
+                                                           + 1. * coll2_fac),
+                            
                             ((i-1,), self.nv,    + 2. * (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * arak_fac_J1 \
                                                  + 1. * (f_ave[ix-1, j+1] - f_ave[ix-1, j-1]) * arak_fac_J1 ),
                             ((i,  ), self.nv,    - 1. * (f_ave[ix+1, j-1] - f_ave[ix-1, j-1]) * arak_fac_J1 \
@@ -347,12 +346,14 @@ cdef class PETScJacobian(object):
                                                  - 2. * coll1_fac * fp[ix,   j-1] * v[j-1] * Ap[ix  ] ),
                             ((i+1,), self.nv+1,  + 1. * coll1_fac * fp[ix+1, j+1] * v[j+1] * Ap[ix+1] \
                                                  - 1. * coll1_fac * fp[ix+1, j-1] * v[j-1] * Ap[ix+1] ),
+                            
                             ((i-1,), self.nv+2,  + 1. * coll1_fac * fp[ix-1, j+1] * (-1) * Ap[ix-1] \
                                                  - 1. * coll1_fac * fp[ix-1, j-1] * (-1) * Ap[ix-1] ),
                             ((i,  ), self.nv+2,  + 2. * coll1_fac * fp[ix,   j+1] * (-1) * Ap[ix  ] \
                                                  - 2. * coll1_fac * fp[ix,   j-1] * (-1) * Ap[ix  ] ),
                             ((i+1,), self.nv+2,  + 1. * coll1_fac * fp[ix+1, j+1] * (-1) * Ap[ix+1] \
                                                  - 1. * coll1_fac * fp[ix+1, j-1] * (-1) * Ap[ix+1] ),
+                            
                             ((i-1,), self.nv+4,  + 1. * coll1_fac * fp[ix-1, j+1] * ( Np[ix-1] * v[j+1] - Up[ix-1] ) \
                                                  - 1. * coll1_fac * fp[ix-1, j-1] * ( Np[ix-1] * v[j-1] - Up[ix-1] ) ),
                             ((i,  ), self.nv+4,  + 2. * coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) \

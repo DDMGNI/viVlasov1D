@@ -176,9 +176,9 @@ cdef class PETScMatrix(object):
             
             # charge density
             for index, value in [
-                    ((i-1,), 0.25 * self.charge),
-                    ((i,  ), 0.50 * self.charge),
-                    ((i+1,), 0.25 * self.charge),
+                    ((i-1,), 0.25 * self.charge * self.hx2),
+                    ((i,  ), 0.50 * self.charge * self.hx2),
+                    ((i+1,), 0.25 * self.charge * self.hx2),
                 ]:
                     
                 col.index = index
@@ -188,9 +188,9 @@ cdef class PETScMatrix(object):
             
             # Laplace operator
             for index, value in [
-                    ((i-1,), - 1. * self.hx2_inv),
-                    ((i,  ), + 2. * self.hx2_inv),
-                    ((i+1,), - 1. * self.hx2_inv),
+                    ((i-1,), - 1.),
+                    ((i,  ), + 2.),
+                    ((i+1,), - 1.),
                 ]:
                 
                 col.index = index
@@ -210,33 +210,33 @@ cdef class PETScMatrix(object):
             row.field = self.nv+1
             col.field = self.nv+1
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - 1.)
+                A.setValueStencil(row, col, - 1. * self.hv)
              
             
             # average velocity density
             row.field = self.nv+2
             col.field = self.nv+2
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j])
+                A.setValueStencil(row, col, - self.v[j] * self.hv)
             
             
             # average energy density
             row.field = self.nv+3
             col.field = self.nv+3
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j]**2)
+                A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
             # temperature
@@ -313,6 +313,7 @@ cdef class PETScMatrix(object):
                             ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1 \
                                                         + 1. * coll1_fac * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) * Ah[ix+1] \
                                                         + 1. * coll2_fac),
+                            
                             ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
                                                  + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1),
                             ((i,  ), self.nv,    + 1. * (fh[ix-1, j-1] - fh[ix+1, j-1]) * arak_fac_J1 \
@@ -454,7 +455,7 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            b[iy, self.nv] = nmean * self.charge
+            b[iy, self.nv] = nmean * self.charge * self.hx2
             
             
             # moments
@@ -570,16 +571,16 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            laplace  = (p[ix-1] + p[ix+1] - 2. * p[ix]) * self.hx2_inv
+            laplace  =        ( p[ix-1] - 2. * p[ix] + p[ix+1] )
             integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
             
-            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
+            y[iy, self.nv] = self.charge * (integral - nmean) * self.hx2 - laplace
             
             
             # moments
-            y[iy, self.nv+1] = N[ix] / self.hv - (f[ix]            ).sum()
-            y[iy, self.nv+2] = U[ix] / self.hv - (f[ix] * self.v   ).sum()
-            y[iy, self.nv+3] = E[ix] / self.hv - (f[ix] * self.v**2).sum()
+            y[iy, self.nv+1] = N[ix] - (f[ix]            ).sum() * self.hv
+            y[iy, self.nv+2] = U[ix] - (f[ix] * self.v   ).sum() * self.hv
+            y[iy, self.nv+3] = E[ix] - (f[ix] * self.v**2).sum() * self.hv
             y[iy, self.nv+4] = A[ix] - Nh[ix] / (Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix])
             
             
