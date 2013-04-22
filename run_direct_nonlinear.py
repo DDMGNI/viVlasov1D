@@ -127,7 +127,7 @@ class petscVP1D():
                                     stencil_type='box')
         
         # create DA for 2d grid (f, phi and moments)
-        self.da2 = PETSc.DA().create(dim=1, dof=self.nv+5,
+        self.da2 = PETSc.DA().create(dim=1, dof=self.nv+4,
                                      sizes=[self.nx],
                                      proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                      boundary_type=('periodic'),
@@ -262,7 +262,7 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge, coll_freq=self.coll_freq)
+                                        self.charge)#, coll_freq=self.coll_freq)
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
@@ -489,7 +489,6 @@ class petscVP1D():
         self.copy_n_to_x()                    # copy density to solution vector
         self.copy_u_to_x()                    # copy velocity to solution vector
         self.copy_e_to_x()                    # copy energy to solution vector
-        self.copy_a_to_x()                    # copy collision factor to solution vector
         
         if potential:
             self.calculate_potential()            # calculate initial potential
@@ -574,7 +573,6 @@ class petscVP1D():
         self.copy_x_to_n()
         self.copy_x_to_u()
         self.copy_x_to_e()
-        self.copy_x_to_a()
         self.copy_p_to_h()
     
     
@@ -584,7 +582,6 @@ class petscVP1D():
         self.copy_n_to_x()
         self.copy_u_to_x()
         self.copy_e_to_x()
-        self.copy_a_to_x()
     
     
     def copy_x_to_f(self):
@@ -679,20 +676,6 @@ class petscVP1D():
         x_arr[:, self.nv+3] = e_arr[:]
         
         
-    def copy_x_to_a(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        a_arr = self.dax.getVecArray(self.a)[...]
-        
-        a_arr[:] = x_arr[:, self.nv+4]
-        
-    
-    def copy_a_to_x(self):
-        a_arr = self.dax.getVecArray(self.a)[...]
-        x_arr = self.da2.getVecArray(self.x)[...]
-        
-        x_arr[:, self.nv+4] = a_arr[:]
-        
-        
     def save_to_hdf5(self, itime):
         
         self.calculate_density()
@@ -726,14 +709,6 @@ class petscVP1D():
     
     
     def updateJacobian(self, snes, X, J, P):
-        (xs, xe), = self.da2.getRanges()
-        
-        x_arr = self.da2.getVecArray(X)[...]
-        
-        for i in range(xs, xe):
-            ix = i-xs
-            x_arr[ix, self.nv+4] = x_arr[ix, self.nv+1] / ( x_arr[ix, self.nv+1] * x_arr[ix, self.nv+3] - x_arr[ix, self.nv+2]**2 )
-        
         self.petsc_jacobian.update_previous(X)
         
         self.petsc_jacobian.formMat(J)
@@ -884,7 +859,6 @@ class petscVP1D():
             # update data vectors
             self.copy_x_to_data()
             self.calculate_collision_factor()
-            self.copy_a_to_x()
             
             # update history
             self.petsc_jacobian.update_history(self.f, self.h1)
@@ -943,7 +917,7 @@ class petscVP1D():
 #         sx = +1
 #         sx = +2
         
-        nfield=self.nv+5
+        nfield=self.nv+4
         
         for ifield in range(0, nfield):
             for ix in range(xs, xe):

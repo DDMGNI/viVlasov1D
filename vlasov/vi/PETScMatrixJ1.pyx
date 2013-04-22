@@ -157,7 +157,7 @@ cdef class PETScMatrix(object):
         cdef np.float64_t time_fac    = 4.0 * 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac_J1 = 4.0 * 0.5 / (12. * self.hx * self.hv)
         
-        cdef np.float64_t coll1_fac = - 4.0 * 0.5 * self.nu * 0.25 / self.hv * 0.5
+        cdef np.float64_t coll1_fac = - 4.0 * 0.5 * self.nu * 0.25 / self.hv
         cdef np.float64_t coll2_fac = - 4.0 * 0.5 * self.nu * 0.25 * self.hv2_inv
         
         
@@ -239,24 +239,6 @@ cdef class PETScMatrix(object):
                 A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
-            # temperature
-            row.field = self.nv+4
-            col.field = self.nv+4
-            
-            A.setValueStencil(row, col, 1.)
-            
-            afac = 1. / ( Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix] )
-              
-            col.field = self.nv+1
-            A.setValueStencil(row, col, - afac + Nh[ix] * Eh[ix] * afac**2)
-             
-            col.field = self.nv+2
-            A.setValueStencil(row, col,   - 2. * Nh[ix] * Uh[ix] * afac**2)
-             
-            col.field = self.nv+3
-            A.setValueStencil(row, col,   + 1. * Nh[ix] * Nh[ix] * afac**2)
-        
-        
         
         for i in np.arange(xs, xe):
             ix = i-xs+2
@@ -324,34 +306,6 @@ cdef class PETScMatrix(object):
                             ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1 \
                                                         + 1. * coll1_fac * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) * Ah[ix+1] \
                                                         + 1. * coll2_fac),
-                            
-                            ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
-                                                 + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1),
-                            ((i,  ), self.nv,    + 1. * (fh[ix-1, j-1] - fh[ix+1, j-1]) * arak_fac_J1 \
-                                                 + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J1),
-                            ((i+1,), self.nv,    + 2. * (fh[ix,   j-1] - fh[ix,   j+1]) * arak_fac_J1 \
-                                                 + 1. * (fh[ix+1, j-1] - fh[ix+1, j+1]) * arak_fac_J1),
-                                                
-                            ((i-1,), self.nv+1,  + 1. * coll1_fac * fh[ix-1, j+1] * v[j+1] * Ah[ix-1] \
-                                                 - 1. * coll1_fac * fh[ix-1, j-1] * v[j-1] * Ah[ix-1] ),
-                            ((i,  ), self.nv+1,  + 2. * coll1_fac * fh[ix,   j+1] * v[j+1] * Ah[ix  ] \
-                                                 - 2. * coll1_fac * fh[ix,   j-1] * v[j-1] * Ah[ix  ] ),
-                            ((i+1,), self.nv+1,  + 1. * coll1_fac * fh[ix+1, j+1] * v[j+1] * Ah[ix+1] \
-                                                 - 1. * coll1_fac * fh[ix+1, j-1] * v[j-1] * Ah[ix+1] ),
-                            
-                            ((i-1,), self.nv+2,  + 1. * coll1_fac * fh[ix-1, j+1] * (-1) * Ah[ix-1] \
-                                                 - 1. * coll1_fac * fh[ix-1, j-1] * (-1) * Ah[ix-1] ),
-                            ((i,  ), self.nv+2,  + 2. * coll1_fac * fh[ix,   j+1] * (-1) * Ah[ix  ] \
-                                                 - 2. * coll1_fac * fh[ix,   j-1] * (-1) * Ah[ix  ] ),
-                            ((i+1,), self.nv+2,  + 1. * coll1_fac * fh[ix+1, j+1] * (-1) * Ah[ix+1] \
-                                                 - 1. * coll1_fac * fh[ix+1, j-1] * (-1) * Ah[ix+1] ),
-                            
-                            ((i-1,), self.nv+4,  + 1. * coll1_fac * fh[ix-1, j+1] * ( Nh[ix-1] * v[j+1] - Uh[ix-1] ) \
-                                                 - 1. * coll1_fac * fh[ix-1, j-1] * ( Nh[ix-1] * v[j-1] - Uh[ix-1] ) ),
-                            ((i,  ), self.nv+4,  + 2. * coll1_fac * fh[ix,   j+1] * ( Nh[ix  ] * v[j+1] - Uh[ix  ] ) \
-                                                 - 2. * coll1_fac * fh[ix,   j-1] * ( Nh[ix  ] * v[j-1] - Uh[ix  ] ) ),
-                            ((i+1,), self.nv+4,  + 1. * coll1_fac * fh[ix+1, j+1] * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) \
-                                                 - 1. * coll1_fac * fh[ix+1, j-1] * ( Nh[ix+1] * v[j-1] - Uh[ix+1] ) ),
                         ]:
                         
                         col.index = index
@@ -494,8 +448,6 @@ cdef class PETScMatrix(object):
             b[iy, self.nv+1] = 0.
             b[iy, self.nv+2] = 0.
             b[iy, self.nv+3] = 0.
-            b[iy, self.nv+4] = 0.
-#             b[iy, self.nv+4] = Nh[ix] / (Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix])
             
             
             # Vlasov equation
@@ -535,7 +487,9 @@ cdef class PETScMatrix(object):
         n[xs:xe] = x[xs:xe,   self.nv+1]
         u[xs:xe] = x[xs:xe,   self.nv+2]
         e[xs:xe] = x[xs:xe,   self.nv+3]
-        a[xs:xe] = x[xs:xe,   self.nv+4]
+        
+        for i in range(xs,xe):
+            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
         
         for j in np.arange(0, self.nv):
             h1[xs:xe, j] = p[xs:xe]
@@ -615,7 +569,6 @@ cdef class PETScMatrix(object):
             y[iy, self.nv+1] = N[ix] - (f[ix]            ).sum() * self.hv
             y[iy, self.nv+2] = U[ix] - (f[ix] * self.v   ).sum() * self.hv
             y[iy, self.nv+3] = E[ix] - (f[ix] * self.v**2).sum() * self.hv
-            y[iy, self.nv+4] = A[ix] - N[ix] / (N[ix] * E[ix] - U[ix] * U[ix])
             
             
             # Vlasov Equation
@@ -630,8 +583,7 @@ cdef class PETScMatrix(object):
                                        - self.toolbox.time_derivative_J1(fh, ix, j) \
                                        + 0.5 * self.toolbox.arakawa_J1(f, hh, ix, j) \
                                        + 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                                       - 0.5 * self.nu * self.toolbox.collT1(f,  Nh, Uh, Eh, Ah, ix, j) \
-                                       - 0.5 * self.nu * self.toolbox.collT1(fh, N,  U,  E,  A,  ix, j) \
+                                       - self.nu * self.toolbox.collT1(f,  Nh, Uh, Eh, Ah, ix, j) \
                                        - self.nu * self.toolbox.collT2(f_ave, ix, j)
                                      ) 
 
