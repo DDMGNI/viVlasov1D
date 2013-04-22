@@ -232,7 +232,7 @@ cdef class PETScFunction(object):
             laplace  =        ( Pp[ix-1] - 2. * Pp[ix] + Pp[ix+1] )
             integral = 0.25 * ( Np[ix-1] + 2. * Np[ix] + Np[ix+1] )
             
-            y[iy, self.nv] = (integral - nmean) * self.charge * self.hx2 - laplace
+            y[iy, self.nv] = 0.5 * ( (integral - nmean) * self.charge * self.hx2 - laplace )
             
             
             # moments
@@ -249,10 +249,12 @@ cdef class PETScFunction(object):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative_J1(fp, ix, j) \
-                             - self.toolbox.time_derivative_J1(fh, ix, j) \
-                             + self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
-                            - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
-                            - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                            - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                    y[iy, j] = 4.0 * ( \
+                                       + self.toolbox.time_derivative_J1(fp, ix, j) \
+                                       - self.toolbox.time_derivative_J1(fh, ix, j) \
+                                       + self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                                       - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                                     )
 

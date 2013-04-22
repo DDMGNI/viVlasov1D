@@ -21,22 +21,20 @@ from vlasov.data.maxwell import maxwellian
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
-# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-# from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
-# from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
-# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ2                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
 # from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
-# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
-# # from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
+# from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixJ4                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
-from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
-# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
-from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ4                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -264,7 +262,7 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)#, coll_freq=self.coll_freq)
+                                        self.charge, coll_freq=self.coll_freq)
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
@@ -728,6 +726,14 @@ class petscVP1D():
     
     
     def updateJacobian(self, snes, X, J, P):
+        (xs, xe), = self.da2.getRanges()
+        
+        x_arr = self.da2.getVecArray(X)[...]
+        
+        for i in range(xs, xe):
+            ix = i-xs
+            x_arr[ix, self.nv+4] = x_arr[ix, self.nv+1] / ( x_arr[ix, self.nv+1] * x_arr[ix, self.nv+3] - x_arr[ix, self.nv+2]**2 )
+        
         self.petsc_jacobian.update_previous(X)
         
         self.petsc_jacobian.formMat(J)
@@ -845,10 +851,10 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-            self.initial_guess_gear(itime)
+#             self.initial_guess_gear(itime)
             
             # calculate initial guess via linear solver
-#             self.initial_guess()
+            self.initial_guess()
             
             
             # nonlinear solve
@@ -877,6 +883,8 @@ class petscVP1D():
             
             # update data vectors
             self.copy_x_to_data()
+            self.calculate_collision_factor()
+            self.copy_a_to_x()
             
             # update history
             self.petsc_jacobian.update_history(self.f, self.h1)

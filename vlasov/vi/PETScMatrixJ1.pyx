@@ -154,11 +154,11 @@ cdef class PETScMatrix(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h + h2h
         
-        cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
-        cdef np.float64_t arak_fac_J1 = 0.5 / (12. * self.hx * self.hv)
+        cdef np.float64_t time_fac    = 4.0 * 1.0 / (16. * self.ht)
+        cdef np.float64_t arak_fac_J1 = 4.0 * 0.5 / (12. * self.hx * self.hv)
         
-        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 / self.hv
-        cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
+        cdef np.float64_t coll1_fac = - 4.0 * 0.5 * self.nu * 0.25 / self.hv * 0.5
+        cdef np.float64_t coll2_fac = - 4.0 * 0.5 * self.nu * 0.25 * self.hv2_inv
         
         
         A.zeroEntries()
@@ -176,9 +176,9 @@ cdef class PETScMatrix(object):
             
             # charge density
             for index, value in [
-                    ((i-1,), 0.25 * self.charge * self.hx2),
-                    ((i,  ), 0.50 * self.charge * self.hx2),
-                    ((i+1,), 0.25 * self.charge * self.hx2),
+                    ((i-1,), 0.125 * self.charge * self.hx2),
+                    ((i,  ), 0.250 * self.charge * self.hx2),
+                    ((i+1,), 0.125 * self.charge * self.hx2),
                 ]:
                     
                 col.index = index
@@ -188,9 +188,9 @@ cdef class PETScMatrix(object):
             
             # Laplace operator
             for index, value in [
-                    ((i-1,), - 1.),
-                    ((i,  ), + 2.),
-                    ((i+1,), - 1.),
+                    ((i-1,), - 0.5),
+                    ((i,  ), + 1.0),
+                    ((i+1,), - 0.5),
                 ]:
                 
                 col.index = index
@@ -244,6 +244,17 @@ cdef class PETScMatrix(object):
             col.field = self.nv+4
             
             A.setValueStencil(row, col, 1.)
+            
+            afac = 1. / ( Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix] )
+              
+            col.field = self.nv+1
+            A.setValueStencil(row, col, - afac + Nh[ix] * Eh[ix] * afac**2)
+             
+            col.field = self.nv+2
+            A.setValueStencil(row, col,   - 2. * Nh[ix] * Uh[ix] * afac**2)
+             
+            col.field = self.nv+3
+            A.setValueStencil(row, col,   + 1. * Nh[ix] * Nh[ix] * afac**2)
         
         
         
@@ -320,6 +331,27 @@ cdef class PETScMatrix(object):
                                                  + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J1),
                             ((i+1,), self.nv,    + 2. * (fh[ix,   j-1] - fh[ix,   j+1]) * arak_fac_J1 \
                                                  + 1. * (fh[ix+1, j-1] - fh[ix+1, j+1]) * arak_fac_J1),
+                                                
+                            ((i-1,), self.nv+1,  + 1. * coll1_fac * fh[ix-1, j+1] * v[j+1] * Ah[ix-1] \
+                                                 - 1. * coll1_fac * fh[ix-1, j-1] * v[j-1] * Ah[ix-1] ),
+                            ((i,  ), self.nv+1,  + 2. * coll1_fac * fh[ix,   j+1] * v[j+1] * Ah[ix  ] \
+                                                 - 2. * coll1_fac * fh[ix,   j-1] * v[j-1] * Ah[ix  ] ),
+                            ((i+1,), self.nv+1,  + 1. * coll1_fac * fh[ix+1, j+1] * v[j+1] * Ah[ix+1] \
+                                                 - 1. * coll1_fac * fh[ix+1, j-1] * v[j-1] * Ah[ix+1] ),
+                            
+                            ((i-1,), self.nv+2,  + 1. * coll1_fac * fh[ix-1, j+1] * (-1) * Ah[ix-1] \
+                                                 - 1. * coll1_fac * fh[ix-1, j-1] * (-1) * Ah[ix-1] ),
+                            ((i,  ), self.nv+2,  + 2. * coll1_fac * fh[ix,   j+1] * (-1) * Ah[ix  ] \
+                                                 - 2. * coll1_fac * fh[ix,   j-1] * (-1) * Ah[ix  ] ),
+                            ((i+1,), self.nv+2,  + 1. * coll1_fac * fh[ix+1, j+1] * (-1) * Ah[ix+1] \
+                                                 - 1. * coll1_fac * fh[ix+1, j-1] * (-1) * Ah[ix+1] ),
+                            
+                            ((i-1,), self.nv+4,  + 1. * coll1_fac * fh[ix-1, j+1] * ( Nh[ix-1] * v[j+1] - Uh[ix-1] ) \
+                                                 - 1. * coll1_fac * fh[ix-1, j-1] * ( Nh[ix-1] * v[j-1] - Uh[ix-1] ) ),
+                            ((i,  ), self.nv+4,  + 2. * coll1_fac * fh[ix,   j+1] * ( Nh[ix  ] * v[j+1] - Uh[ix  ] ) \
+                                                 - 2. * coll1_fac * fh[ix,   j-1] * ( Nh[ix  ] * v[j-1] - Uh[ix  ] ) ),
+                            ((i+1,), self.nv+4,  + 1. * coll1_fac * fh[ix+1, j+1] * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) \
+                                                 - 1. * coll1_fac * fh[ix+1, j-1] * ( Nh[ix+1] * v[j-1] - Uh[ix+1] ) ),
                         ]:
                         
                         col.index = index
@@ -455,7 +487,7 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            b[iy, self.nv] = nmean * self.charge * self.hx2
+            b[iy, self.nv] = 0.5 * nmean * self.charge * self.hx2
             
             
             # moments
@@ -473,9 +505,11 @@ cdef class PETScMatrix(object):
                     b[iy, j] = 0.0
                     
                 else:
-                    b[iy, j] = self.toolbox.time_derivative_J1(fh, ix, j) \
-                             - 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                             + 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
+                    b[iy, j] = 4.0 * ( \
+                                       + self.toolbox.time_derivative_J1(fh, ix, j) \
+                                       - 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
+                                       + 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
+                                     )
 
 
 
@@ -574,14 +608,14 @@ cdef class PETScMatrix(object):
             laplace  =        ( p[ix-1] - 2. * p[ix] + p[ix+1] )
             integral = 0.25 * ( N[ix-1] + 2. * N[ix] + N[ix+1] )
             
-            y[iy, self.nv] = self.charge * (integral - nmean) * self.hx2 - laplace
+            y[iy, self.nv] = 0.5 * ( self.charge * (integral - nmean) * self.hx2 - laplace )
             
             
             # moments
             y[iy, self.nv+1] = N[ix] - (f[ix]            ).sum() * self.hv
             y[iy, self.nv+2] = U[ix] - (f[ix] * self.v   ).sum() * self.hv
             y[iy, self.nv+3] = E[ix] - (f[ix] * self.v**2).sum() * self.hv
-            y[iy, self.nv+4] = A[ix] - Nh[ix] / (Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix])
+            y[iy, self.nv+4] = A[ix] - N[ix] / (N[ix] * E[ix] - U[ix] * U[ix])
             
             
             # Vlasov Equation
@@ -591,11 +625,14 @@ cdef class PETScMatrix(object):
                     y[iy, j] = f[ix, j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative_J1(f,  ix, j) \
-                             - self.toolbox.time_derivative_J1(fh, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J1(f, hh, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                             - self.nu * self.toolbox.collT1(f, Nh, Uh, Eh, Ah, ix, j) \
-                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                    y[iy, j] = 4.0 * ( \
+                                       + self.toolbox.time_derivative_J1(f,  ix, j) \
+                                       - self.toolbox.time_derivative_J1(fh, ix, j) \
+                                       + 0.5 * self.toolbox.arakawa_J1(f, hh, ix, j) \
+                                       + 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT1(f,  Nh, Uh, Eh, Ah, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT1(fh, N,  U,  E,  A,  ix, j) \
+                                       - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                                     ) 
 
 
