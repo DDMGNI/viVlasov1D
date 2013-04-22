@@ -2,7 +2,7 @@
 #
 #$ -cwd
 #
-#$ -l h_cpu=72:00:00
+#$ -l h_cpu=168:00:00
 #
 #$ -pe mpich2_tok_production 8
 #
@@ -27,9 +27,10 @@ module load impi/4.1.0
 
 module load python32/all
 
-export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl_core.so:$LD_PRELOAD
-export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl_intel_thread.so:$LD_PRELOAD
-export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
+
+export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.0/mkl/lib/intel64/libmkl_core.so:/afs/@cell/common/soft/intel/ics13/13.0/mkl/lib/intel64/libmkl_intel_thread.so:/afs/@cell/common/soft/intel/ics13/13.0/compiler/lib/intel64/libiomp5.so
 
 
-mpiexec -n 8 python3.2 run_direct_nonlinear_exact.py runs/$RUNID.cfg
+mpiexec -n 8 python3.2 run_direct_nonlinear2.py runs/$RUNID.cfg
+
+
