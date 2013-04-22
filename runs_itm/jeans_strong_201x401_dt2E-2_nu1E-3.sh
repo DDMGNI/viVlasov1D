@@ -43,8 +43,8 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_newton_exact.py runs/$RUNID.cfg
-mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_exact.py runs/$RUNID.cfg
-#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_exact_corr.py runs/$RUNID.cfg
+#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_newton.py runs/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs/$RUNID.cfg
+#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_corr.py runs/$RUNID.cfg
 
 

@@ -32,5 +32,5 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -n 8 python3.2 run_direct_nonlinear_exact.py runs/$RUNID.cfg
+mpiexec -n 8 python3.2 run_direct_nonlinear.py runs/$RUNID.cfg
 
