@@ -43,6 +43,6 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 16 -l -n 16 python3.2 run_direct_gmres.py runs/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.2 run_direct_gmres.py runs_itm/$RUNID.cfg
 
 
