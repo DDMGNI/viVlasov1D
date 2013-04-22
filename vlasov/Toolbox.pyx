@@ -114,7 +114,6 @@ cdef class Toolbox(object):
         Arakawa Bracket 4th order
         '''
         
-#         return 2. * self.arakawa_J1(f, h, i, j) - 1. * self.arakawa_J2(f, h, i, j) 
         return 0.5 * ( self.arakawa_J1(f, h, i, j) + self.arakawa_J2(f, h, i, j) ) 
     
     
@@ -138,7 +137,7 @@ cdef class Toolbox(object):
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
@@ -167,7 +166,7 @@ cdef class Toolbox(object):
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
@@ -196,13 +195,13 @@ cdef class Toolbox(object):
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = self.arakawa_J4(x, h, ix, j)
+                    y[iy, j] = - self.arakawa_J4(x, h, ix, j)
     
     
     

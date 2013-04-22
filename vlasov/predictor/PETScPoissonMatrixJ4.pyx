@@ -116,4 +116,4 @@ cdef class PETScPoissonMatrix(object):
             ix = i-xs+2
             iy = i-xs
             
-            b[iy] = - ( ( n[ix-2] + 8. * n[ix-1] + 8. * n[ix+1] + n[ix+2] + 18. * n[ix] ) / 36. - nmean) * self.charge
+            b[iy] = - ( ( n[ix-2] + 8. * n[ix-1] + 18. * n[ix] + 8. * n[ix+1] + n[ix+2] ) / 36. - nmean) * self.charge

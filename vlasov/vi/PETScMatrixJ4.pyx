@@ -557,7 +557,7 @@ cdef class PETScMatrix(object):
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
-        cdef np.float64_t laplace, integral
+        cdef np.float64_t laplace_J1, laplace_J4, integral_J1, integral_J4
         
         cdef np.float64_t nmean = self.N.sum() / self.nx
         
@@ -613,19 +613,14 @@ cdef class PETScMatrix(object):
             
             # Poisson equation
             laplace_J1  =        ( p[ix-1] + p[ix+1] - 2. * p[ix] ) * self.hx2_inv
-            laplace_J2  = 0.25 * ( p[ix-2] + p[ix+2] - 2. * p[ix] ) * self.hx2_inv
             integral_J1 = 0.25 * ( N[ix-1] + N[ix+1] + 2. * N[ix] )
-            integral_J2 = 0.25 * ( N[ix-2] + N[ix+2] + 2. * N[ix] )
             
             laplace_J4  = ( p[ix-2] + 2. * p[ix-1] + 2. * p[ix+1] + p[ix+2] - 6.  * p[ix] ) * self.hx2_inv / 6.
             integral_J4 = ( N[ix-2] + 8. * N[ix-1] + 8. * N[ix+1] + N[ix+2] + 18. * N[ix] ) / 36.
             
-#             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
+#             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
 #             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
-#             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
-            
-            y[iy, self.nv] = - laplace + self.charge * (integral - nmean)
             
             
             # moments
