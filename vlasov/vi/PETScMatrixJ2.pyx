@@ -451,7 +451,7 @@ cdef class PETScMatrix(object):
             
             # Vlasov equation
             for j in np.arange(0, self.nv):
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     b[iy, j] = 0.0
                     
@@ -569,7 +569,7 @@ cdef class PETScMatrix(object):
             
             # Vlasov Equation
             for j in np.arange(0, self.nv):
-                if j == 0 or j == self.nv-1:
+                if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = f[ix, j]
                     
