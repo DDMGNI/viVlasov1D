@@ -44,7 +44,7 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/l
 
 
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_newton.py runs_itm/$RUNID.cfg
-#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs_itm/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_corr.py runs_itm/$RUNID.cfg
-mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_ksp.py runs_itm/$RUNID.cfg
+#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_ksp.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_pred.py runs_itm/$RUNID.cfg
