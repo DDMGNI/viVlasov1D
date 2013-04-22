@@ -186,11 +186,11 @@ cdef class PETScJacobian(object):
 #         cdef np.float64_t coll1_fac   = 0.
 #         cdef np.float64_t coll2_fac   = 0.
         
-        cdef np.float64_t time_fac_J1 = 1.0 / (16. * self.ht)
-        cdef np.float64_t arak_fac_J1 = 0.5 / (12. * self.hx * self.hv)
+        cdef np.float64_t time_fac_J1 = 4.0 *  1.0 / (16. * self.ht)
+        cdef np.float64_t arak_fac_J1 = 4.0 *  0.5 / (12. * self.hx * self.hv)
         
-        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
-        cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
+        cdef np.float64_t coll1_fac = - 4.0 *  0.5 * self.nu * 0.25 * 0.5 / self.hv
+        cdef np.float64_t coll2_fac = - 4.0 *  0.5 * self.nu * 0.25 * self.hv2_inv
         
         
         A.zeroEntries()
@@ -206,9 +206,9 @@ cdef class PETScJacobian(object):
             
             # charge density
             for index, value in [
-                    ((i-1,), 0.25 * self.charge * self.hx2),
-                    ((i,  ), 0.50 * self.charge * self.hx2),
-                    ((i+1,), 0.25 * self.charge * self.hx2),
+                    ((i-1,), 0.125 * self.charge * self.hx2),
+                    ((i,  ), 0.250 * self.charge * self.hx2),
+                    ((i+1,), 0.125 * self.charge * self.hx2),
                 ]:
                 
                 col.index = index
@@ -217,9 +217,9 @@ cdef class PETScJacobian(object):
             
             # Laplace operator
             for index, value in [
-                    ((i-1,), - 1.),
-                    ((i,  ), + 2.),
-                    ((i+1,), - 1.),
+                    ((i-1,), - 0.5),
+                    ((i,  ), + 1.0),
+                    ((i+1,), - 0.5),
                 ]:
                 
                 col.index = index
