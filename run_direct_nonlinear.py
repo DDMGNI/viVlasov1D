@@ -522,32 +522,33 @@ class petscVP1D():
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
+        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         
         for i in range(xs, xe):
-            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv
+            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv / n_arr[i]
         
     
     def calculate_energy(self):
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
+        n_arr = self.dax.getVecArray(self.n)
         e_arr = self.dax.getVecArray(self.e)
         
         for i in range(xs, xe):
-            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv
+            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv / n_arr[i]
         
     
     def calculate_collision_factor(self):
         (xs, xe), = self.da1.getRanges()
         
-        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         e_arr = self.dax.getVecArray(self.e)
         a_arr = self.dax.getVecArray(self.a)
         
         for i in range(xs, xe):
-            a_arr[i] = n_arr[i] / ( n_arr[i] * e_arr[i] - u_arr[i]**2 )
+            a_arr[i] = 1. / ( e_arr[i] - u_arr[i]**2 )
         
     
     def calculate_external(self, t):

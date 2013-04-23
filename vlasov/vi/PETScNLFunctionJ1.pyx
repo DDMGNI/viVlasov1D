@@ -156,7 +156,7 @@ cdef class PETScFunction(object):
         e[xs:xe] = x[xs:xe,   self.nv+3]
         
         for i in range(xs,xe):
-            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
+            a[i] = 1. / ( e[i] - u[i]**2)
         
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
@@ -239,8 +239,8 @@ cdef class PETScFunction(object):
             
             # moments
             y[iy, self.nv+1] = Np[ix] - (fp[ix]            ).sum() * self.hv
-            y[iy, self.nv+2] = Up[ix] - (fp[ix] * self.v   ).sum() * self.hv
-            y[iy, self.nv+3] = Ep[ix] - (fp[ix] * self.v**2).sum() * self.hv
+            y[iy, self.nv+2] = Np[ix] * Up[ix] - (fp[ix] * self.v   ).sum() * self.hv 
+            y[iy, self.nv+3] = Np[ix] * Ep[ix] - (fp[ix] * self.v**2).sum() * self.hv
             
             
             # Vlasov equation

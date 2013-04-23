@@ -376,7 +376,7 @@ cdef class Toolbox(object):
 #                           + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
 #                         ) * 0.5 / self.hv
         
-        result = ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
+        result = ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
         
         return result
     
