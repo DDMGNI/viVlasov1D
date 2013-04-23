@@ -21,10 +21,10 @@ from vlasov.data.maxwell import maxwellian
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
-from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
-from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ2                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
@@ -35,6 +35,11 @@ from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 # from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
 # from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+
+from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ1E           import PETScFunction
+from vlasov.vi.PETScNLJacobianJ1E           import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
