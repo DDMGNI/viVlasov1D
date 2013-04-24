@@ -22,9 +22,14 @@ from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
 from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
-from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+from vlasov.vi.PETScFunctionJ1              import PETScFunction
+from vlasov.vi.PETScJacobianJ1              import PETScJacobian
 from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ2                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
@@ -106,10 +111,10 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-#         OptDB.setValue('snes_lag_preconditioner', 3)
+        OptDB.setValue('snes_lag_preconditioner', 3)
         
 #         OptDB.setValue('snes_ls', 'basic')
-        OptDB.setValue('snes_ls', 'quadratic')
+#         OptDB.setValue('snes_ls', 'quadratic')
 
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -133,7 +138,6 @@ class petscVP1D():
                                      boundary_type=('periodic'),
                                      stencil_width=2,
                                      stencil_type='box')
-        
         
         # create DA for x grid
         self.dax = PETSc.DA().create(dim=1, dof=1,
@@ -262,7 +266,7 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)#, coll_freq=self.coll_freq)
+                                        self.charge)
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
@@ -294,22 +298,16 @@ class petscVP1D():
         self.snes_linear.getKSP().getPC().setType('lu')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
 
-#         self.snes_linear_nsp = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
-#         self.snes_linear.getKSP().setNullSpace(self.snes_linear_nsp)
-        
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-#         self.snes.getKSP().setType('gmres')
-        self.snes.getKSP().setType('preonly')
+        self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().setType('preonly')
 #         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
-        
-#         self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
-#         self.snes.getKSP().setNullSpace(self.snes_nsp)
         
         
         # create Poisson object
@@ -522,33 +520,32 @@ class petscVP1D():
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
-        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         
         for i in range(xs, xe):
-            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv / n_arr[i]
+            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv
         
     
     def calculate_energy(self):
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
-        n_arr = self.dax.getVecArray(self.n)
         e_arr = self.dax.getVecArray(self.e)
         
         for i in range(xs, xe):
-            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv / n_arr[i]
+            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv
         
     
     def calculate_collision_factor(self):
         (xs, xe), = self.da1.getRanges()
         
+        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         e_arr = self.dax.getVecArray(self.e)
         a_arr = self.dax.getVecArray(self.a)
         
         for i in range(xs, xe):
-            a_arr[i] = 1. / ( e_arr[i] - u_arr[i]**2 )
+            a_arr[i] = n_arr[i] / ( n_arr[i] * e_arr[i] - u_arr[i]**2 )
         
     
     def calculate_external(self, t):
@@ -827,10 +824,10 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-#             self.initial_guess_gear(itime)
+            self.initial_guess_gear(itime)
             
             # calculate initial guess via linear solver
-            self.initial_guess()
+#             self.initial_guess()
             
             
             # nonlinear solve

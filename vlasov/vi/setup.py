@@ -51,6 +51,20 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScFunctionJ1",
+                  sources=["PETScFunctionJ1.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScJacobianJ1",
+                  sources=["PETScJacobianJ1.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScNLFunctionJ1",
                   sources=["PETScNLFunctionJ1.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

@@ -21,10 +21,10 @@ from vlasov.data.maxwell import maxwellian
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
-# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-# from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
-# from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
-# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ1            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ2                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ2            import PETScFunction
@@ -35,11 +35,6 @@ from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 # from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
 # from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
-
-from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ1E           import PETScFunction
-from vlasov.vi.PETScNLJacobianJ1E           import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -544,33 +539,32 @@ class petscVP1D():
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
-        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         
         for i in range(xs, xe):
-            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv / n_arr[i]
+            u_arr[i] = (f_arr[i] * self.vGrid).sum() * self.hv
         
     
     def calculate_energy(self):
         (xs, xe), = self.da1.getRanges()
         
         f_arr = self.da1.getVecArray(self.f)
-        n_arr = self.dax.getVecArray(self.n)
         e_arr = self.dax.getVecArray(self.e)
         
         for i in range(xs, xe):
-            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv / n_arr[i]
+            e_arr[i] = (f_arr[i] * self.vGrid**2).sum() * self.hv
         
     
     def calculate_collision_factor(self):
         (xs, xe), = self.da1.getRanges()
         
+        n_arr = self.dax.getVecArray(self.n)
         u_arr = self.dax.getVecArray(self.u)
         e_arr = self.dax.getVecArray(self.e)
         a_arr = self.dax.getVecArray(self.a)
         
         for i in range(xs, xe):
-            a_arr[i] = 1. / ( e_arr[i] - u_arr[i]**2 )
+            a_arr[i] = n_arr[i] / ( n_arr[i] * e_arr[i] - u_arr[i]**2 )
         
     
     def calculate_external(self, t):
@@ -860,10 +854,10 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-            self.initial_guess_gear(itime)
+#             self.initial_guess_gear(itime)
             
             # calculate initial guess via linear solver
-#             self.initial_guess()
+            self.initial_guess()
             
             
             # nonlinear corrector
