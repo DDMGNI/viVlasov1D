@@ -221,8 +221,8 @@ cdef class PETScFunction(object):
         cdef np.ndarray[np.float64_t, ndim=1] Eh = self.dax.getVecArray(self.localEh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Ah = self.dax.getVecArray(self.localAh)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h + h2p + h2h)
+        cdef np.ndarray[np.float64_t, ndim=2] hp = h0 + h1p + h2p
+        cdef np.ndarray[np.float64_t, ndim=2] hh = h0 + h1h + h2h
         
         
         
@@ -253,9 +253,11 @@ cdef class PETScFunction(object):
                     y[iy, j] = 4.0 * ( \
                                        + self.toolbox.time_derivative_J1(fp, ix, j) \
                                        - self.toolbox.time_derivative_J1(fh, ix, j) \
-                                       + self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
+                                       + 0.5 * self.toolbox.arakawa_J1(fp, hh, ix, j) \
+                                       + 0.5 * self.toolbox.arakawa_J1(fh, hp, ix, j) \
                                        - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
                                        - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                                       - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                                       - 0.5 * self.nu * self.toolbox.collT2(fp, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
                                      )
 
