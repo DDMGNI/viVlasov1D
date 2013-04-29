@@ -134,6 +134,34 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLFunctionJ1D4",
+                  sources=["PETScNLFunctionJ1D4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLJacobianJ1D4",
+                  sources=["PETScNLJacobianJ1D4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLFunctionJ1approx",
+                  sources=["PETScNLFunctionJ1approx.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLJacobianJ1approx",
+                  sources=["PETScNLJacobianJ1approx.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
                  )
               ]
                 

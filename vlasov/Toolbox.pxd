@@ -110,4 +110,5 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=1] A,
                                    np.uint64_t i, np.uint64_t j)
     
-    
+    cdef np.float64_t collD4(self, np.ndarray[np.float64_t, ndim=2] f,
+                               np.uint64_t i, np.uint64_t j)
