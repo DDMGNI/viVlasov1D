@@ -454,6 +454,25 @@ cdef class Toolbox(object):
 
 
 
+    @cython.boundscheck(False)
+    cdef np.float64_t collD4(self, np.ndarray[np.float64_t, ndim=2] f,
+                                   np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.float64_t result
+        
+        result = 0.25 * ( \
+                          + 1. * ( f[i-1, j+2] - 4. * f[i-1, j+1] + 6. * f[i-1, j  ] - 4. * f[i-1, j-1] + f[i-1, j-2] ) \
+                          + 2. * ( f[i,   j+2] - 4. * f[i,   j+1] + 6. * f[i,   j  ] - 4. * f[i,   j-1] + f[i,   j-2] ) \
+                          + 1. * ( f[i+1, j+2] - 4. * f[i+1, j+1] + 6. * f[i+1, j  ] - 4. * f[i+1, j-1] + f[i+1, j-2] ) \
+                        ) / self.hv**4
+        
+        return result
+
+
+
     def potential_to_hamiltonian(self, Vec P, Vec H):
         (xs, xe), = self.dax.getRanges()
         
