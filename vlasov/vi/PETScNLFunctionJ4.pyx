@@ -148,13 +148,14 @@ cdef class PETScFunction(object):
         e  = self.dax.getVecArray(self.Ep)
         a  = self.dax.getVecArray(self.Ap)
         
-        
         f[xs:xe] = x[xs:xe, 0:self.nv]
         p[xs:xe] = x[xs:xe,   self.nv]
         n[xs:xe] = x[xs:xe,   self.nv+1]
         u[xs:xe] = x[xs:xe,   self.nv+2]
         e[xs:xe] = x[xs:xe,   self.nv+3]
-        a[xs:xe] = x[xs:xe,   self.nv+4]
+        
+        for i in range(xs,xe):
+            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
         
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
@@ -247,7 +248,6 @@ cdef class PETScFunction(object):
             y[iy, self.nv+1] = Np[ix] / self.hv - (fp[ix]            ).sum()
             y[iy, self.nv+2] = Up[ix] / self.hv - (fp[ix] * self.v   ).sum()
             y[iy, self.nv+3] = Ep[ix] / self.hv - (fp[ix] * self.v**2).sum()
-            y[iy, self.nv+4] = Ap[ix] - Np[ix] / (Np[ix] * Ep[ix] - Up[ix] * Up[ix])
             
             
             # Vlasov equation
@@ -262,4 +262,5 @@ cdef class PETScFunction(object):
                              + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT2(fp, Np, Up, Ep, Ap, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)

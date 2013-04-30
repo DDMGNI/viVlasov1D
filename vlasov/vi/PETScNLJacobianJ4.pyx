@@ -124,7 +124,9 @@ cdef class PETScJacobian(object):
         n[xs:xe] = x[xs:xe,   self.nv+1]
         u[xs:xe] = x[xs:xe,   self.nv+2]
         e[xs:xe] = x[xs:xe,   self.nv+3]
-        a[xs:xe] = x[xs:xe,   self.nv+4]
+        
+        for i in range(xs,xe):
+            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
         
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
@@ -303,24 +305,6 @@ cdef class PETScJacobian(object):
                 A.setValueStencil(row, col, - self.v[j]**2)
                 
             
-            # temperature
-            row.field = self.nv+4
-            col.field = self.nv+4
-            
-            afac = 1. / ( Np[ix] * Ep[ix] - Up[ix] * Up[ix] )
-             
-            A.setValueStencil(row, col, 1.)
-             
-            col.field = self.nv+1
-            A.setValueStencil(row, col, - afac + Np[ix] * Ep[ix] * afac**2)
-             
-            col.field = self.nv+2
-            A.setValueStencil(row, col,   - 2. * Np[ix] * Up[ix] * afac**2)
-             
-            col.field = self.nv+3
-            A.setValueStencil(row, col,   + 1. * Np[ix] * Np[ix] * afac**2)
-        
-        
         
         # Vlasov Equation
         for i in np.arange(xs, xe):
