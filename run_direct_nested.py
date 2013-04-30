@@ -303,7 +303,7 @@ class petscVP1D():
         self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
         self.snes_linear.setJacobian(self.updateMatrix, self.A)
         self.snes_linear.setFromOptions()
-        self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().setType('gmres')
         self.snes_linear.getKSP().getPC().setType('lu')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
 
@@ -313,10 +313,8 @@ class petscVP1D():
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
-#         self.snes.getKSP().setType('preonly')
-        self.snes.getKSP().getPC().setType('none')
-#         self.snes.getKSP().getPC().setType('lu')
-#         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
+        self.snes.getKSP().getPC().setType('lu')
+        self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
         
         
         # create inner solver
