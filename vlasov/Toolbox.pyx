@@ -324,6 +324,17 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    cdef np.float64_t time_derivative_woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                                np.uint64_t i, np.uint64_t j):
+        '''
+        Time Derivative
+        '''
+        
+        return f[i,j] * self.ht_inv
+    
+    
+    
+    @cython.boundscheck(False)
     cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                                np.uint64_t i, np.uint64_t j):
         '''
@@ -379,7 +390,7 @@ cdef class Toolbox(object):
                           + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
                         ) * 0.5 / self.hv
         
-#         result = ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
+#         result = ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
         
         return result
     
@@ -408,6 +419,45 @@ cdef class Toolbox(object):
                         ) * self.hv2_inv
         
 #         result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
+        
+        return result
+
+
+
+    @cython.boundscheck(False)
+    cdef np.float64_t collT1woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                      np.ndarray[np.float64_t, ndim=1] N,
+                                      np.ndarray[np.float64_t, ndim=1] U,
+                                      np.ndarray[np.float64_t, ndim=1] E,
+                                      np.ndarray[np.float64_t, ndim=1] A,
+                                      np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        cdef np.float64_t result
+        
+        result = ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
+        
+        return result
+    
+    
+    
+    @cython.boundscheck(False)
+    cdef np.float64_t collT2woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                      np.ndarray[np.float64_t, ndim=1] N,
+                                      np.ndarray[np.float64_t, ndim=1] U,
+                                      np.ndarray[np.float64_t, ndim=1] E,
+                                      np.ndarray[np.float64_t, ndim=1] A,
+                                      np.uint64_t i, np.uint64_t j):
+        '''
+        Collision Operator
+        '''
+        
+        cdef np.float64_t result
+        
+        result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
         
         return result
 

@@ -33,28 +33,34 @@ class Hamiltonian(object):
         self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
         
         
-        self.EJ1       = 0.0         # current total energy
-        self.EJ1_kin   = 0.0         # current kinetic energy
-        self.EJ1_pot   = 0.0         # current potential energy
-        self.EJ1_error = 0.0         # error in total energy (E-E0)/E0
+        self.EJ1        = 0.0         # current total energy
+        self.EJ1_kin    = 0.0         # current kinetic energy
+        self.EJ1_pot    = 0.0         # current potential energy
+        self.EJ1_error  = 0.0         # error in total energy (E-E0)/E0
         
-        self.EJ2       = 0.0         # current total energy
-        self.EJ2_kin   = 0.0         # current kinetic energy
-        self.EJ2_pot   = 0.0         # current potential energy
-        self.EJ2_error = 0.0         # error in total energy (E-E0)/E0
+        self.EJ2        = 0.0         # current total energy
+        self.EJ2_kin    = 0.0         # current kinetic energy
+        self.EJ2_pot    = 0.0         # current potential energy
+        self.EJ2_error  = 0.0         # error in total energy (E-E0)/E0
         
-        self.EJ4       = 0.0         # current total energy
-        self.EJ4_kin   = 0.0         # current kinetic energy
-        self.EJ4_pot   = 0.0         # current potential energy
-        self.EJ4_error = 0.0         # error in total energy (E-E0)/E0
+        self.EJ4        = 0.0         # current total energy
+        self.EJ4_kin    = 0.0         # current kinetic energy
+        self.EJ4_pot    = 0.0         # current potential energy
+        self.EJ4_error  = 0.0         # error in total energy (E-E0)/E0
         
-        self.EJ1_0     = 0.0         # initial total energy
-        self.EJ2_0     = 0.0         # initial total energy
-        self.EJ4_0     = 0.0         # initial total energy
+        self.Ewoa       = 0.0         # current total energy
+        self.Ewoa_kin   = 0.0         # current kinetic energy
+        self.Ewoa_pot   = 0.0         # current potential energy
+        self.Ewoa_error = 0.0         # error in total energy (E-E0)/E0
         
-        self.P0        = 0.0         # initial total momentum
-        self.P         = 0.0         # current total momentum
-        self.P_error   = 0.0         # error in total momentum (P-P0)/P0
+        self.EJ1_0      = 0.0         # initial total energy
+        self.EJ2_0      = 0.0         # initial total energy
+        self.EJ4_0      = 0.0         # initial total energy
+        self.Ewoa_0     = 0.0         # initial total energy
+        
+        self.P0         = 0.0         # initial total momentum
+        self.P          = 0.0         # current total momentum
+        self.P_error    = 0.0         # error in total momentum (P-P0)/P0
         
         self.set_hdf5_file(hdf5)
         self.read_from_hdf5(0)
@@ -245,10 +251,27 @@ class Hamiltonian(object):
         self.EJ4_pot = Epot * self.grid.hx * self.grid.hv * 0.125 * 0.125
         
         
+        # woa
+        Ekin = 0.0
+        Epot = 0.0
+        
+        if f != None:
+            for ix in np.arange(0, nx):
+                for iv in np.arange(0, nv):
+                    
+                    Ekin += f[ix,  iv  ] * h0[ix,  iv  ]
+                    Epot += f[ix,  iv  ] * h1[ix,  iv  ]
+                    Epot += f[ix,  iv  ] * h2[ix,  iv  ]
+        
+        self.Ewoa_kin = Ekin * self.grid.hx * self.grid.hv
+        self.Ewoa_pot = Epot * self.grid.hx * self.grid.hv
+        
+        
         # total energy
-        self.EJ1 = self.EJ1_kin + 0.5 * self.EJ1_pot
-        self.EJ2 = self.EJ2_kin + 0.5 * self.EJ2_pot
-        self.EJ4 = self.EJ4_kin + 0.5 * self.EJ4_pot
+        self.EJ1  = self.EJ1_kin  + 0.5 * self.EJ1_pot
+        self.EJ2  = self.EJ2_kin  + 0.5 * self.EJ2_pot
+        self.EJ4  = self.EJ4_kin  + 0.5 * self.EJ4_pot
+        self.Ewoa = self.Ewoa_kin + 0.5 * self.Ewoa_pot
         
     
     def calculate_energy_error(self):
@@ -270,6 +293,11 @@ class Hamiltonian(object):
             self.EJ4_error = (self.EJ4 - self.EJ4_0) / self.EJ4_0
         else:
             self.EJ4_error = 0.0
+    
+        if self.Ewoa_0 != 0.0:
+            self.Ewoa_error = (self.Ewoa - self.Ewoa_0) / self.Ewoa_0
+        else:
+            self.Ewoa_error = 0.0
     
 
     def calculate_total_momentum(self):
@@ -344,8 +372,9 @@ class Hamiltonian(object):
         
 #         if iTime == 0 or iTime == 1:
         if iTime == 0:
-            self.EJ1_0 = self.EJ1
-            self.EJ2_0 = self.EJ2
-            self.EJ4_0 = self.EJ4
+            self.EJ1_0  = self.EJ1
+            self.EJ2_0  = self.EJ2
+            self.EJ4_0  = self.EJ4
+            self.Ewoa_0 = self.Ewoa
         
             self.P0    = self.P

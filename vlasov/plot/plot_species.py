@@ -321,17 +321,23 @@ class PlotSpecies(object):
 #        else:
 #            E_error = 0.0
         
+        self.ekin   [self.iTime] = self.hamiltonian.Ewoa_kin
+        self.epot   [self.iTime] = self.hamiltonian.Ewoa_pot * 0.5
+        
 #         self.ekin   [self.iTime] = self.hamiltonian.EJ1_kin
 #         self.epot   [self.iTime] = self.hamiltonian.EJ1_pot * 0.5
         
 #         self.ekin   [self.iTime] = self.hamiltonian.EJ2_kin
 #         self.epot   [self.iTime] = self.hamiltonian.EJ2_pot * 0.5
         
-        self.ekin   [self.iTime] = self.hamiltonian.EJ4_kin
-        self.epot   [self.iTime] = self.hamiltonian.EJ4_pot * 0.5
+#         self.ekin   [self.iTime] = self.hamiltonian.EJ4_kin
+#         self.epot   [self.iTime] = self.hamiltonian.EJ4_pot * 0.5
         
 #        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
 #         self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
+        
+        E0 = self.hamiltonian.Ewoa_0
+        E  = self.hamiltonian.Ewoa
         
 #         E0 = self.hamiltonian.EJ1_0
 #         E  = self.hamiltonian.EJ1
@@ -339,8 +345,8 @@ class PlotSpecies(object):
 #         E0 = self.hamiltonian.EJ2_0
 #         E  = self.hamiltonian.EJ2
         
-        E0 = self.hamiltonian.EJ4_0
-        E  = self.hamiltonian.EJ4
+#         E0 = self.hamiltonian.EJ4_0
+#         E  = self.hamiltonian.EJ4
         
 #         E0 = self.hamiltonian.EJ1_0 + self.hamiltonian.EJ2_0
 #         E  = self.hamiltonian.EJ1   + self.hamiltonian.EJ2
