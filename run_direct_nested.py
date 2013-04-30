@@ -118,16 +118,10 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-#         OptDB.setValue('snes_lag_preconditioner', 3)
+        OptDB.setValue('snes_lag_preconditioner', 3)
         
-#         OptDB.setValue('snes_ls', 'basic')
-#         OptDB.setValue('snes_ls', 'quadratic')
-
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
-        
-#        OptDB.setValue('log_info',    '')
-#        OptDB.setValue('log_summary', '')
         
         
         # create DA for 2d grid (f only)
@@ -260,14 +254,24 @@ class petscVP1D():
         
         
         # create Jacobian, Function, and linear Matrix objects
-        self.petsc_jacobian = vlasov.vi.PETScNLJacobianJ1approx.PETScJacobian(
+        self.petsc_inner_jacobian = vlasov.vi.PETScNLJacobianJ1approx.PETScJacobian(
                                             self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.charge, coll_freq=self.coll_freq)
         
-        self.petsc_function = vlasov.vi.PETScNLFunctionJ1approx.PETScFunction(
+        self.petsc_inner_function = vlasov.vi.PETScNLFunctionJ1approx.PETScFunction(
                                             self.da1, self.da2, self.dax, 
+                                            self.h0, self.vGrid,
+                                            self.nx, self.nv, self.ht, self.hx, self.hv,
+                                            self.charge, coll_freq=self.coll_freq)
+        
+        self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
+                                            self.h0, self.vGrid,
+                                            self.nx, self.nv, self.ht, self.hx, self.hv,
+                                            self.charge, coll_freq=self.coll_freq)
+        
+        self.petsc_function = PETScFunction(self.da1, self.da2, self.dax, 
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.charge, coll_freq=self.coll_freq)
@@ -309,7 +313,7 @@ class petscVP1D():
 
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
-        self.snes.setFunction(self.petsc_function.snes_mult_all, self.b)
+        self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
@@ -319,13 +323,10 @@ class petscVP1D():
         
         # create inner solver
         self.snes_inner = PETSc.SNES().create()
-#         self.snes_inner.setType('ksponly')
-        self.snes_inner.setFunction(self.petsc_function.snes_mult, self.b)
+        self.snes_inner.setFunction(self.petsc_inner_function.snes_mult, self.b)
         self.snes_inner.setJacobian(self.updateInnerJacobian, self.J)
         self.snes_inner.setFromOptions()
-#         self.snes_inner.getKSP().setType('gmres')
-        self.snes_inner.getKSP().setType('preonly')
-#         self.snes_inner.getKSP().getPC().setType('none')
+        self.snes_inner.getKSP().setType('gmres')
         self.snes_inner.getKSP().getPC().setType('lu')
         self.snes_inner.getKSP().getPC().setFactorSolverPackage(solver_package)
         
@@ -464,11 +465,15 @@ class petscVP1D():
         
         
         # copy external potential
+        self.petsc_inner_jacobian.update_external(self.p_ext)
+        self.petsc_inner_function.update_external(self.p_ext)
         self.petsc_jacobian.update_external(self.p_ext)
         self.petsc_function.update_external(self.p_ext)
         self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
+        self.petsc_inner_jacobian.update_history(self.f, self.h1)
+        self.petsc_inner_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
         self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
@@ -728,7 +733,6 @@ class petscVP1D():
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_jacobian.update_previous(X)
-        self.petsc_jacobian.update_previous_moments(X)
         
         self.petsc_jacobian.formMat(J)
         J.setNullSpace(self.nullspace)
@@ -739,13 +743,13 @@ class petscVP1D():
         
     
     def updateInnerJacobian(self, snes, X, J, P):
-        self.petsc_jacobian.update_previous(X)
+        self.petsc_inner_jacobian.update_previous(X)
         
-        self.petsc_jacobian.formMat(J)
+        self.petsc_inner_jacobian.formMat(J)
         J.setNullSpace(self.nullspace)
         
         if J != P:
-            self.petsc_jacobian.formMat(P)
+            self.petsc_inner_jacobian.formMat(P)
             P.setNullSpace(self.nullspace)
         
     
@@ -766,7 +770,7 @@ class petscVP1D():
             self.copy_p_to_h()
         
         
-        self.petsc_function.mult_all(self.x, self.b)
+        self.petsc_function.mult(self.x, self.b)
         ignorm = self.b.norm()
         phisum = self.p.sum()
         
@@ -803,7 +807,7 @@ class petscVP1D():
                     self.arakawa_gear.update_history(self.f, self.h1)
             
             
-            self.petsc_function.mult_all(self.x, self.b)
+            self.petsc_function.mult(self.x, self.b)
             ignorm = self.b.norm()
             phisum = self.p.sum()
             
@@ -820,7 +824,7 @@ class petscVP1D():
         
         self.calculate_moments(potential=False)
         
-        self.petsc_function.mult_all(self.x, self.b)
+        self.petsc_function.mult(self.x, self.b)
         ignorm = self.b.norm()
         phisum = self.p.sum()
         
@@ -841,6 +845,8 @@ class petscVP1D():
             
             # calculate external field and copy to matrix, jacobian and function
             self.calculate_external(current_time)
+            self.petsc_inner_jacobian.update_external(self.p_ext)
+            self.petsc_inner_function.update_external(self.p_ext)
             self.petsc_jacobian.update_external(self.p_ext)
             self.petsc_function.update_external(self.p_ext)
             self.petsc_matrix.update_external(self.p_ext)
@@ -861,27 +867,26 @@ class petscVP1D():
             # calculate initial guess via linear solver
 #             self.initial_guess()
             
-#             self.petsc_function.update_moments(self.x)
             
             # nonlinear solve
             i = 0
             while True:
                 i+=1
                 
+                self.petsc_inner_jacobian.update_previous_moments(self.x)
+                self.petsc_inner_function.update_moments(self.x)
+                
                 self.snes_inner.solve(None, self.x)
                 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("  Inner Solver:  %5i iterations,   funcnorm = %24.16E" % (self.snes_inner.getIterationNumber(), self.snes_inner.getFunctionNorm()) )
+                    print("  Inner Solver:   %5i iterations,   funcnorm = %24.16E" % (self.snes_inner.getIterationNumber(), self.snes_inner.getFunctionNorm()) )
                 
-                self.petsc_jacobian.update_previous_moments(self.x)
-#                 self.petsc_function.update_moments(self.x)
-                
-                self.petsc_function.mult_all(self.x, self.b)
+                self.petsc_function.mult(self.x, self.b)
                 fnorm = self.b.norm()
                 
                 if fnorm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
                     if PETSc.COMM_WORLD.getRank() == 0:
-                        print("  Outer Solver:  %5i iterations,   funcnorm = %24.16E" % (i, fnorm) )
+                        print("  Outer Solver:   %5i iterations,   funcnorm = %24.16E" % (i, fnorm) )
                     
                     break
                 
@@ -905,7 +910,9 @@ class petscVP1D():
             self.copy_x_to_data()
             self.calculate_collision_factor()
             
-            # update history
+            # update solution history
+            self.petsc_inner_jacobian.update_history(self.f, self.h1)
+            self.petsc_inner_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
             self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)

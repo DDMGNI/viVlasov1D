@@ -36,15 +36,20 @@ from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 # from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixJ4                import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
-from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ4                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ1                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ1D4          import PETScFunction
 # from vlasov.vi.PETScNLJacobianJ1D4          import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+
+from vlasov.vi.PETScMatrixJ1explicit        import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ1explicit    import PETScFunction
+from vlasov.vi.PETScNLJacobianJ1explicit    import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -271,7 +276,7 @@ class petscVP1D():
         self.petsc_matrix = PETScMatrix(self.da1, self.da2, self.dax,
                                         self.h0, self.vGrid,
                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                        self.charge)
+                                        self.charge, coll_freq=self.coll_freq)
         
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
@@ -829,10 +834,10 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-            self.initial_guess_gear(itime)
+#             self.initial_guess_gear(itime)
             
             # calculate initial guess via linear solver
-#             self.initial_guess()
+            self.initial_guess()
             
             
             # nonlinear solve
