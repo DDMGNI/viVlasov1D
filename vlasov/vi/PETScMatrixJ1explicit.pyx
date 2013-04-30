@@ -137,28 +137,15 @@ cdef class PETScMatrix(object):
         self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.H2h, self.localH2h)
 
-        self.dax.globalToLocal(self.Nh,  self.localNh)
-        self.dax.globalToLocal(self.Uh,  self.localUh)
-        self.dax.globalToLocal(self.Eh,  self.localEh)
-        self.dax.globalToLocal(self.Ah,  self.localAh)
-        
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=1] Nh  = self.dax.getVecArray(self.localNh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Uh  = self.dax.getVecArray(self.localUh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getVecArray(self.localEh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getVecArray(self.localAh)[...]
-        
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h + h2h
         
         cdef np.float64_t time_fac    = 4.0 * 1.0 / (16. * self.ht)
         cdef np.float64_t arak_fac_J1 = 4.0 * 0.5 / (12. * self.hx * self.hv)
-        
-        cdef np.float64_t coll1_fac = - 4.0 * 0.5 * self.nu * 0.25 / self.hv
-        cdef np.float64_t coll2_fac = - 4.0 * 0.5 * self.nu * 0.25 * self.hv2_inv
         
         
         A.zeroEntries()
@@ -255,57 +242,20 @@ cdef class PETScMatrix(object):
                     
                 else:
                     
-#                     for index, field, value in [
-#                             ((i-1,), j-1, 1. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac_J1),
-#                             ((i-1,), j  , 2. * time_fac - (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
-#                                                         - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac_J1),
-#                             ((i-1,), j+1, 1. * time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * arak_fac_J1),
-#                             ((i,  ), j-1, 2. * time_fac + (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
-#                                                         + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac_J1),
-#                             ((i,  ), j  , 4. * time_fac),
-#                             ((i,  ), j+1, 2. * time_fac - (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
-#                                                         - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac_J1),
-#                             ((i+1,), j-1, 1. * time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * arak_fac_J1),
-#                             ((i+1,), j  , 2. * time_fac + (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
-#                                                         + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac_J1),
-#                             ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1),
-#                             ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
-#                                                  + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1),
-#                             ((i,  ), self.nv,    + 1. * (fh[ix-1, j-1] - fh[ix+1, j-1]) * arak_fac_J1 \
-#                                                  + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J1),
-#                             ((i+1,), self.nv,    + 2. * (fh[ix,   j-1] - fh[ix,   j+1]) * arak_fac_J1 \
-#                                                  + 1. * (fh[ix+1, j-1] - fh[ix+1, j+1]) * arak_fac_J1),
-#                         ]:
-                        
                     for index, field, value in [
-                            ((i-1,), j-1, 1. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac_J1 \
-                                                        - 1. * coll1_fac * ( Nh[ix-1] * v[j-1] - Uh[ix-1] ) * Ah[ix-1] \
-                                                        + 1. * coll2_fac),
+                            ((i-1,), j-1, 1. * time_fac - (h[ix-1, j  ] - h[ix,   j-1]) * arak_fac_J1),
                             ((i-1,), j  , 2. * time_fac - (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
-                                                        - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll2_fac),
-                            ((i-1,), j+1, 1. * time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * arak_fac_J1 \
-                                                        + 1. * coll1_fac * ( Nh[ix-1] * v[j+1] - Uh[ix-1] ) * Ah[ix-1] \
-                                                        + 1. * coll2_fac),
+                                                        - (h[ix-1, j+1] - h[ix-1, j-1]) * arak_fac_J1),
+                            ((i-1,), j+1, 1. * time_fac - (h[ix,   j+1] - h[ix-1, j  ]) * arak_fac_J1),
                             ((i,  ), j-1, 2. * time_fac + (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
-                                                        + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll1_fac * ( Nh[ix  ] * v[j-1] - Uh[ix  ] ) * Ah[ix  ] \
-                                                        + 2. * coll2_fac),
-                            ((i,  ), j  , 4. * time_fac \
-                                                        - 4. * coll2_fac),
+                                                        + (h[ix+1, j-1] - h[ix-1, j-1]) * arak_fac_J1),
+                            ((i,  ), j  , 4. * time_fac),
                             ((i,  ), j+1, 2. * time_fac - (h[ix+1, j  ] - h[ix-1, j  ]) * arak_fac_J1 \
-                                                        - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac_J1 \
-                                                        + 2. * coll1_fac * ( Nh[ix  ] * v[j+1] - Uh[ix  ] ) * Ah[ix  ] \
-                                                        + 2. * coll2_fac),
-                            ((i+1,), j-1, 1. * time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * arak_fac_J1 \
-                                                        - 1. * coll1_fac * ( Nh[ix+1] * v[j-1] - Uh[ix+1] ) * Ah[ix+1] \
-                                                        + 1. * coll2_fac),
+                                                        - (h[ix+1, j+1] - h[ix-1, j+1]) * arak_fac_J1),
+                            ((i+1,), j-1, 1. * time_fac + (h[ix+1, j  ] - h[ix,   j-1]) * arak_fac_J1),
                             ((i+1,), j  , 2. * time_fac + (h[ix,   j+1] - h[ix,   j-1]) * arak_fac_J1 \
-                                                        + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac_J1 \
-                                                        - 2. * coll2_fac),
-                            ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1 \
-                                                        + 1. * coll1_fac * ( Nh[ix+1] * v[j+1] - Uh[ix+1] ) * Ah[ix+1] \
-                                                        + 1. * coll2_fac),
+                                                        + (h[ix+1, j+1] - h[ix+1, j-1]) * arak_fac_J1),
+                            ((i+1,), j+1, 1. * time_fac + (h[ix,   j+1] - h[ix+1, j  ]) * arak_fac_J1),
                             
                             ((i-1,), self.nv,    + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
                                                  + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1),
@@ -322,94 +272,6 @@ cdef class PETScMatrix(object):
                 
         A.assemble()
                     
-#                        
-#                        Time Derivative
-#                        
-#                        result = ( \
-#                                   + 1. * x[i-1, j-1] \
-#                                   + 2. * x[i-1, j  ] \
-#                                   + 1. * x[i-1, j+1] \
-#                                   + 2. * x[i,   j-1] \
-#                                   + 4. * x[i,   j  ] \
-#                                   + 2. * x[i,   j+1] \
-#                                   + 1. * x[i+1, j-1] \
-#                                   + 2. * x[i+1, j  ] \
-#                                   + 1. * x[i+1, j+1] \
-#                                 ) / (16. * self.ht)
-#                        
-#                        
-#                        Arakawa Stencil
-#                        
-#                        jpp = + f[i+1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
-#                              - f[i-1, j  ] * (h[i,   j+1] - h[i,   j-1]) \
-#                              - f[i,   j+1] * (h[i+1, j  ] - h[i-1, j  ]) \
-#                              + f[i,   j-1] * (h[i+1, j  ] - h[i-1, j  ])
-#                        
-#                        jpc = + f[i+1, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
-#                              - f[i-1, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
-#                              - f[i,   j+1] * (h[i+1, j+1] - h[i-1, j+1]) \
-#                              + f[i,   j-1] * (h[i+1, j-1] - h[i-1, j-1])
-#                        
-#                        jcp = + f[i+1, j+1] * (h[i,   j+1] - h[i+1, j  ]) \
-#                              - f[i-1, j-1] * (h[i-1, j  ] - h[i,   j-1]) \
-#                              - f[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
-#                              + f[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
-#                        
-#                        result = (jpp + jpc + jcp) / (12. * self.hx * self.hv)
-#                        
-#                              + f[i+1, j  ] * h[i,   j+1] \
-#                              - f[i+1, j  ] * h[i,   j-1] \
-#                              - f[i-1, j  ] * h[i,   j+1] \
-#                              + f[i-1, j  ] * h[i,   j-1] \
-#                              - f[i,   j+1] * h[i+1, j  ] \
-#                              + f[i,   j+1] * h[i-1, j  ] \
-#                              + f[i,   j-1] * h[i+1, j  ] \
-#                              - f[i,   j-1] * h[i-1, j  ] \
-#                              + f[i+1, j  ] * h[i+1, j+1] \
-#                              - f[i+1, j  ] * h[i+1, j-1] \
-#                              - f[i-1, j  ] * h[i-1, j+1] \
-#                              + f[i-1, j  ] * h[i-1, j-1] \
-#                              - f[i,   j+1] * h[i+1, j+1] \
-#                              + f[i,   j+1] * h[i-1, j+1] \
-#                              + f[i,   j-1] * h[i+1, j-1] \
-#                              - f[i,   j-1] * h[i-1, j-1] \
-#                              + f[i+1, j+1] * h[i,   j+1] \
-#                              - f[i+1, j+1] * h[i+1, j  ] \
-#                              - f[i-1, j-1] * h[i-1, j  ] \
-#                              + f[i-1, j-1] * h[i,   j-1] \
-#                              - f[i-1, j+1] * h[i,   j+1] \
-#                              + f[i-1, j+1] * h[i-1, j  ] \
-#                              + f[i+1, j-1] * h[i+1, j  ] \
-#                              - f[i+1, j-1] * h[i,   j-1] \
-#                        
-#                              + 2. * f[i,   j+1] * h[i-1] \
-#                              - 2. * f[i,   j-1] * h[i-1] \
-#                              - f[i-1, j-1] * h[i-1] \
-#                              + f[i-1, j+1] * h[i-1] \
-#                              + f[i+1, j+1] * h[i  ] \
-#                              + f[i-1, j-1] * h[i  ] \
-#                              - f[i-1, j+1] * h[i  ] \
-#                              - f[i+1, j-1] * h[i  ] \
-#                              - 2. * f[i,   j+1] * h[i+1] \
-#                              + 2. * f[i,   j-1] * h[i+1] \
-#                              - f[i+1, j+1] * h[i+1] \
-#                              + f[i+1, j-1] * h[i+1] \
-#                        
-#                        res = - p[i+1] * (f[i,   j+1] - f[i,   j-1]) \
-#                              - p[i+1] * (f[i,   j+1] - f[i+1, j  ]) \
-#                              - p[i+1] * (f[i+1, j+1] - f[i+1, j-1]) \
-#                              - p[i+1] * (f[i+1, j  ] - f[i,   j-1])
-#                              + p[i  ] * (f[i+1, j+1] - f[i-1, j+1]) \
-#                              - p[i  ] * (f[i+1, j-1] - f[i-1, j-1])
-#                              + p[i-1] * (f[i,   j+1] - f[i,   j-1])
-#                              + p[i-1] * (f[i,   j+1] - f[i-1, j  ]) \
-#                              + p[i-1] * (f[i-1, j+1] - f[i-1, j-1]) \
-#                              + p[i-1] * (f[i-1, j  ] - f[i,   j-1]) \
-#                        
-#                        result = res / (12. * self.hx * self.hv)
-#                        
-        
-        
         
     @cython.boundscheck(False)
     def formRHS(self, Vec B):
@@ -467,7 +329,8 @@ cdef class PETScMatrix(object):
                     b[iy, j] = 4.0 * ( \
                                        + self.toolbox.time_derivative_J1(fh, ix, j) \
                                        - 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                                       + 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
+                                       + self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                                       + self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
                                      )
 
 
@@ -590,8 +453,8 @@ cdef class PETScMatrix(object):
                                        - self.toolbox.time_derivative_J1(fh, ix, j) \
                                        + 0.5 * self.toolbox.arakawa_J1(f, hh, ix, j) \
                                        + 0.5 * self.toolbox.arakawa_J1(fh, h, ix, j) \
-                                       - self.nu * self.toolbox.collT1(f,  Nh, Uh, Eh, Ah, ix, j) \
-                                       - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                                       - self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                                       - self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
                                      ) 
 
 
