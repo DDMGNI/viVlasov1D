@@ -370,14 +370,14 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         cdef np.float64_t result
         
-        if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
-            result = 0.
-        else:
-            result = 0.25 * ( \
-                              + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
-                              + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
-                              + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
-                            ) * 0.5 / self.hv
+#         if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
+#             result = 0.
+#         else:
+        result = 0.25 * ( \
+                          + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
+                          + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
+                          + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
+                        ) * 0.5 / self.hv
         
 #         result = ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
         
@@ -398,14 +398,14 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-        if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
-            result = 0.
-        else:
-            result = 0.25 * ( \
-                              + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                              + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                              + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                            ) * self.hv2_inv
+#         if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
+#             result = 0.
+#         else:
+        result = 0.25 * ( \
+                          + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
+                          + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
+                          + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
+                        ) * self.hv2_inv
         
 #         result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
         
