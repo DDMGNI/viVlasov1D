@@ -256,6 +256,7 @@ cdef class PETScFunction(object):
                                        + self.toolbox.arakawa_J1(f_ave, h_ave, ix, j) \
                                        - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
                                        - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                                       - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                                       - 0.5 * self.nu * self.toolbox.collT2(fp, Np, Up, Ep, Ap, ix, j) \
+                                       - 0.5 * self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
                                      )
 
