@@ -148,7 +148,6 @@ cdef class PETScFunction(object):
         e  = self.dax.getVecArray(self.Ep)
         a  = self.dax.getVecArray(self.Ap)
         
-        
         f[xs:xe] = x[xs:xe, 0:self.nv]
         p[xs:xe] = x[xs:xe,   self.nv]
         n[xs:xe] = x[xs:xe,   self.nv+1]

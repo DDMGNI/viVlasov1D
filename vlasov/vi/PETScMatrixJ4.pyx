@@ -257,13 +257,6 @@ cdef class PETScMatrix(object):
                 A.setValueStencil(row, col, - self.v[j]**2)
                 
             
-            # temperature
-            row.field = self.nv+4
-            col.field = self.nv+4
-            
-            A.setValueStencil(row, col, 1.)
-        
-        
         
         for i in np.arange(xs, xe):
             ix = i-xs+2
@@ -416,8 +409,6 @@ cdef class PETScMatrix(object):
             b[iy, self.nv+1] = 0.
             b[iy, self.nv+2] = 0.
             b[iy, self.nv+3] = 0.
-            b[iy, self.nv+4] = 0.
-#             b[iy, self.nv+4] = Nh[ix] / (Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix])
             
             
             # Vlasov equation
@@ -456,7 +447,9 @@ cdef class PETScMatrix(object):
         n[xs:xe] = x[xs:xe,   self.nv+1]
         u[xs:xe] = x[xs:xe,   self.nv+2]
         e[xs:xe] = x[xs:xe,   self.nv+3]
-        a[xs:xe] = x[xs:xe,   self.nv+4]
+        
+        for i in range(xs,xe):
+            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
         
         for j in np.arange(0, self.nv):
             h1[xs:xe, j] = p[xs:xe]
@@ -541,7 +534,6 @@ cdef class PETScMatrix(object):
             y[iy, self.nv+1] = N[ix] / self.hv - (f[ix]            ).sum()
             y[iy, self.nv+2] = U[ix] / self.hv - (f[ix] * self.v   ).sum()
             y[iy, self.nv+3] = E[ix] / self.hv - (f[ix] * self.v**2).sum()
-            y[iy, self.nv+4] = A[ix] - Nh[ix] / (Nh[ix] * Eh[ix] - Uh[ix] * Uh[ix])
             
             
             # Vlasov Equation
