@@ -41,7 +41,7 @@ class potential(object):
         
         for itime in range(0, self.grid.nt+1):
             self.potential.read_from_hdf5(itime)
-            self.energy[itime] = self.potential.E
+            self.energy[itime] = np.sqrt(self.potential.E)
 
         tMax = []
         EMax = []
