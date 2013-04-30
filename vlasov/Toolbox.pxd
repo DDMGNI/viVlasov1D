@@ -75,6 +75,9 @@ cdef class Toolbox(object):
                                        np.uint64_t i, np.uint64_t j)
     
     
+    cdef np.float64_t time_derivative_woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                                np.uint64_t i, np.uint64_t j)
+    
     cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                                np.uint64_t i, np.uint64_t j)
     
@@ -98,6 +101,21 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=1] E,
                                    np.ndarray[np.float64_t, ndim=1] A,
                                    np.uint64_t i, np.uint64_t j)
+    
+    
+    cdef np.float64_t collT1woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                      np.ndarray[np.float64_t, ndim=1] N,
+                                      np.ndarray[np.float64_t, ndim=1] U,
+                                      np.ndarray[np.float64_t, ndim=1] E,
+                                      np.ndarray[np.float64_t, ndim=1] A,
+                                      np.uint64_t i, np.uint64_t j)
+    
+    cdef np.float64_t collT2woa(self, np.ndarray[np.float64_t, ndim=2] f,
+                                      np.ndarray[np.float64_t, ndim=1] N,
+                                      np.ndarray[np.float64_t, ndim=1] U,
+                                      np.ndarray[np.float64_t, ndim=1] E,
+                                      np.ndarray[np.float64_t, ndim=1] A,
+                                      np.uint64_t i, np.uint64_t j)
     
     
     cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
