@@ -27,7 +27,7 @@ export MODULEPATH=/afs/@cell/common/usr/modules/@sys/modulefiles/libs:${MODULEPA
 export MODULEPATH=/afs/ipp/common/usr/modules/@sys/modulefiles/TOK:${MODULEPATH}
 
 module load hdf5-serial/1.8.9
-module load netcdf-serial
+module load netcdf-serial/4.2.1.1
 
 module load intel/13.1
 module load mkl/11.0
@@ -43,8 +43,9 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
+mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nested.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_newton.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs_itm/$RUNID.cfg
-mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_corr.py runs_itm/$RUNID.cfg
+#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_corr.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_ksp.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_pred.py runs_itm/$RUNID.cfg
