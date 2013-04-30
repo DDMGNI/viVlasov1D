@@ -16,15 +16,15 @@ from petsc4py import PETSc
 
 
 from vlasov.core.config  import Config
-from vlasov.data.maxwell import maxwellian 
+from vlasov.data.maxwell import maxwellian
 
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 
-from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-from vlasov.vi.PETScFunctionJ1              import PETScFunction
-from vlasov.vi.PETScJacobianJ1              import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# from vlasov.vi.PETScFunctionJ1              import PETScFunction
+# from vlasov.vi.PETScJacobianJ1              import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 # from vlasov.vi.PETScMatrixJ1                import PETScMatrix
 # from vlasov.vi.PETScNLFunctionJ1            import PETScFunction
@@ -36,10 +36,15 @@ from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 # from vlasov.vi.PETScNLJacobianJ2            import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ2  import PETScPoissonMatrix
 
-# from vlasov.vi.PETScMatrixJ4                import PETScMatrix
-# from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
-# from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
-# from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+from vlasov.vi.PETScMatrixJ4                import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ4            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ4            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ1D4          import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ1D4          import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -111,7 +116,7 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-        OptDB.setValue('snes_lag_preconditioner', 3)
+#         OptDB.setValue('snes_lag_preconditioner', 3)
         
 #         OptDB.setValue('snes_ls', 'basic')
 #         OptDB.setValue('snes_ls', 'quadratic')
@@ -303,8 +308,8 @@ class petscVP1D():
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-        self.snes.getKSP().setType('gmres')
-#         self.snes.getKSP().setType('preonly')
+#         self.snes.getKSP().setType('gmres')
+        self.snes.getKSP().setType('preonly')
 #         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
