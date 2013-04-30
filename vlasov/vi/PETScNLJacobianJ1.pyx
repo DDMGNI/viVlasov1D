@@ -278,12 +278,12 @@ cdef class PETScJacobian(object):
             
             row.index = (i,)
             
-            if Np[ix] < 1E-2 or Np[ix-1] < 1E-2 or Np[ix+1] < 1E-2:
-                coll1_fac = 0.
-                coll2_fac = 0.
-            else:
-                coll1_fac = - 4.0 *  0.5 * self.nu * 0.25 * 0.5 / self.hv
-                coll2_fac = - 4.0 *  0.5 * self.nu * 0.25 * self.hv2_inv
+#             if Np[ix] < 1E-2 or Np[ix-1] < 1E-2 or Np[ix+1] < 1E-2:
+#                 coll1_fac = 0.
+#                 coll2_fac = 0.
+#             else:
+#                 coll1_fac = - 4.0 *  0.5 * self.nu * 0.25 * 0.5 / self.hv
+#                 coll2_fac = - 4.0 *  0.5 * self.nu * 0.25 * self.hv2_inv
             
             
             for j in np.arange(0, self.nv):
