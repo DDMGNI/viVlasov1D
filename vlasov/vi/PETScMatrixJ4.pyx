@@ -159,7 +159,7 @@ cdef class PETScMatrix(object):
         cdef np.float64_t arak_fac_J2 = 0.25 / (24. * self.hx * self.hv)
         cdef np.float64_t poisson_fac = self.charge / 36. 
         
-        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 / self.hv
+        cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
         cdef np.float64_t coll2_fac = - 0.5 * self.nu * 0.25 * self.hv2_inv
         
         
@@ -429,7 +429,8 @@ cdef class PETScMatrix(object):
                 else:
                     b[iy, j] = self.toolbox.time_derivative_J4(fh, ix, j) \
                              - 0.5 * self.toolbox.arakawa_J4(fh, h, ix, j) \
-                             + 0.5 * self.nu * self.toolbox.collT2(fh, ix, j)
+                             + 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                             + 0.5 * self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
 
 
 
@@ -554,5 +555,7 @@ cdef class PETScMatrix(object):
                              - self.toolbox.time_derivative_J4(fh, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(f, hh, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(fh, h, ix, j) \
-                             - self.nu * self.toolbox.collT1(f, Nh, Uh, Eh, Ah, ix, j) \
-                             - self.nu * self.toolbox.collT2(f_ave, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT1(f,  Nh, Uh, Eh, Ah, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2(f,  Nh, Uh, Eh, Ah, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
