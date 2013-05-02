@@ -57,7 +57,7 @@ from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 # from vlasov.vi.PETScNLJacobianJ1woa         import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixJ4                   import PETScMatrix
+from vlasov.vi.PETScMatrixJ4woa                import PETScMatrix
 from vlasov.vi.PETScNLFunctionJ4woa            import PETScFunction
 from vlasov.vi.PETScNLJacobianJ4woa            import PETScJacobian
 from vlasov.predictor.PETScPoissonMatrixJ4     import PETScPoissonMatrix
@@ -845,10 +845,10 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-            self.initial_guess_gear(itime)
+#             self.initial_guess_gear(itime)
             
             # calculate initial guess via linear solver
-#             self.initial_guess()
+            self.initial_guess()
             
             
             # nonlinear solve
