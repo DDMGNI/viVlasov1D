@@ -193,8 +193,10 @@ cdef class PETScJacobian(object):
         cdef np.float64_t time_fac    = 1.0  / (64. * self.ht)
 #         cdef np.float64_t time_fac = 1.0 / (36. * self.ht)
 #         cdef np.float64_t time_fac = 1.0 / (16. * self.ht)
-        cdef np.float64_t arak_fac_J1 = 0.25 / (12. * self.hx * self.hv)
-        cdef np.float64_t arak_fac_J2 = 0.25 / (24. * self.hx * self.hv)
+#         cdef np.float64_t arak_fac_J1 = 0.25 / (12. * self.hx * self.hv)
+#         cdef np.float64_t arak_fac_J2 = 0.25 / (24. * self.hx * self.hv)
+        cdef np.float64_t arak_fac_J1 = + 1.0 / (12. * self.hx * self.hv)
+        cdef np.float64_t arak_fac_J2 = - 0.5 / (24. * self.hx * self.hv)
         cdef np.float64_t poisson_fac = self.charge / 36. 
         
         cdef np.float64_t coll1_fac = - 0.5 * self.nu * 0.25 * 0.5 / self.hv
@@ -245,11 +247,11 @@ cdef class PETScJacobian(object):
 #                     ((i+1,), - 2.   * self.hx2_inv),
 #                     ((i+2,), + 0.25 * self.hx2_inv),
 #                 ]:
-            for index, value in [
-                    ((i-1,), - 1. * self.hx2_inv),
-                    ((i,  ), + 2. * self.hx2_inv),
-                    ((i+1,), - 1. * self.hx2_inv),
-                ]:
+#             for index, value in [
+#                     ((i-1,), - 1. * self.hx2_inv),
+#                     ((i,  ), + 2. * self.hx2_inv),
+#                     ((i+1,), - 1. * self.hx2_inv),
+#                 ]:
 #             for index, value in [
 #                     ((i-2,), + 1. * self.hx2_inv / 6.),
 #                     ((i-1,), + 2. * self.hx2_inv / 6.),
@@ -257,11 +259,18 @@ cdef class PETScJacobian(object):
 #                     ((i+1,), + 2. * self.hx2_inv / 6.),
 #                     ((i+2,), + 1. * self.hx2_inv / 6.),
 #                 ]:
+            for index, value in [
+                    ((i-2,), +  1. * self.hx2_inv / 12.),
+                    ((i-1,), - 16. * self.hx2_inv / 12.),
+                    ((i,  ), + 30. * self.hx2_inv / 12.),
+                    ((i+1,), - 16. * self.hx2_inv / 12.),
+                    ((i+2,), +  1. * self.hx2_inv / 12.),
+                ]:
                 
                 col.index = index
                 col.field = self.nv
                 A.setValueStencil(row, col, value)
-                    
+         
         
         
         # moments
@@ -276,33 +285,33 @@ cdef class PETScJacobian(object):
             row.field = self.nv+1
             col.field = self.nv+1
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - 1.)
+                A.setValueStencil(row, col, - 1. * self.hv)
              
             
             # average velocity density
             row.field = self.nv+2
             col.field = self.nv+2
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j])
+                A.setValueStencil(row, col, - self.v[j] * self.hv)
             
             
             # average energy density
             row.field = self.nv+3
             col.field = self.nv+3
             
-            A.setValueStencil(row, col, 1. / self.hv)
+            A.setValueStencil(row, col, 1.)
             
             for j in np.arange(0, self.nv):
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j]**2)
+                A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
         
@@ -506,23 +515,37 @@ cdef class PETScJacobian(object):
                             ((i+2,), self.nv,    - 1. * (f_ave[ix+1, j+1] - f_ave[ix+1, j-1]) * arak_fac_J2),
                                                 
                             ((i-1,), self.nv+1,  + 1. * coll1_fac * fp[ix-1, j+1] * v[j+1] * Ap[ix-1] \
-                                                 - 1. * coll1_fac * fp[ix-1, j-1] * v[j-1] * Ap[ix-1] ),
+                                                 - 1. * coll1_fac * fp[ix-1, j-1] * v[j-1] * Ap[ix-1] \
+                                                 + 1. * coll1_fac * fp[ix-1, j+1] * ( Np[ix-1] * v[j+1] - Up[ix-1] ) * ( (Ap[ix-1] / Np[ix-1]) - Ep[ix-1] * Ap[ix-1]**2 / Np[ix-1] ) \
+                                                 - 1. * coll1_fac * fp[ix-1, j-1] * ( Np[ix-1] * v[j-1] - Up[ix-1] ) * ( (Ap[ix-1] / Np[ix-1]) - Ep[ix-1] * Ap[ix-1]**2 / Np[ix-1] ) ),
                             ((i,  ), self.nv+1,  + 2. * coll1_fac * fp[ix,   j+1] * v[j+1] * Ap[ix  ] \
-                                                 - 2. * coll1_fac * fp[ix,   j-1] * v[j-1] * Ap[ix  ] ),
+                                                 - 2. * coll1_fac * fp[ix,   j-1] * v[j-1] * Ap[ix  ] \
+                                                 + 2. * coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) \
+                                                 - 2. * coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) ),
                             ((i+1,), self.nv+1,  + 1. * coll1_fac * fp[ix+1, j+1] * v[j+1] * Ap[ix+1] \
-                                                 - 1. * coll1_fac * fp[ix+1, j-1] * v[j-1] * Ap[ix+1] ),
+                                                 - 1. * coll1_fac * fp[ix+1, j-1] * v[j-1] * Ap[ix+1] \
+                                                 + 1. * coll1_fac * fp[ix+1, j+1] * ( Np[ix+1] * v[j+1] - Up[ix+1] ) * ( (Ap[ix+1] / Np[ix+1]) - Ep[ix+1] * Ap[ix+1]**2 / Np[ix+1] ) \
+                                                 - 1. * coll1_fac * fp[ix+1, j-1] * ( Np[ix+1] * v[j-1] - Up[ix+1] ) * ( (Ap[ix+1] / Np[ix+1]) - Ep[ix+1] * Ap[ix+1]**2 / Np[ix+1] ) ),
+                            
                             ((i-1,), self.nv+2,  + 1. * coll1_fac * fp[ix-1, j+1] * (-1) * Ap[ix-1] \
-                                                 - 1. * coll1_fac * fp[ix-1, j-1] * (-1) * Ap[ix-1] ),
+                                                 - 1. * coll1_fac * fp[ix-1, j-1] * (-1) * Ap[ix-1] \
+                                                 + 1. * coll1_fac * fp[ix-1, j+1] * ( Np[ix-1] * v[j+1] - Up[ix-1] ) * 2. * Up[ix-1] * Ap[ix-1]**2 / Np[ix-1] \
+                                                 - 1. * coll1_fac * fp[ix-1, j-1] * ( Np[ix-1] * v[j-1] - Up[ix-1] ) * 2. * Up[ix-1] * Ap[ix-1]**2 / Np[ix-1] ),
                             ((i,  ), self.nv+2,  + 2. * coll1_fac * fp[ix,   j+1] * (-1) * Ap[ix  ] \
-                                                 - 2. * coll1_fac * fp[ix,   j-1] * (-1) * Ap[ix  ] ),
+                                                 - 2. * coll1_fac * fp[ix,   j-1] * (-1) * Ap[ix  ] \
+                                                 + 2. * coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] \
+                                                 - 2. * coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] ),
                             ((i+1,), self.nv+2,  + 1. * coll1_fac * fp[ix+1, j+1] * (-1) * Ap[ix+1] \
-                                                 - 1. * coll1_fac * fp[ix+1, j-1] * (-1) * Ap[ix+1] ),
-                            ((i-1,), self.nv+4,  + 1. * coll1_fac * fp[ix-1, j+1] * ( Np[ix-1] * v[j+1] - Up[ix-1] ) \
-                                                 - 1. * coll1_fac * fp[ix-1, j-1] * ( Np[ix-1] * v[j-1] - Up[ix-1] ) ),
-                            ((i,  ), self.nv+4,  + 2. * coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) \
-                                                 - 2. * coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) ),
-                            ((i+1,), self.nv+4,  + 1. * coll1_fac * fp[ix+1, j+1] * ( Np[ix+1] * v[j+1] - Up[ix+1] ) \
-                                                 - 1. * coll1_fac * fp[ix+1, j-1] * ( Np[ix+1] * v[j-1] - Up[ix+1] ) ),
+                                                 - 1. * coll1_fac * fp[ix+1, j-1] * (-1) * Ap[ix+1] \
+                                                 + 1. * coll1_fac * fp[ix+1, j+1] * ( Np[ix+1] * v[j+1] - Up[ix+1] ) * 2. * Up[ix+1] * Ap[ix+1]**2 / Np[ix+1] \
+                                                 - 1. * coll1_fac * fp[ix+1, j-1] * ( Np[ix+1] * v[j-1] - Up[ix+1] ) * 2. * Up[ix+1] * Ap[ix+1]**2 / Np[ix+1] ),
+                            
+                            ((i-1,), self.nv+3,  + 1. * coll1_fac * fp[ix-1, j+1] * ( Np[ix-1] * v[j+1] - Up[ix-1] ) * Ap[ix-1]**2 * (-1.) \
+                                                 - 1. * coll1_fac * fp[ix-1, j-1] * ( Np[ix-1] * v[j-1] - Up[ix-1] ) * Ap[ix-1]**2 * (-1.) ),
+                            ((i,  ), self.nv+3,  + 2. * coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * Ap[ix  ]**2 * (-1.) \
+                                                 - 2. * coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * Ap[ix  ]**2 * (-1.) ),
+                            ((i+1,), self.nv+3,  + 1. * coll1_fac * fp[ix+1, j+1] * ( Np[ix+1] * v[j+1] - Up[ix+1] ) * Ap[ix+1]**2 * (-1.) \
+                                                 - 1. * coll1_fac * fp[ix+1, j-1] * ( Np[ix+1] * v[j-1] - Up[ix+1] ) * Ap[ix+1]**2 * (-1.) ),
                         ]:
 
                         col.index = index

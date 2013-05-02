@@ -235,19 +235,20 @@ cdef class PETScFunction(object):
             integral_J1 = 0.25 * ( Np[ix-1] + Np[ix+1] + 2. * Np[ix] )
             integral_J2 = 0.25 * ( Np[ix-2] + Np[ix+2] + 2. * Np[ix] )
             
-            laplace_J4  = ( Pp[ix-2] + 2. * Pp[ix-1] + 2. * Pp[ix+1] + Pp[ix+2] - 6.  * Pp[ix] ) * self.hx2_inv / 6.
+            laplace_J4  = ( - Pp[ix-2] + 16. * Pp[ix-1] - 30. * Pp[ix] + 16. * Pp[ix+1] - Pp[ix+2] ) * self.hx2_inv / 12.
+#             laplace_J4  = ( Pp[ix-2] + 2.  * Pp[ix-1] - 6.  * Pp[ix] + 2.  * Pp[ix+1] + Pp[ix+2] ) * self.hx2_inv / 6.
             integral_J4 = ( Np[ix-2] + 8. * Np[ix-1] + 8. * Np[ix+1] + Np[ix+2] + 18. * Np[ix] ) / 36.
             
 #             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
-            y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
-#             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
+            y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
 #             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             
             
             # moments
-            y[iy, self.nv+1] = Np[ix] / self.hv - (fp[ix]            ).sum()
-            y[iy, self.nv+2] = Up[ix] / self.hv - (fp[ix] * self.v   ).sum()
-            y[iy, self.nv+3] = Ep[ix] / self.hv - (fp[ix] * self.v**2).sum()
+            y[iy, self.nv+1] = Np[ix] - (fp[ix]            ).sum() * self.hv
+            y[iy, self.nv+2] = Up[ix] - (fp[ix] * self.v   ).sum() * self.hv
+            y[iy, self.nv+3] = Ep[ix] - (fp[ix] * self.v**2).sum() * self.hv
             
             
             # Vlasov equation

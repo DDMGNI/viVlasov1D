@@ -114,7 +114,8 @@ cdef class Toolbox(object):
         Arakawa Bracket 4th order
         '''
         
-        return 0.5 * ( self.arakawa_J1(f, h, i, j) + self.arakawa_J2(f, h, i, j) ) 
+#         return 0.5 * ( self.arakawa_J1(f, h, i, j) + self.arakawa_J2(f, h, i, j) ) 
+        return 2.0 * self.arakawa_J1(f, h, i, j) - self.arakawa_J2(f, h, i, j)
     
     
     

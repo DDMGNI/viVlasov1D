@@ -77,11 +77,11 @@ cdef class PETScPoissonMatrix(object):
 #                     ((i+1,), - 2.   * self.hx2_inv),
 #                     ((i+2,), + 0.25 * self.hx2_inv),
 #                 ]:
-            for index, value in [
-                    ((i-1,), - 1. * self.hx2_inv),
-                    ((i,  ), + 2. * self.hx2_inv),
-                    ((i+1,), - 1. * self.hx2_inv),
-                ]:
+#             for index, value in [
+#                     ((i-1,), - 1. * self.hx2_inv),
+#                     ((i,  ), + 2. * self.hx2_inv),
+#                     ((i+1,), - 1. * self.hx2_inv),
+#                 ]:
 #             for index, value in [
 #                     ((i-2,), + 1. * self.hx2_inv / 6.),
 #                     ((i-1,), + 2. * self.hx2_inv / 6.),
@@ -89,11 +89,17 @@ cdef class PETScPoissonMatrix(object):
 #                     ((i+1,), + 2. * self.hx2_inv / 6.),
 #                     ((i+2,), + 1. * self.hx2_inv / 6.),
 #                 ]:
+            for index, value in [
+                    ((i-2,), +  1. * self.hx2_inv / 12.),
+                    ((i-1,), - 16. * self.hx2_inv / 12.),
+                    ((i,  ), + 30. * self.hx2_inv / 12.),
+                    ((i+1,), - 16. * self.hx2_inv / 12.),
+                    ((i+2,), +  1. * self.hx2_inv / 12.),
+                ]:
                 
                 col.index = index
                 A.setValueStencil(row, col, value)
             
-        
         A.assemble()
         
     
