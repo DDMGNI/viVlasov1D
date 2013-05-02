@@ -240,8 +240,9 @@ cdef class PETScFunction(object):
             integral_J4 = ( Np[ix-2] + 8. * Np[ix-1] + 8. * Np[ix+1] + Np[ix+2] + 18. * Np[ix] ) / 36.
             
 #             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
+            y[iy, self.nv] = - laplace_J1 + self.charge * (Np[ix] - nmean)
 #             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
-            y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
+#             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
 #             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             
             
@@ -258,10 +259,10 @@ cdef class PETScFunction(object):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative_J4(fp, ix, j) \
-                             - self.toolbox.time_derivative_J4(fh, ix, j) \
+                    y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
+                             - self.toolbox.time_derivative_woa(fh, ix, j) \
                              + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2(fh, Nh, Uh, Eh, Ah, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1woa(fh, Nh, Uh, Eh, Ah, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2woa(fh, Nh, Uh, Eh, Ah, ix, j)
