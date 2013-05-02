@@ -198,6 +198,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScMatrixJ4woa",
+                  sources=["PETScMatrixJ4woa.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScNLFunctionJ4woa",
                   sources=["PETScNLFunctionJ4woa.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
