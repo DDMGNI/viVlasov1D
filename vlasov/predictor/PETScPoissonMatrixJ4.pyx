@@ -77,11 +77,11 @@ cdef class PETScPoissonMatrix(object):
 #                     ((i+1,), - 2.   * self.hx2_inv),
 #                     ((i+2,), + 0.25 * self.hx2_inv),
 #                 ]:
-#             for index, value in [
-#                     ((i-1,), - 1. * self.hx2_inv),
-#                     ((i,  ), + 2. * self.hx2_inv),
-#                     ((i+1,), - 1. * self.hx2_inv),
-#                 ]:
+            for index, value in [
+                    ((i-1,), - 1. * self.hx2_inv),
+                    ((i,  ), + 2. * self.hx2_inv),
+                    ((i+1,), - 1. * self.hx2_inv),
+                ]:
 #             for index, value in [
 #                     ((i-2,), + 1. * self.hx2_inv / 6.),
 #                     ((i-1,), + 2. * self.hx2_inv / 6.),
@@ -89,13 +89,13 @@ cdef class PETScPoissonMatrix(object):
 #                     ((i+1,), + 2. * self.hx2_inv / 6.),
 #                     ((i+2,), + 1. * self.hx2_inv / 6.),
 #                 ]:
-            for index, value in [
-                    ((i-2,), +  1. * self.hx2_inv / 12.),
-                    ((i-1,), - 16. * self.hx2_inv / 12.),
-                    ((i,  ), + 30. * self.hx2_inv / 12.),
-                    ((i+1,), - 16. * self.hx2_inv / 12.),
-                    ((i+2,), +  1. * self.hx2_inv / 12.),
-                ]:
+#             for index, value in [
+#                     ((i-2,), +  1. * self.hx2_inv / 12.),
+#                     ((i-1,), - 16. * self.hx2_inv / 12.),
+#                     ((i,  ), + 30. * self.hx2_inv / 12.),
+#                     ((i+1,), - 16. * self.hx2_inv / 12.),
+#                     ((i+2,), +  1. * self.hx2_inv / 12.),
+#                 ]:
                 
                 col.index = index
                 A.setValueStencil(row, col, value)
@@ -122,4 +122,5 @@ cdef class PETScPoissonMatrix(object):
             ix = i-xs+2
             iy = i-xs
             
-            b[iy] = - ( ( n[ix-2] + 8. * n[ix-1] + 18. * n[ix] + 8. * n[ix+1] + n[ix+2] ) / 36. - nmean) * self.charge
+            b[iy] = - ( n[ix] - nmean) * self.charge
+#             b[iy] = - ( ( n[ix-2] + 8. * n[ix-1] + 18. * n[ix] + 8. * n[ix+1] + n[ix+2] ) / 36. - nmean) * self.charge

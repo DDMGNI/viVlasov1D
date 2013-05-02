@@ -51,11 +51,16 @@ from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 # from vlasov.vi.PETScNLJacobianJ1explicit    import PETScJacobian
 # from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
 
-from vlasov.vi.PETScMatrixJ1                import PETScMatrix
-# from vlasov.vi.PETScMatrixJ1woa             import PETScMatrix
-from vlasov.vi.PETScNLFunctionJ1woa         import PETScFunction
-from vlasov.vi.PETScNLJacobianJ1woa         import PETScJacobian
-from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+# from vlasov.vi.PETScMatrixJ1                import PETScMatrix
+# # from vlasov.vi.PETScMatrixJ1woa             import PETScMatrix
+# from vlasov.vi.PETScNLFunctionJ1woa         import PETScFunction
+# from vlasov.vi.PETScNLJacobianJ1woa         import PETScJacobian
+# from vlasov.predictor.PETScPoissonMatrixJ1  import PETScPoissonMatrix
+
+from vlasov.vi.PETScMatrixJ4                   import PETScMatrix
+from vlasov.vi.PETScNLFunctionJ4woa            import PETScFunction
+from vlasov.vi.PETScNLJacobianJ4woa            import PETScJacobian
+from vlasov.predictor.PETScPoissonMatrixJ4     import PETScPoissonMatrix
 
 
 # solver_package = 'superlu_dist'
@@ -76,6 +81,7 @@ class petscVP1D():
         '''
         
         self.nInitial = 1
+#         self.nInitial = 4
 #         self.nInitial = 10
 #         self.nInitial = 100
         

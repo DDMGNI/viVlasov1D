@@ -234,10 +234,14 @@ cdef class PETScJacobian(object):
                     ((i+1,), 8.  * poisson_fac),
                     ((i+2,), 1.  * poisson_fac),
                 ]:
-                
+                 
                 col.index = index
                 col.field = self.nv+1
                 A.setValueStencil(row, col, value)
+            
+#             col.index = (i,  )
+#             col.field = self.nv+1
+#             A.setValueStencil(row, col, self.charge)
             
             # Laplace operator
 #             for index, value in [
