@@ -470,7 +470,8 @@ class petscVP1D():
                     else:
                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
         
-        print("")
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print()
         
         # normalise f to fit density and copy f to x
         nave = self.f.sum() * self.hv / self.nx
