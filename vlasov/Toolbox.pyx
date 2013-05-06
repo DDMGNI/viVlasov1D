@@ -382,16 +382,11 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         cdef np.float64_t result
         
-#         if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
-#             result = 0.
-#         else:
         result = 0.25 * ( \
                           + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
                           + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
                           + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
                         ) * 0.5 / self.hv
-        
-#         result = ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
         
         return result
     
@@ -410,16 +405,11 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-#         if N[i] < 1E-2 or N[i-1] < 1E-2 or N[i+1] < 1E-2:
-#             result = 0.
-#         else:
         result = 0.25 * ( \
                           + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
                           + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
                           + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
                         ) * self.hv2_inv
-        
-#         result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
         
         return result
 
@@ -478,13 +468,11 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         cdef np.float64_t result
         
-#         result = 0.25 * ( \
-#                           + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
-#                           + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
-#                           + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
-#                         ) * 0.5 / self.hv
-        
-        result = ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * 0.5 / self.hv
+        result = 0.25 * ( \
+                          + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
+                          + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
+                          + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
+                        ) * 0.5 / self.hv
         
         return result
     
@@ -503,13 +491,11 @@ cdef class Toolbox(object):
         
         cdef np.float64_t result
         
-#         result = 0.25 * ( \
-#                      + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-#                      + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-#                      + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-#                  ) * self.hv2_inv
-        
-        result = ( E[i] - U[i]**2 ) * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
+        result = 0.25 * ( \
+                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
+                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
+                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
+                 ) * self.hv2_inv
         
         return result
 
@@ -542,4 +528,77 @@ cdef class Toolbox(object):
         
         for j in np.arange(0, self.nv):
             h[xs:xe, j] = p[xs:xe]
+
+
+    def compute_density(self, Vec F, Vec N):
+        f = self.da1.getVecArray(F)[...]
+        n = self.dax.getVecArray(N)[...]
+        
+        self.compute_density_array(f, n)
+    
+    
+    def compute_velocity_density(self, Vec F, Vec U):
+        f = self.da1.getVecArray(F)[...]
+        u = self.dax.getVecArray(U)[...]
+        
+        self.compute_velocity_density_array(f, u)
+    
+    
+    def compute_energy_density(self, Vec F, Vec E):
+        f = self.da1.getVecArray(F)[...]
+        e = self.dax.getVecArray(E)[...]
+        
+        self.compute_energy_density_array(f, e)
+    
+    
+    cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n):
+        (xs, xe), = self.dax.getRanges()
+        
+        for i in np.arange(xs, xe):
+            ix = i-xs
+            iy = i-xs
+            
+            n[iy] = 0.
+            
+            for j in np.arange(0, (self.nv-1)/2):
+                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
+
+            n[iy] += f[ix, (self.nv-1)/2]
+                
+            n[iy] *= self.hv
+    
+
+    cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u):
+        (xs, xe), = self.dax.getRanges()
+        
+        for i in np.arange(xs, xe):
+            ix = i-xs
+            iy = i-xs
+            
+            u[iy] = 0.
+            
+            for j in np.arange(0, (self.nv-1)/2):
+                u[iy] += self.v[j] * f[ix, j] + self.v[self.nv-1-j] * f[ix, self.nv-1-j]
+
+            u[iy] += self.v[(self.nv-1)/2] * f[ix, (self.nv-1)/2]
+                
+            u[iy] *= self.hv
+    
+
+    cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e):
+        (xs, xe), = self.dax.getRanges()
+        
+        for i in np.arange(xs, xe):
+            ix = i-xs
+            iy = i-xs
+            
+            e[iy] = 0.
+            
+            for j in np.arange(0, (self.nv-1)/2):
+                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
+
+            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
+                
+            e[iy] *= self.hv
+    
 
