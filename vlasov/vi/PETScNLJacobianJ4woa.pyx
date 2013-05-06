@@ -69,11 +69,13 @@ cdef class PETScJacobian(object):
         self.Fh  = self.da1.createGlobalVec()
         
         # create moment vectors
-        self.Pp = self.dax.createGlobalVec()
-        self.Np = self.dax.createGlobalVec()
-        self.Up = self.dax.createGlobalVec()
-        self.Ep = self.dax.createGlobalVec()
-        self.Ap = self.dax.createGlobalVec()
+        self.Pp  = self.dax.createGlobalVec()
+        self.Np  = self.dax.createGlobalVec()
+        self.NUp = self.dax.createGlobalVec()
+        self.NEp = self.dax.createGlobalVec()
+        self.Up  = self.dax.createGlobalVec()
+        self.Ep  = self.dax.createGlobalVec()
+        self.Ap  = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -84,10 +86,12 @@ cdef class PETScJacobian(object):
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
 
-        self.localNp = dax.createLocalVec()
-        self.localUp = dax.createLocalVec()
-        self.localEp = dax.createLocalVec()
-        self.localAp = dax.createLocalVec()
+        self.localNp  = dax.createLocalVec()
+        self.localNUp = dax.createLocalVec()
+        self.localNEp = dax.createLocalVec()
+        self.localUp  = dax.createLocalVec()
+        self.localEp  = dax.createLocalVec()
+        self.localAp  = dax.createLocalVec()
         
         # kinetic Hamiltonian
         H0.copy(self.H0)
@@ -115,18 +119,21 @@ cdef class PETScJacobian(object):
         f  = self.da1.getVecArray(self.Fp)
         p  = self.dax.getVecArray(self.Pp)
         n  = self.dax.getVecArray(self.Np)
+        nu = self.dax.getVecArray(self.NUp)
+        ne = self.dax.getVecArray(self.NEp)
         u  = self.dax.getVecArray(self.Up)
         e  = self.dax.getVecArray(self.Ep)
         a  = self.dax.getVecArray(self.Ap)
         
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+        f [xs:xe] = x[xs:xe, 0:self.nv]
+        p [xs:xe] = x[xs:xe,   self.nv]
+        n [xs:xe] = x[xs:xe,   self.nv+1]
+        nu[xs:xe] = x[xs:xe,   self.nv+2]
+        ne[xs:xe] = x[xs:xe,   self.nv+3]
+        u [xs:xe] = x[xs:xe,   self.nv+4]
+        e [xs:xe] = x[xs:xe,   self.nv+5]
         
-        for i in range(xs,xe):
-            a[i] = n[i] / ( n[i] * e[i] - u[i]**2)
+        a[...][:] = 1. / ( e[...] - u[...]**2)
         
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
@@ -161,22 +168,26 @@ cdef class PETScJacobian(object):
         self.da1.globalToLocal(self.Fh,  self.localFh)
         
         self.dax.globalToLocal(self.Np,  self.localNp)
+        self.dax.globalToLocal(self.NUp, self.localUp)
+        self.dax.globalToLocal(self.NEp, self.localEp)
         self.dax.globalToLocal(self.Up,  self.localUp)
         self.dax.globalToLocal(self.Ep,  self.localEp)
         self.dax.globalToLocal(self.Ap,  self.localAp)
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getVecArray(self.localH2p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         
-        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getVecArray(self.localEp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] NUp = self.dax.getVecArray(self.localNUp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] NEp = self.dax.getVecArray(self.localNEp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getVecArray(self.localEp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp )[...]
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2p + h2h)
@@ -317,6 +328,32 @@ cdef class PETScJacobian(object):
                 A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
+            # average velocity
+            row.field = self.nv+4
+            
+            col.field = self.nv+4
+            A.setValueStencil(row, col, 1.)
+            
+            col.field = self.nv+1
+            A.setValueStencil(row, col, + Up[ix] / Np[ix]**2)
+            
+            col.field = self.nv+2
+            A.setValueStencil(row, col, - 1. / Np[ix])
+            
+            
+            # average energy
+            row.field = self.nv+5
+            
+            col.field = self.nv+5
+            A.setValueStencil(row, col, 1.)
+            
+            col.field = self.nv+1
+            A.setValueStencil(row, col, + Ep[ix] / Np[ix]**2)
+            
+            col.field = self.nv+3
+            A.setValueStencil(row, col, - 1. / Np[ix])
+            
+                
         
         # Vlasov Equation
         for i in np.arange(xs, xe):
@@ -347,13 +384,13 @@ cdef class PETScJacobian(object):
                             ((i,  ), j-2, + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J2),
                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                          - 1. * coll1_fac * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * Ap[ix  ] \
+                                          - 1. * coll1_fac * ( v[j-1] - Up[ix  ] ) * Ap[ix  ] \
                                           + 1. * coll2_fac),
                             ((i,  ), j  , + time_fac \
                                           - 2. * coll2_fac),
                             ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
-                                          + 1. * coll1_fac * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * Ap[ix  ] \
+                                          + 1. * coll1_fac * ( v[j+1] - Up[ix  ] ) * Ap[ix  ] \
                                           + 1. * coll2_fac),
                             ((i,  ), j+2, - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J2),
                             ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
@@ -385,18 +422,13 @@ cdef class PETScJacobian(object):
                                                  - 1. * (f_ave[ix+2, j  ] - f_ave[ix,   j-2]) * arak_fac_J2),
                             ((i+2,), self.nv,    - 1. * (f_ave[ix+1, j+1] - f_ave[ix+1, j-1]) * arak_fac_J2),
                                                 
-                            ((i,  ), self.nv+1,  + coll1_fac * fp[ix,   j+1] * v[j+1] * Ap[ix  ] \
-                                                 - coll1_fac * fp[ix,   j-1] * v[j-1] * Ap[ix  ] \
-                                                 + coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) \
-                                                 - coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) ),
+                            ((i,  ), self.nv+4,  - coll1_fac * fp[ix,   j+1] * Ap[ix  ] \
+                                                 + coll1_fac * fp[ix,   j-1] * Ap[ix  ] \
+                                                 + coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 \
+                                                 - coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 ),
                             
-                            ((i,  ), self.nv+2,  + coll1_fac * fp[ix,   j+1] * (-1) * Ap[ix  ] \
-                                                 - coll1_fac * fp[ix,   j-1] * (-1) * Ap[ix  ] \
-                                                 + coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] \
-                                                 - coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] ),
-                            
-                            ((i,  ), self.nv+3,  - coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * Ap[ix  ]**2 \
-                                                 + coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * Ap[ix  ]**2 ),
+                            ((i,  ), self.nv+5,  - coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * Ap[ix  ]**2 \
+                                                 + coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * Ap[ix  ]**2 ),
                         ]:
 
                         col.index = index
