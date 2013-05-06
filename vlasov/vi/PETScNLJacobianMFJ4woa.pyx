@@ -265,9 +265,9 @@ cdef class PETScJacobianMatrixFree(object):
             
             
             # moments
-            y[iy, self.nv+1] = Nc[ix]
-            y[iy, self.nv+2] = Uc[ix]
-            y[iy, self.nv+3] = Ec[ix]
+            y[iy, self.nv+1] = Np[ix] - Nc[ix]
+            y[iy, self.nv+2] = Up[ix] - Uc[ix]
+            y[iy, self.nv+3] = Ep[ix] - Ec[ix]
             
             
             # Vlasov equation
@@ -279,6 +279,7 @@ cdef class PETScJacobianMatrixFree(object):
                 else:
                     y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(fp, h_ave, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(f_ave, hp, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(f_ave, h1p, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(f_ave, h2p, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j)
