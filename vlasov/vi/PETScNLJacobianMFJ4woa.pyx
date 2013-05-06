@@ -17,7 +17,7 @@ from petsc4py.PETSc cimport DA, SNES, Mat, Vec
 from vlasov.Toolbox import Toolbox
 
 
-cdef class PETScFunction(object):
+cdef class PETScJacobianMatrixFree(object):
     '''
     The ScipySparse class implements a couple of solvers for the Vlasov-Poisson system
     built on top of the SciPy Sparse package.
@@ -122,27 +122,12 @@ cdef class PETScFunction(object):
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
         
     
-    def update_history(self, Vec F, Vec H1, Vec P, Vec N, Vec U, Vec E, Vec A):
-        H1.copy(self.H1h)
+    def update_history(self, Vec F, Vec H1):
         F.copy(self.Fh)
-        P.copy(self.Ph)
-        N.copy(self.Nh)
-        U.copy(self.Uh)
-        E.copy(self.Eh)
-        A.copy(self.Ah)
+        H1.copy(self.H1h)
         
     
-    def update_external(self, Vec Pext):
-        self.H2p.copy(self.H2h)
-        self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
-        
-    
-    def snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.mult(X, Y)
-        
-    
-    @cython.boundscheck(False)
-    def mult(self, Vec X, Vec Y):
+    def update_previous(self, Vec X):
         cdef np.float64_t phisum, phiave
         
         (xs, xe), = self.da2.getRanges()
@@ -172,6 +157,18 @@ cdef class PETScFunction(object):
             h1[xs:xe, j] = p[xs:xe] - phiave
         
         
+    def update_external(self, Vec Pext):
+        self.H2p.copy(self.H2h)
+        self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
+        
+    
+    def snes_mult(self, SNES snes, Vec X, Vec Y):
+        self.update_previous(X)
+        self.matrix_mult(Y)
+        
+    
+    def mult(self, Mat mat, Vec X, Vec Y):
+        self.update_previous(X)
         self.matrix_mult(Y)
         
     
@@ -242,6 +239,7 @@ cdef class PETScFunction(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h + h2p + h2h)
+        cdef np.ndarray[np.float64_t, ndim=2] hp = h0 + h1p + h2p
         
         
         
@@ -260,16 +258,16 @@ cdef class PETScFunction(object):
             integral_J4 = ( Np[ix-2] + 8. * Np[ix-1] + 8. * Np[ix+1] + Np[ix+2] + 18. * Np[ix] ) / 36.
             
 #             y[iy, self.nv] = - ( 2. * laplace_J1 - laplace_J2) + self.charge * (2. * integral_J1 - integral_J2 - nmean)
-            y[iy, self.nv] = - laplace_J1 + self.charge * (Np[ix] - nmean)
+            y[iy, self.nv] = - laplace_J1 + self.charge * Np[ix]
 #             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J4 - nmean)
 #             y[iy, self.nv] = - laplace_J4 + self.charge * (integral_J4 - nmean)
 #             y[iy, self.nv] = - laplace_J1 + self.charge * (integral_J1 - nmean)
             
             
             # moments
-            y[iy, self.nv+1] = Np[ix] - Nc[ix]
-            y[iy, self.nv+2] = Up[ix] - Uc[ix]
-            y[iy, self.nv+3] = Ep[ix] - Ec[ix]
+            y[iy, self.nv+1] = Nc[ix]
+            y[iy, self.nv+2] = Uc[ix]
+            y[iy, self.nv+3] = Ec[ix]
             
             
             # Vlasov equation
@@ -280,9 +278,7 @@ cdef class PETScFunction(object):
                     
                 else:
                     y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
-                             - self.toolbox.time_derivative_woa(fh, ix, j) \
-                             + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(fp, h_ave, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(f_ave, hp, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1woa(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2woa(fh, Nh, Uh, Eh, Ah, ix, j)
+                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j)

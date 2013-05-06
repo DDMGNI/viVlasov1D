@@ -134,3 +134,9 @@ cdef class Toolbox(object):
     
     cdef np.float64_t collD4(self, np.ndarray[np.float64_t, ndim=2] f,
                                np.uint64_t i, np.uint64_t j)
+
+
+    cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n)
+    cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u)
+    cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e)
+

@@ -38,18 +38,18 @@ cdef class PETScMatrix(object):
     cdef DA da2
     
     cdef Vec H0
-    cdef Vec H1
+    cdef Vec H1p
     cdef Vec H1h
-    cdef Vec H2
+    cdef Vec H2p
     cdef Vec H2h
-    cdef Vec F
+    cdef Vec Fp
     cdef Vec Fh
     
-    cdef Vec P
-    cdef Vec N
-    cdef Vec U
-    cdef Vec E
-    cdef Vec A
+    cdef Vec Pp
+    cdef Vec Np
+    cdef Vec Up
+    cdef Vec Ep
+    cdef Vec Ap
         
     cdef Vec Ph
     cdef Vec Nh
@@ -57,24 +57,32 @@ cdef class PETScMatrix(object):
     cdef Vec Eh
     cdef Vec Ah
         
+    cdef Vec Nc
+    cdef Vec Uc
+    cdef Vec Ec
+    
     cdef Vec localH0
-    cdef Vec localH1
+    cdef Vec localH1p
     cdef Vec localH1h
-    cdef Vec localH2
+    cdef Vec localH2p
     cdef Vec localH2h
-    cdef Vec localF
+    cdef Vec localFp
     cdef Vec localFh
     
-    cdef Vec localP
-    cdef Vec localN
-    cdef Vec localU
-    cdef Vec localE
-    cdef Vec localA
+    cdef Vec localPp
+    cdef Vec localNp
+    cdef Vec localUp
+    cdef Vec localEp
+    cdef Vec localAp
     
     cdef Vec localPh
     cdef Vec localNh
     cdef Vec localUh
     cdef Vec localEh
     cdef Vec localAh
+    
+    cdef Vec localNc
+    cdef Vec localUc
+    cdef Vec localEc
     
     cdef Toolbox toolbox

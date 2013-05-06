@@ -61,19 +61,19 @@ cdef class PETScMatrix(object):
         
         # create work and history vectors
         self.H0  = self.da1.createGlobalVec()
-        self.H1  = self.da1.createGlobalVec()
+        self.H1p = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
-        self.H2  = self.da1.createGlobalVec()
+        self.H2p = self.da1.createGlobalVec()
         self.H2h = self.da1.createGlobalVec()
-        self.F   = self.da1.createGlobalVec()
+        self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
         
         # create moment vectors
-        self.P   = self.dax.createGlobalVec()
-        self.N   = self.dax.createGlobalVec()
-        self.U   = self.dax.createGlobalVec()
-        self.E   = self.dax.createGlobalVec()
-        self.A   = self.dax.createGlobalVec()
+        self.Pp  = self.dax.createGlobalVec()
+        self.Np  = self.dax.createGlobalVec()
+        self.Up  = self.dax.createGlobalVec()
+        self.Ep  = self.dax.createGlobalVec()
+        self.Ap  = self.dax.createGlobalVec()
 
         self.Ph  = self.dax.createGlobalVec()
         self.Nh  = self.dax.createGlobalVec()
@@ -81,20 +81,24 @@ cdef class PETScMatrix(object):
         self.Eh  = self.dax.createGlobalVec()
         self.Ah  = self.dax.createGlobalVec()
         
+        self.Nc  = self.dax.createGlobalVec()
+        self.Uc  = self.dax.createGlobalVec()
+        self.Ec  = self.dax.createGlobalVec()
+        
         # create local vectors
         self.localH0  = da1.createLocalVec()
-        self.localH1  = da1.createLocalVec()
+        self.localH1p = da1.createLocalVec()
         self.localH1h = da1.createLocalVec()
-        self.localH2  = da1.createLocalVec()
+        self.localH2p = da1.createLocalVec()
         self.localH2h = da1.createLocalVec()
-        self.localF   = da1.createLocalVec()
+        self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
 
-        self.localP   = dax.createLocalVec()
-        self.localN   = dax.createLocalVec()
-        self.localU   = dax.createLocalVec()
-        self.localE   = dax.createLocalVec()
-        self.localA   = dax.createLocalVec()
+        self.localPp  = dax.createLocalVec()
+        self.localNp  = dax.createLocalVec()
+        self.localUp  = dax.createLocalVec()
+        self.localEp  = dax.createLocalVec()
+        self.localAp  = dax.createLocalVec()
         
         self.localPh  = dax.createLocalVec()
         self.localNh  = dax.createLocalVec()
@@ -102,9 +106,13 @@ cdef class PETScMatrix(object):
         self.localEh  = dax.createLocalVec()
         self.localAh  = dax.createLocalVec()
         
+        self.localNc = dax.createLocalVec()
+        self.localUc = dax.createLocalVec()
+        self.localEc = dax.createLocalVec()
+        
         # kinetic Hamiltonian
         H0.copy(self.H0)
-        self.H2.set(0.)
+        self.H2p.set(0.)
         
         # create toolbox object
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
@@ -121,8 +129,8 @@ cdef class PETScMatrix(object):
         
     
     def update_external(self, Vec Pext):
-        self.H2.copy(self.H2h)
-        self.toolbox.potential_to_hamiltonian(Pext, self.H2)
+        self.H2p.copy(self.H2h)
+        self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
         
     
     @cython.boundscheck(False)
@@ -348,26 +356,26 @@ cdef class PETScMatrix(object):
         
         (xs, xe), = self.da2.getRanges()
         
-        self.da1.globalToLocal(self.H0, self.localH0)
-        self.da1.globalToLocal(self.H2, self.localH2)
-        self.da1.globalToLocal(self.Fh, self.localFh)
+        self.da1.globalToLocal(self.H0,  self.localH0)
+        self.da1.globalToLocal(self.H2p, self.localH2p)
+        self.da1.globalToLocal(self.Fh,  self.localFh)
         
         self.dax.globalToLocal(self.Nh,  self.localNh)
         self.dax.globalToLocal(self.Uh,  self.localUh)
         self.dax.globalToLocal(self.Eh,  self.localEh)
         self.dax.globalToLocal(self.Ah,  self.localAh)
         
-        cdef np.ndarray[np.float64_t, ndim=2] b  = self.da2.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.da1.getVecArray(self.localH0)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.da1.getVecArray(self.localH2)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh = self.da1.getVecArray(self.localFh)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] b   = self.da2.getVecArray(B)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getVecArray(self.localH2p)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         
         cdef np.ndarray[np.float64_t, ndim=1] Nh  = self.dax.getVecArray(self.localNh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Uh  = self.dax.getVecArray(self.localUh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getVecArray(self.localEh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getVecArray(self.localAh)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2
+        cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h2p
         
         cdef np.float64_t nmean = self.Nh.sum() / self.nx
         
@@ -409,13 +417,13 @@ cdef class PETScMatrix(object):
         (xs, xe), = self.da2.getRanges()
         
         x  = self.da2.getVecArray(X)
-        h1 = self.da1.getVecArray(self.H1)
-        f  = self.da1.getVecArray(self.F)
-        p  = self.dax.getVecArray(self.P)
-        n  = self.dax.getVecArray(self.N)
-        u  = self.dax.getVecArray(self.U)
-        e  = self.dax.getVecArray(self.E)
-        a  = self.dax.getVecArray(self.A)
+        h1 = self.da1.getVecArray(self.H1p)
+        f  = self.da1.getVecArray(self.Fp)
+        p  = self.dax.getVecArray(self.Pp)
+        n  = self.dax.getVecArray(self.Np)
+        u  = self.dax.getVecArray(self.Up)
+        e  = self.dax.getVecArray(self.Ep)
+        a  = self.dax.getVecArray(self.Ap)
         
         f[xs:xe] = x[xs:xe, 0:self.nv  ]
         p[xs:xe] = x[xs:xe,   self.nv  ]
@@ -439,51 +447,63 @@ cdef class PETScMatrix(object):
         cdef np.uint64_t ix, iy
         cdef np.uint64_t xe, xs
         
-        cdef np.float64_t nmean = self.N.sum() / self.nx
+        cdef np.float64_t nmean = self.Np.sum() / self.nx
+        
+        self.toolbox.compute_density(self.Fp, self.Nc)
+        self.toolbox.compute_velocity_density(self.Fp, self.Uc)
+        self.toolbox.compute_energy_density(self.Fp, self.Ec)
         
         (xs, xe), = self.da2.getRanges()
         
         self.da1.globalToLocal(self.H0,  self.localH0)
-        self.da1.globalToLocal(self.H1,  self.localH1)
-        self.da1.globalToLocal(self.H2,  self.localH2)
+        self.da1.globalToLocal(self.H1p, self.localH1p)
+        self.da1.globalToLocal(self.H2p, self.localH2p)
         self.da1.globalToLocal(self.H1h, self.localH1h)
         self.da1.globalToLocal(self.H2h, self.localH2h)
-        self.da1.globalToLocal(self.F,   self.localF )
+        self.da1.globalToLocal(self.Fp,  self.localFp)
         self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.dax.globalToLocal(self.P,   self.localP )
+        self.dax.globalToLocal(self.Pp,  self.localPp)
         
-        self.dax.globalToLocal(self.N,   self.localN )
-        self.dax.globalToLocal(self.U,   self.localU )
-        self.dax.globalToLocal(self.E,   self.localE )
-        self.dax.globalToLocal(self.A,   self.localA )
+        self.dax.globalToLocal(self.Np,  self.localNp)
+        self.dax.globalToLocal(self.Up,  self.localUp)
+        self.dax.globalToLocal(self.Ep,  self.localEp)
+        self.dax.globalToLocal(self.Ap,  self.localAp)
         
         self.dax.globalToLocal(self.Nh,  self.localNh)
         self.dax.globalToLocal(self.Uh,  self.localUh)
         self.dax.globalToLocal(self.Eh,  self.localEh)
         self.dax.globalToLocal(self.Ah,  self.localAh)
         
+        self.dax.globalToLocal(self.Nc,  self.localNc)
+        self.dax.globalToLocal(self.Uc,  self.localUc)
+        self.dax.globalToLocal(self.Ec,  self.localEc)
+        
         cdef np.ndarray[np.float64_t, ndim=2] y   = self.da2.getVecArray(Y)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0 )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getVecArray(self.localH1 )[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getVecArray(self.localH2 )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
+        cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getVecArray(self.localH2p)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f   = self.da1.getVecArray(self.localF  )[...]
+        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp )[...]
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] p   = self.dax.getVecArray(self.localP  )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] pp  = self.dax.getVecArray(self.localPp )[...]
         
-        cdef np.ndarray[np.float64_t, ndim=1] N   = self.dax.getVecArray(self.localN  )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] U   = self.dax.getVecArray(self.localU  )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] E   = self.dax.getVecArray(self.localE  )[...]
-        cdef np.ndarray[np.float64_t, ndim=1] A   = self.dax.getVecArray(self.localA  )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getVecArray(self.localEp )[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp )[...]
         
         cdef np.ndarray[np.float64_t, ndim=1] Nh  = self.dax.getVecArray(self.localNh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Uh  = self.dax.getVecArray(self.localUh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getVecArray(self.localEh)[...]
         cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getVecArray(self.localAh)[...]
         
-        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (f  + fh)
-        cdef np.ndarray[np.float64_t, ndim=2] h     = h0 + h1  + h2
+        cdef np.ndarray[np.float64_t, ndim=1] Nc = self.dax.getVecArray(self.localNc)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Uc = self.dax.getVecArray(self.localUc)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Ec = self.dax.getVecArray(self.localEc)[...]
+        
+        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
+        cdef np.ndarray[np.float64_t, ndim=2] hp    = h0 + h1p + h2p
         cdef np.ndarray[np.float64_t, ndim=2] hh    = h0 + h1h + h2h
         
         
@@ -492,27 +512,27 @@ cdef class PETScMatrix(object):
             iy = i-xs
             
             # Poisson equation
-            y[iy, self.nv] = - ( p[ix-1] + p[ix+1] - 2. * p[ix] ) * self.hx2_inv + self.charge * (N[ix] - nmean)
+            y[iy, self.nv] = - ( pp[ix-1] + pp[ix+1] - 2. * pp[ix] ) * self.hx2_inv + self.charge * (Np[ix] - nmean)
             
             
             # moments
-            y[iy, self.nv+1] = N[ix] - (f[ix]            ).sum() * self.hv
-            y[iy, self.nv+2] = U[ix] - (f[ix] * self.v   ).sum() * self.hv
-            y[iy, self.nv+3] = E[ix] - (f[ix] * self.v**2).sum() * self.hv
+            y[iy, self.nv+1] = Np[ix] - Nc[ix]
+            y[iy, self.nv+2] = Up[ix] - Uc[ix]
+            y[iy, self.nv+3] = Ep[ix] - Ec[ix]
             
             
             # Vlasov Equation
             for j in np.arange(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = f[ix, j]
+                    y[iy, j] = fp[ix, j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative_woa(f,  ix, j) \
+                    y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
                              - self.toolbox.time_derivative_woa(fh, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(f, hh, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(fh, h, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1woa(f,  Nh, Uh, Eh, Ah, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(fp, hh, ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(fh, hp, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT1woa(fp, Nh, Uh, Eh, Ah, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1woa(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2woa(f,  Nh, Uh, Eh, Ah, ix, j) \
+                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Nh, Uh, Eh, Ah, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT2woa(fh, Nh, Uh, Eh, Ah, ix, j)
