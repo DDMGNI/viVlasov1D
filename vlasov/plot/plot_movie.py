@@ -178,6 +178,8 @@ class PlotMovie(object):
         
         if not (self.iTime == 1 or (self.iTime-1) % self.nPlot == 0):
             return
+
+        self.update_boundaries()
         
         for ckey, cont in self.conts.items():
             for coll in cont.collections:
@@ -243,9 +245,9 @@ class PlotMovie(object):
     
     
     def add_timepoint(self):
-        E0 = self.hamiltonian.E0
-        E  = self.hamiltonian.E
-        
+        E0 = self.hamiltonian.Ewoa_0
+        E  = self.hamiltonian.Ewoa
+
         E_error   = (E - E0) / E0
         
         
