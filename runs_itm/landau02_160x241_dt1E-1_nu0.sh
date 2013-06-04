@@ -5,8 +5,8 @@
 #
 #$ -pe impi_hydra 16
 #
-#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_200x401_dt1E-1_nu8E-4.out
-#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_200x401_dt1E-1_nu8E-4.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_160x241_dt1E-1_nu0.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_160x241_dt1E-1_nu0.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -17,7 +17,7 @@
 #
 
 
-RUNID=landau02_201x401_dt1E-1_nu8E-4
+RUNID=landau02_160x241_dt1E-1_nu0
 
 
 module purge
