@@ -5,8 +5,8 @@
 #
 #$ -pe impi_hydra 16
 #
-#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_200x401_dt1E-1_nu0.out
-#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_200x401_dt1E-1_nu0.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_100x801_dt1E-1_nu0.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_100x801_dt1E-1_nu0.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -17,7 +17,7 @@
 #
 
 
-RUNID=jeans_strong_200x401_dt1E-1_nu0
+RUNID=jeans_strong_100x801_dt1E-1_nu0
 
 
 module purge
