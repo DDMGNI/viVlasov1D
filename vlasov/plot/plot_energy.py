@@ -6,6 +6,8 @@ Created on Mar 21, 2012
 
 import numpy as np
 
+from scipy.ndimage     import zoom, gaussian_filter
+
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
@@ -307,7 +309,18 @@ class PlotEnergy(object):
             for coll in cont.collections:
                 self.axes[ckey].collections.remove(coll)
         
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T,  100, norm=self.fnorm, extend='neither')
+#        nscale = 5
+#        fint = zoom(self.distribution.f.T, nscale)
+#        xint = np.linspace(self.grid.xGrid[0], self.grid.xGrid[-1], nscale*len(self.grid.xGrid))
+#        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], nscale*len(self.grid.vGrid))
+#
+#        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
+
+        fint = gaussian_filter(self.distribution.f.T, sigma=1.0, order=0)
+
+        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 100, norm=self.fnorm, extend='neither')
+
+#        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
         self.axes ["f"].set_title('t = %.0f' % (self.grid.tGrid[self.iTime-1]))
         
         if self.vMax > 0.0:

@@ -137,6 +137,8 @@ class petscVP1D():
         
 #         OptDB.setValue('snes_lag_preconditioner', 3)
         
+#         OptDB.setValue('snes_ls', 'basic')
+
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
         
@@ -335,27 +337,27 @@ class petscVP1D():
         self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
         self.snes_linear.setJacobian(self.updateMatrix, self.A)
         self.snes_linear.setFromOptions()
-        self.snes_linear.getKSP().setType('gmres')
+#         self.snes_linear.getKSP().setType('gmres')
 #         self.snes_linear.getKSP().getPC().setType('bjacobi')
 #         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
-#         self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().setType('preonly')
         self.snes_linear.getKSP().getPC().setType('lu')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
 
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
-        self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
-#         self.snes.setJacobian(self.updateJacobian, self.J)
+#         self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
+        self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-        self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().setType('gmres')
 #         self.snes.getKSP().getPC().setType('bjacobi')
-#         self.snes.getKSP().setType('preonly')
+        self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
         
-        self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
-        self.snes.getKSP().setNullSpace(self.snes_nsp)
+#        self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
+#        self.snes.getKSP().setNullSpace(self.snes_nsp)
         
         
         # create Poisson object
@@ -566,7 +568,8 @@ class petscVP1D():
         u_arr  = self.dax.getVecArray(self.u )[...]
         nu_arr = self.dax.getVecArray(self.nu)[...]
         
-        u_arr[:] = nu_arr / n_arr
+#        u_arr[:] = nu_arr / n_arr
+        u_arr[:] = 0.
         
     
     def calculate_energy(self):
@@ -574,7 +577,8 @@ class petscVP1D():
         e_arr  = self.dax.getVecArray(self.e )[...]
         ne_arr = self.dax.getVecArray(self.ne)[...]
         
-        e_arr[:] = ne_arr / n_arr
+#        e_arr[:] = ne_arr / n_arr
+        e_arr[:] = 0.
 
     
     def calculate_collision_factor(self):
@@ -582,7 +586,8 @@ class petscVP1D():
         e_arr = self.dax.getVecArray(self.e)[...]
         a_arr = self.dax.getVecArray(self.a)[...]
         
-        a_arr[:] = 1. / ( e_arr - u_arr**2 )
+#        a_arr[:] = 1. / ( e_arr - u_arr**2 )
+        a_arr[:] = 0.
         
     
     def calculate_external(self, t):
@@ -752,12 +757,12 @@ class petscVP1D():
         self.petsc_jacobian_mf.update_previous(X)
         self.petsc_jacobian.update_previous(X)
         
-#         self.petsc_jacobian.formMat(J)
-#         J.setNullSpace(self.nullspace)
-#         
-#         if J != P:
-        self.petsc_jacobian.formMat(P)
-        P.setNullSpace(self.nullspace)
+        self.petsc_jacobian.formMat(J)
+        J.setNullSpace(self.nullspace)
+        
+        if J != P:
+            self.petsc_jacobian.formMat(P)
+            P.setNullSpace(self.nullspace)
         
     
     def initial_guess_rk4(self):
@@ -870,7 +875,7 @@ class petscVP1D():
 #             self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-#             self.initial_guess_gear(itime)
+            self.initial_guess_gear(itime)
             
             # check if residual went down
 #             self.petsc_function.mult(self.x, self.b)
@@ -881,7 +886,7 @@ class petscVP1D():
             
             
             # calculate initial guess via linear solver
-            self.initial_guess()
+#            self.initial_guess()
             
             
             # nonlinear solve

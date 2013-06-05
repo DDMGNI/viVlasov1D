@@ -133,7 +133,8 @@ cdef class PETScJacobian(object):
         u [xs:xe] = x[xs:xe,   self.nv+4]
         e [xs:xe] = x[xs:xe,   self.nv+5]
         
-        a[...][:] = 1. / ( e[...] - u[...]**2)
+#        a[...][:] = 1. / ( e[...] - u[...]**2)
+        a[...][:] = 0.
         
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
@@ -334,11 +335,11 @@ cdef class PETScJacobian(object):
             col.field = self.nv+4
             A.setValueStencil(row, col, 1.)
             
-            col.field = self.nv+1
-            A.setValueStencil(row, col, + Up[ix] / Np[ix]**2)
+#            col.field = self.nv+1
+#            A.setValueStencil(row, col, + Up[ix] / Np[ix]**2)
             
-            col.field = self.nv+2
-            A.setValueStencil(row, col, - 1. / Np[ix])
+#            col.field = self.nv+2
+#            A.setValueStencil(row, col, - 1. / Np[ix])
             
             
             # average energy
@@ -347,11 +348,11 @@ cdef class PETScJacobian(object):
             col.field = self.nv+5
             A.setValueStencil(row, col, 1.)
             
-            col.field = self.nv+1
-            A.setValueStencil(row, col, + Ep[ix] / Np[ix]**2)
+#            col.field = self.nv+1
+#            A.setValueStencil(row, col, + Ep[ix] / Np[ix]**2)
             
-            col.field = self.nv+3
-            A.setValueStencil(row, col, - 1. / Np[ix])
+#            col.field = self.nv+3
+#            A.setValueStencil(row, col, - 1. / Np[ix])
             
                 
         
@@ -421,15 +422,16 @@ cdef class PETScJacobian(object):
                                                  - 1. * (f_ave[ix,   j+2] - f_ave[ix+2, j  ]) * arak_fac_J2 \
                                                  - 1. * (f_ave[ix+2, j  ] - f_ave[ix,   j-2]) * arak_fac_J2),
                             ((i+2,), self.nv,    - 1. * (f_ave[ix+1, j+1] - f_ave[ix+1, j-1]) * arak_fac_J2),
-                                                
-                            ((i,  ), self.nv+4,  - coll1_fac * fp[ix,   j+1] * Ap[ix  ] \
-                                                 + coll1_fac * fp[ix,   j-1] * Ap[ix  ] \
-                                                 + coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 \
-                                                 - coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 ),
-                            
-                            ((i,  ), self.nv+5,  - coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * Ap[ix  ]**2 \
-                                                 + coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * Ap[ix  ]**2 ),
                         ]:
+                                                
+ #                           ((i,  ), self.nv+4,  - coll1_fac * fp[ix,   j+1] * Ap[ix  ] \
+ #                                                + coll1_fac * fp[ix,   j-1] * Ap[ix  ] \
+ #                                                + coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 \
+ #                                                - coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 ),
+ #                           
+ #                           ((i,  ), self.nv+5,  - coll1_fac * fp[ix,   j+1] * ( v[j+1] - Up[ix  ] ) * Ap[ix  ]**2 \
+ #                                                + coll1_fac * fp[ix,   j-1] * ( v[j-1] - Up[ix  ] ) * Ap[ix  ]**2 ),
+ #                       ]:
 
                         col.index = index
                         col.field = field

@@ -276,8 +276,10 @@ cdef class PETScFunction(object):
             y[iy, self.nv+1] = Np [ix] - Nc [ix]
             y[iy, self.nv+2] = NUp[ix] - NUc[ix]
             y[iy, self.nv+3] = NEp[ix] - NEc[ix]
-            y[iy, self.nv+4] = Up [ix] - NUp[ix] / Np[ix]
-            y[iy, self.nv+5] = Ep [ix] - NEp[ix] / Np[ix]
+            y[iy, self.nv+4] = Up [ix]
+            y[iy, self.nv+5] = Ep [ix]
+#            y[iy, self.nv+4] = Up [ix] - NUp[ix] / Np[ix]
+#            y[iy, self.nv+5] = Ep [ix] - NEp[ix] / Np[ix]
             
             
             # Vlasov equation
@@ -289,8 +291,8 @@ cdef class PETScFunction(object):
                 else:
                     y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
                              - self.toolbox.time_derivative_woa(fh, ix, j) \
-                             + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT1woa(fh, Nh, Uh, Eh, Ah, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j) \
-                             - 0.5 * self.nu * self.toolbox.collT2woa(fh, Nh, Uh, Eh, Ah, ix, j)
+                             + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) #\
+#                             - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
+#                             - 0.5 * self.nu * self.toolbox.collT1woa(fh, Nh, Uh, Eh, Ah, ix, j) \
+#                             - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j) \
+#                             - 0.5 * self.nu * self.toolbox.collT2woa(fh, Nh, Uh, Eh, Ah, ix, j)

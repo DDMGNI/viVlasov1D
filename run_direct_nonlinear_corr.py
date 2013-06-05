@@ -106,10 +106,10 @@ class petscVP1D():
         OptDB.setValue('snes_stol',   self.cfg['solver']['petsc_snes_stol'])
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
-#         OptDB.setValue('snes_lag_preconditioner', 3)
+#        OptDB.setValue('snes_lag_preconditioner', 3)
         
 #         OptDB.setValue('snes_ls', 'basic')
-        OptDB.setValue('snes_ls', 'quadratic')
+#         OptDB.setValue('snes_ls', 'quadratic')
 
         OptDB.setValue('ksp_monitor',  '')
         OptDB.setValue('snes_monitor', '')
@@ -306,6 +306,7 @@ class petscVP1D():
 
         
         # create nonlinear predictor
+        OptDB.setValue('snes_atol', 1E-11)
         self.snes0 = PETSc.SNES().create()
         self.snes0.setFunction(self.petsc_function0.snes_mult, self.b)
         self.snes0.setJacobian(self.updateJacobian0, self.J)
@@ -316,6 +317,7 @@ class petscVP1D():
         
         
         # create nonlinear solver
+        OptDB.setValue('snes_atol', 1E-10)
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
         self.snes.setJacobian(self.updateJacobian, self.J)
