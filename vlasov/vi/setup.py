@@ -42,6 +42,10 @@ INCLUDE_DIRS += ['/opt/local/include/openmpi']
 # Intel MPI
 INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
 
+# Valgrind
+INCLUDE_DIRS += ['/opt/local/include']
+LIBRARY_DIRS += ['/opt/local/lib']
+
 
 ext_modules = [
         Extension("PETScMatrixJ1",

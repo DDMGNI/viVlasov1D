@@ -8,8 +8,9 @@ cimport cython
 
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
 
+from vlasov.VIDA    cimport VIDA
 from vlasov.Toolbox cimport Toolbox
 
 
@@ -33,9 +34,11 @@ cdef class PETScJacobianMatrixFree(object):
     
     cdef np.ndarray v
     
-    cdef DA dax
-    cdef DA da1
-    cdef DA da2
+    cdef VIDA dax
+    cdef VIDA da1
+    cdef VIDA da2
+    
+    cdef Vec nvec
     
     cdef Vec H0
     cdef Vec H1p
@@ -57,6 +60,7 @@ cdef class PETScJacobianMatrixFree(object):
     cdef Vec Eh
     cdef Vec Ah
     
+#     cdef Vec Pc
     cdef Vec Nc
     cdef Vec Uc
     cdef Vec Ec

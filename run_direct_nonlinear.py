@@ -14,6 +14,7 @@ petsc4py.init(sys.argv)
 
 from petsc4py import PETSc
 
+from vlasov.VIDA import VIDA
 
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian
@@ -60,7 +61,7 @@ from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
 from vlasov.vi.PETScMatrixJ4woa                import PETScMatrix
 from vlasov.vi.PETScNLFunctionJ4woa            import PETScFunction
 from vlasov.vi.PETScNLJacobianJ4woa            import PETScJacobian
-from vlasov.vi.PETScNLJacobianMFJ4woa          import PETScJacobianMatrixFree
+#from vlasov.vi.PETScNLJacobianMFJ4woa          import PETScJacobianMatrixFree
 from vlasov.predictor.PETScPoissonMatrixJ4     import PETScPoissonMatrix
 
 
@@ -144,34 +145,34 @@ class petscVP1D():
         
         
         # create DA for 2d grid (f only)
-        self.da1 = PETSc.DA().create(dim=1, dof=self.nv,
-                                    sizes=[self.nx],
-                                    proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                    boundary_type=('periodic'),
-                                    stencil_width=2,
-                                    stencil_type='box')
+        self.da1 = VIDA().create(dim=1, dof=self.nv,
+                                       sizes=[self.nx],
+                                       proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                       boundary_type=('periodic'),
+                                       stencil_width=2,
+                                       stencil_type='box')
         
-        # create DA for 2d grid (f, phi and moments)
-        self.da2 = PETSc.DA().create(dim=1, dof=self.nv+4,
-                                     sizes=[self.nx],
-                                     proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                     boundary_type=('periodic'),
-                                     stencil_width=2,
-                                     stencil_type='box')
+        # create VIDA for 2d grid (f, phi and moments)
+        self.da2 = VIDA().create(dim=1, dof=self.nv+4,
+                                       sizes=[self.nx],
+                                       proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                       boundary_type=('periodic'),
+                                       stencil_width=2,
+                                       stencil_type='box')
         
-        # create DA for x grid
-        self.dax = PETSc.DA().create(dim=1, dof=1,
-                                    sizes=[self.nx],
-                                    proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                    boundary_type=('periodic'),
-                                    stencil_width=2,
-                                    stencil_type='box')
+        # create VIDA for x grid
+        self.dax = VIDA().create(dim=1, dof=1,
+                                       sizes=[self.nx],
+                                       proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                       boundary_type=('periodic'),
+                                       stencil_width=2,
+                                       stencil_type='box')
         
-        # create DA for y grid
-        self.day = PETSc.DA().create(dim=1, dof=1,
-                                    sizes=[self.nv],
-                                    proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                    boundary_type=('none'))
+        # create VIDA for y grid
+        self.day = VIDA().create(dim=1, dof=1,
+                                       sizes=[self.nv],
+                                       proc_sizes=[PETSc.COMM_WORLD.getSize()],
+                                       boundary_type=('none'))
         
         
         # initialise grid
@@ -274,10 +275,10 @@ class petscVP1D():
         
         
         # create Jacobian, Function, and linear Matrix objects
-        self.petsc_jacobian_mf = PETScJacobianMatrixFree(self.da1, self.da2, self.dax,
-                                                         self.h0, self.vGrid,
-                                                         self.nx, self.nv, self.ht, self.hx, self.hv,
-                                                         self.charge, coll_freq=self.coll_freq)
+#        self.petsc_jacobian_mf = PETScJacobianMatrixFree(self.da1, self.da2, self.dax,
+#                                                         self.h0, self.vGrid,
+#                                                         self.nx, self.nv, self.ht, self.hx, self.hv,
+#                                                         self.charge, coll_freq=self.coll_freq)
         
         self.petsc_jacobian = PETScJacobian(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
@@ -317,10 +318,10 @@ class petscVP1D():
         self.J.setNullSpace(self.nullspace)
 
         # initialise matrixfree Jacobian
-        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], 
-                                            context=self.petsc_jacobian_mf,
-                                            comm=PETSc.COMM_WORLD)
-        self.Jmf.setUp()
+#        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], 
+#                                            context=self.petsc_jacobian_mf,
+#                                            comm=PETSc.COMM_WORLD)
+#        self.Jmf.setUp()
         
         
         # create linear solver
@@ -329,21 +330,22 @@ class petscVP1D():
         self.snes_linear.setFunction(self.petsc_matrix.snes_mult, self.b)
         self.snes_linear.setJacobian(self.updateMatrix, self.A)
         self.snes_linear.setFromOptions()
-        self.snes_linear.getKSP().setType('gmres')
+#         self.snes_linear.getKSP().setType('gmres')
 #         self.snes_linear.getKSP().getPC().setType('bjacobi')
 #         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
-#         self.snes_linear.getKSP().setType('preonly')
+        self.snes_linear.getKSP().setType('preonly')
         self.snes_linear.getKSP().getPC().setType('lu')
         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
 
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_function.snes_mult, self.b)
-        self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
+#        self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
+        self.snes.setJacobian(self.updateJacobian, self.J)
         self.snes.setFromOptions()
-        self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().setType('gmres')
 #         self.snes.getKSP().getPC().setType('bjacobi')
-#         self.snes.getKSP().setType('preonly')
+        self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
         
@@ -460,20 +462,21 @@ class petscVP1D():
                     else:
                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
         
-        print("")
-        
         # normalise f to fit density and copy f to x
+        print("Normalise distribution function.")
         nave = self.f.sum() * self.hv / self.nx
         self.f.scale(1./nave)
         self.copy_f_to_x()
         
         # calculate potential and moments
+        print("Calculate initial potential and moments.")
         self.calculate_moments()
         
         
         # check for external potential
         self.external = None
         if self.cfg['initial_data']['external_python'] != None:
+            print("Calculate external potential.")
             external_data = __import__("runs." + self.cfg['initial_data']['external_python'], globals(), locals(), ['external'], 0)
             self.external = external_data.external
         
@@ -481,14 +484,16 @@ class petscVP1D():
         self.calculate_external(0.)
         
         
+        print("Copy initial data to matrix and function objects.")
+        
         # copy external potential
-        self.petsc_jacobian_mf.update_external(self.p_ext)
+#        self.petsc_jacobian_mf.update_external(self.p_ext)
         self.petsc_jacobian.update_external(self.p_ext)
         self.petsc_function.update_external(self.p_ext)
         self.petsc_matrix.update_external(self.p_ext)
         
         # update solution history
-        self.petsc_jacobian_mf.update_history(self.f, self.h1)
+#        self.petsc_jacobian_mf.update_history(self.f, self.h1)
         self.petsc_jacobian.update_history(self.f, self.h1)
         self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
         self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
@@ -496,11 +501,12 @@ class petscVP1D():
         
         
         # create HDF5 output file
-        self.hdf5_viewer = PETSc.Viewer().createHDF5(hdf_out_filename,
-                                          mode=PETSc.Viewer.Mode.WRITE,
-                                          comm=PETSc.COMM_WORLD)
+        print("Create HDF5 output file.")
+        self.hdf5_viewer = PETSc.ViewerHDF5().create(hdf_out_filename,
+                                              mode=PETSc.Viewer.Mode.WRITE,
+                                              comm=PETSc.COMM_WORLD)
         
-        self.hdf5_viewer.HDF5PushGroup("/")
+        self.hdf5_viewer.pushGroup("/")
         
         # write grid data to hdf5 file
         coords_x.setName('x')
@@ -514,39 +520,52 @@ class petscVP1D():
         self.hdf5_viewer(T0)
         
         # save to hdf5
-        self.hdf5_viewer.HDF5SetTimestep(0)
+        self.hdf5_viewer.setTimestep(0)
         self.save_hdf5_vectors()
         
         
     def calculate_moments(self, potential=True):
+        print("compute density")
         self.calculate_density()              # calculate density
+        print("compute mean velocity")
         self.calculate_velocity()             # calculate mean velocity density
+        print("compute mean energy")
         self.calculate_energy()               # calculate mean energy density
-        self.calculate_collision_factor()     # 
+        print("compute temperature")
+        self.calculate_collision_factor()     # calculate temperature
  
+        print("copy n to x")
         self.copy_n_to_x()                    # copy density to solution vector
+        print("copy u to x")
         self.copy_u_to_x()                    # copy velocity to solution vector
+        print("copy e to x")
         self.copy_e_to_x()                    # copy energy to solution vector
         
         if potential:
+            print("compute potential")
             self.calculate_potential()            # calculate initial potential
+            print("copy p to x")
             self.copy_p_to_x()                    # copy potential to solution vector
+            print("copy p to h")
             self.copy_p_to_h()
     
     
     def calculate_potential(self, output=True):
         
+        print("formMat")
         self.poisson_mat.formMat(self.poisson_A)
+        print("formRHS")
         self.poisson_mat.formRHS(self.n, self.pb)
+        print("formSolve")
         self.poisson_ksp.solve(self.pb, self.p)
         
+        print("output")
         if output:
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("  Poisson:                            sum(phi) = %24.16E" % (phisum))
     
-        
     def calculate_density(self):
         (xs, xe), = self.da1.getRanges()
         
@@ -554,6 +573,8 @@ class petscVP1D():
         n_arr = self.dax.getVecArray(self.n)
         
         n_arr[xs:xe] = f_arr[xs:xe, :].sum(axis=1) * self.hv
+        
+        print("  done")
     
     
     def calculate_velocity(self):
@@ -623,93 +644,100 @@ class petscVP1D():
     
     
     def copy_x_to_f(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        f_arr = self.da1.getVecArray(self.f)[...]
+        x_arr = self.da2.getGlobalArray(self.x)
+        f_arr = self.da1.getGlobalArray(self.f)
         
         f_arr[:, :] = x_arr[:, 0:self.nv] 
         
     
     def copy_f_to_x(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        f_arr = self.da1.getVecArray(self.f)[...]
+#         (xs, xe), = self.da1.getRanges()
+#         
+#         x_arr = self.da2.getVecArray(self.x)
+#         f_arr = self.da1.getVecArray(self.f)
+#         
+#         x_arr[xs:xe, 0:self.nv] = f_arr[xs:xe, :]
         
-        x_arr[:, 0:self.nv] = f_arr[:, :] 
+        x_arr = self.da2.getGlobalArray(self.x)
+        f_arr = self.da1.getGlobalArray(self.f)
+        
+        x_arr[:, 0:self.nv] = f_arr[:, :]
     
     
     def copy_x_to_p(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        p_arr = self.dax.getVecArray(self.p)[...]
+        x_arr = self.da2.getGlobalArray(self.x)
+        p_arr = self.dax.getGlobalArray(self.p)
         
         p_arr[:] = x_arr[:, self.nv]
         
     
     def copy_p_to_x(self):
-        p_arr = self.dax.getVecArray(self.p)[...]
-        x_arr = self.da2.getVecArray(self.x)[...]
+        p_arr = self.dax.getGlobalArray(self.p)
+        x_arr = self.da2.getGlobalArray(self.x)
         
         x_arr[:, self.nv] = p_arr[:]
         
         
     def copy_p_to_h(self):
-        p_arr = self.dax.getVecArray(self.p )[...]
-        h_arr = self.da1.getVecArray(self.h1)[...]
-        
         phisum = self.p.sum()
         phiave = phisum / self.nx
+        
+        p_arr = self.dax.getGlobalArray(self.p )
+        h_arr = self.da1.getGlobalArray(self.h1)
         
         for j in range(0, self.nv):
             h_arr[:, j] = p_arr[:] - phiave
         
 
     def copy_pext_to_h(self):
-        p_arr = self.dax.getVecArray(self.p_ext)[...]
-        h_arr = self.da1.getVecArray(self.h2   )[...]
-    
         phisum = self.p_ext.sum()
         phiave = phisum / self.nx
         
+        p_arr = self.dax.getGlobalArray(self.p_ext)
+        h_arr = self.da1.getGlobalArray(self.h2   )
+    
         for j in range(0, self.nv):
             h_arr[:, j] = p_arr[:] - phiave
         
 
     def copy_x_to_n(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        n_arr = self.dax.getVecArray(self.n)[...]
+        x_arr = self.da2.getGlobalArray(self.x)
+        n_arr = self.dax.getGlobalArray(self.n)
         
         n_arr[:] = x_arr[:, self.nv+1]
         
     
     def copy_n_to_x(self):
-        n_arr = self.dax.getVecArray(self.n)[...]
-        x_arr = self.da2.getVecArray(self.x)[...]
+        n_arr = self.dax.getGlobalArray(self.n)
+        x_arr = self.da2.getGlobalArray(self.x)
         
         x_arr[:, self.nv+1] = n_arr[:]
         
         
     def copy_x_to_u(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        u_arr = self.dax.getVecArray(self.u)[...]
+        x_arr = self.da2.getGlobalArray(self.x)
+        u_arr = self.dax.getGlobalArray(self.u)
         
         u_arr[:] = x_arr[:, self.nv+2]
         
     
     def copy_u_to_x(self):
-        u_arr = self.dax.getVecArray(self.u)[...]
-        x_arr = self.da2.getVecArray(self.x)[...]
+        u_arr = self.dax.getGlobalArray(self.u)
+        x_arr = self.da2.getGlobalArray(self.x)
         
         x_arr[:, self.nv+2] = u_arr[:]
         
         
     def copy_x_to_e(self):
-        x_arr = self.da2.getVecArray(self.x)[...]
-        e_arr = self.dax.getVecArray(self.e)[...]
+        x_arr = self.da2.getGlobalArray(self.x)
+        e_arr = self.dax.getGlobalArray(self.e)
         
         e_arr[:] = x_arr[:, self.nv+3]
         
     
     def copy_e_to_x(self):
-        e_arr = self.dax.getVecArray(self.e)[...]
-        x_arr = self.da2.getVecArray(self.x)[...]
+        e_arr = self.dax.getGlobalArray(self.e)
+        x_arr = self.da2.getGlobalArray(self.x)
         
         x_arr[:, self.nv+3] = e_arr[:]
         
@@ -720,7 +748,7 @@ class petscVP1D():
         
         # save to hdf5 file
         if itime % self.nsave == 0 or itime == self.nt + 1:
-            self.hdf5_viewer.HDF5SetTimestep(self.hdf5_viewer.HDF5GetTimestep() + 1)
+            self.hdf5_viewer.setTimestep(self.hdf5_viewer.getTimestep() + 1)
             self.save_hdf5_vectors()
 
 
@@ -747,15 +775,15 @@ class petscVP1D():
     
     
     def updateJacobian(self, snes, X, J, P):
-        self.petsc_jacobian_mf.update_previous(X)
+#        self.petsc_jacobian_mf.update_previous(X)
         self.petsc_jacobian.update_previous(X)
         
-#         self.petsc_jacobian.formMat(J)
-#         J.setNullSpace(self.nullspace)
+        self.petsc_jacobian.formMat(J)
+        J.setNullSpace(self.nullspace)
         
-#         if J != P:
-        self.petsc_jacobian.formMat(P)
-        P.setNullSpace(self.nullspace)
+        if J != P:
+            self.petsc_jacobian.formMat(P)
+            P.setNullSpace(self.nullspace)
         
     
     def initial_guess_rk4(self):
@@ -850,7 +878,7 @@ class petscVP1D():
             
             # calculate external field and copy to matrix, jacobian and function
             self.calculate_external(current_time)
-            self.petsc_jacobian_mf.update_external(self.p_ext)
+#            self.petsc_jacobian_mf.update_external(self.p_ext)
             self.petsc_jacobian.update_external(self.p_ext)
             self.petsc_function.update_external(self.p_ext)
             self.petsc_matrix.update_external(self.p_ext)
@@ -911,7 +939,7 @@ class petscVP1D():
             self.calculate_collision_factor()
             
             # update history
-            self.petsc_jacobian_mf.update_history(self.f, self.h1)
+#            self.petsc_jacobian_mf.update_history(self.f, self.h1)
             self.petsc_jacobian.update_history(self.f, self.h1)
             self.petsc_function.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)
             self.petsc_matrix.update_history(self.f, self.h1, self.p, self.n, self.u, self.e, self.a)

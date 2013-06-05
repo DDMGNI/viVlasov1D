@@ -12,7 +12,7 @@ cimport numpy as np
 from petsc4py import  PETSc
 from petsc4py cimport PETSc
 
-from petsc4py.PETSc cimport DA, SNES, Mat, Vec
+from petsc4py.PETSc cimport SNES, Mat, Vec
 
 from vlasov.Toolbox import Toolbox
 
@@ -24,7 +24,7 @@ cdef class PETScJacobianMatrixFree(object):
     '''
     
     
-    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
@@ -83,6 +83,7 @@ cdef class PETScJacobianMatrixFree(object):
         self.Eh = self.dax.createGlobalVec()
         self.Ah = self.dax.createGlobalVec()
         
+#         self.Pc = self.dax.createGlobalVec()
         self.Nc = self.dax.createGlobalVec()
         self.Uc = self.dax.createGlobalVec()
         self.Ec = self.dax.createGlobalVec()
@@ -117,6 +118,13 @@ cdef class PETScJacobianMatrixFree(object):
         # kinetic and external Hamiltonian
         H0.copy(self.H0)
         self.H2p.set(0.)
+        
+        # initialise null vector
+        self.nvec = self.da2.createGlobalVec()
+        self.nvec.set(0.)
+        nvec_arr = self.da2.getVecArray(self.nvec)[...]
+        nvec_arr[:, self.nv] = 1.  
+        self.nvec.normalize()
         
         # create toolbox object
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
@@ -180,6 +188,7 @@ cdef class PETScJacobianMatrixFree(object):
         
         cdef np.float64_t laplace_J1, laplace_J2, integral_J1, integral_J2
         
+        cdef np.float64_t pmean
         cdef np.float64_t nmean = self.Np.sum() / self.nx
         
         self.toolbox.compute_density(self.Fp, self.Nc)
@@ -280,6 +289,10 @@ cdef class PETScJacobianMatrixFree(object):
                     y[iy, j] = self.toolbox.time_derivative_woa(fp, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(fp, h_ave, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(f_ave, h1p, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(f_ave, h2p, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT1woa(fp, Np, Up, Ep, Ap, ix, j) \
                              - 0.5 * self.nu * self.toolbox.collT2woa(fp, Np, Up, Ep, Ap, ix, j)
+            
+            
+#             pmean = Y.dot(self.nvec)
+#             Y.axpy(-pmean, self.nvec)
+            

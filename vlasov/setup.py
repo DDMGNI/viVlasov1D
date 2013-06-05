@@ -42,8 +42,19 @@ INCLUDE_DIRS += ['/opt/local/include/openmpi']
 # Intel MPI
 INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
 
+# Valgrind
+INCLUDE_DIRS += ['/opt/local/include']
+LIBRARY_DIRS += ['/opt/local/lib']
+
 
 ext_modules = [
+        Extension("VIDA",
+                  sources=["VIDA.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("Toolbox",
                   sources=["Toolbox.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

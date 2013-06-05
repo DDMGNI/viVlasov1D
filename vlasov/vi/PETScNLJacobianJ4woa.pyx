@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
 
 from vlasov.Toolbox import Toolbox
 
@@ -22,7 +22,7 @@ cdef class PETScJacobian(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
@@ -152,31 +152,18 @@ cdef class PETScJacobian(object):
         
         (xs, xe), = self.da2.getRanges()
         
-        self.da1.globalToLocal(self.H0,  self.localH0)
-        self.da1.globalToLocal(self.H1p, self.localH1p)
-        self.da1.globalToLocal(self.H1h, self.localH1h)
-        self.da1.globalToLocal(self.H2p, self.localH2p)
-        self.da1.globalToLocal(self.H2h, self.localH2h)
-        self.da1.globalToLocal(self.Fp,  self.localFp)
-        self.da1.globalToLocal(self.Fh,  self.localFh)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+        cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getLocalArray(self.Fp,  self.localFp )
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getLocalArray(self.Fh,  self.localFh )
         
-        self.dax.globalToLocal(self.Np,  self.localNp)
-        self.dax.globalToLocal(self.Up,  self.localUp)
-        self.dax.globalToLocal(self.Ep,  self.localEp)
-        self.dax.globalToLocal(self.Ap,  self.localAp)
-        
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1p = self.da1.getVecArray(self.localH1p)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2p = self.da1.getVecArray(self.localH2p)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] fp  = self.da1.getVecArray(self.localFp) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getVecArray(self.localNp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getVecArray(self.localUp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getVecArray(self.localEp)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getVecArray(self.localAp)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Np  = self.dax.getLocalArray(self.Np,  self.localNp)
+        cdef np.ndarray[np.float64_t, ndim=1] Up  = self.dax.getLocalArray(self.Up,  self.localUp)
+        cdef np.ndarray[np.float64_t, ndim=1] Ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
+        cdef np.ndarray[np.float64_t, ndim=1] Ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
         
         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef np.ndarray[np.float64_t, ndim=2] h_ave = h0 + 0.5 * (h1p + h1h) + 0.5 * (h2p + h2h)
@@ -387,11 +374,11 @@ cdef class PETScJacobian(object):
                                                 
                             ((i,  ), self.nv+1,  + coll1_fac * fp[ix,   j+1] * v[j+1] * Ap[ix  ] \
                                                  - coll1_fac * fp[ix,   j-1] * v[j-1] * Ap[ix  ] \
-                                                 + coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) \
-                                                 - coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * ( (Ap[ix  ] / Np[ix  ]) - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) ),
+                                                 + coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * ( Ap[ix  ] / Np[ix  ] - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) \
+                                                 - coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * ( Ap[ix  ] / Np[ix  ] - Ep[ix  ] * Ap[ix  ]**2 / Np[ix  ] ) ),
                             
-                            ((i,  ), self.nv+2,  + coll1_fac * fp[ix,   j+1] * (-1) * Ap[ix  ] \
-                                                 - coll1_fac * fp[ix,   j-1] * (-1) * Ap[ix  ] \
+                            ((i,  ), self.nv+2,  - coll1_fac * fp[ix,   j+1] * Ap[ix  ] \
+                                                 + coll1_fac * fp[ix,   j-1] * Ap[ix  ] \
                                                  + coll1_fac * fp[ix,   j+1] * ( Np[ix  ] * v[j+1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] \
                                                  - coll1_fac * fp[ix,   j-1] * ( Np[ix  ] * v[j-1] - Up[ix  ] ) * 2. * Up[ix  ] * Ap[ix  ]**2 / Np[ix  ] ),
                             

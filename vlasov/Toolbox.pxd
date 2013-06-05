@@ -7,7 +7,9 @@ Created on Jan 25, 2013
 cimport cython
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Vec
+from VIDA cimport VIDA
+
+from petsc4py.PETSc cimport Vec
 
 
 cdef class Toolbox(object):
@@ -30,9 +32,9 @@ cdef class Toolbox(object):
     
     cdef np.ndarray v
     
-    cdef DA dax
-    cdef DA da1
-    cdef DA da2
+    cdef VIDA dax
+    cdef VIDA da1
+    cdef VIDA da2
     
     
     

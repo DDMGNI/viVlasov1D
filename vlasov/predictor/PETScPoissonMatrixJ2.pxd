@@ -8,7 +8,9 @@ cimport cython
 
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
+
+from vlasov.VIDA    cimport VIDA
 
 
 cdef class PETScPoissonMatrix(object):
@@ -26,8 +28,8 @@ cdef class PETScPoissonMatrix(object):
     cdef np.float64_t charge
     
     
-    cdef DA dax
-    cdef DA da1
+    cdef VIDA dax
+    cdef VIDA da1
     
     cdef Vec localX
     cdef Vec localN

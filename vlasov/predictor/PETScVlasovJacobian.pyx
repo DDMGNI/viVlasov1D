@@ -9,7 +9,7 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
 
 from vlasov.Toolbox import Toolbox
 
@@ -20,7 +20,7 @@ cdef class PETScVlasovJacobian(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv):

@@ -12,7 +12,7 @@ cimport numpy as np
 from petsc4py import  PETSc
 from petsc4py cimport PETSc
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
 
 
 cdef class PETScPoissonSolver(object):
@@ -20,7 +20,7 @@ cdef class PETScPoissonSolver(object):
     
     '''
     
-    def __init__(self, DA da1, DA dax, 
+    def __init__(self, VIDA da1, VIDA dax, 
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
                  np.float64_t poisson_const):

@@ -9,9 +9,10 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
+
 from petsc4py import PETSc
 
-from petsc4py.PETSc cimport DA, SNES, Mat, Vec
+from petsc4py.PETSc cimport SNES, Mat, Vec
 
 from vlasov.Toolbox import Toolbox
 
@@ -22,7 +23,7 @@ cdef class PETScMatrix(object):
     built on top of the SciPy Sparse package.
     '''
     
-    def __init__(self, DA da1, DA da2, DA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv,
@@ -140,25 +141,15 @@ cdef class PETScMatrix(object):
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
-        self.da1.globalToLocal(self.Fh,  self.localFh)
-        self.da1.globalToLocal(self.H0,  self.localH0)
-        self.da1.globalToLocal(self.H1h, self.localH1h)
-        self.da1.globalToLocal(self.H2h, self.localH2h)
-
-        self.dax.globalToLocal(self.Nh,  self.localNh)
-        self.dax.globalToLocal(self.Uh,  self.localUh)
-        self.dax.globalToLocal(self.Eh,  self.localEh)
-        self.dax.globalToLocal(self.Ah,  self.localAh)
+        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
         
-        cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getVecArray(self.localH0) [...]
-        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getVecArray(self.localH2h)[...]
-        
-        cdef np.ndarray[np.float64_t, ndim=1] Nh  = self.dax.getVecArray(self.localNh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Uh  = self.dax.getVecArray(self.localUh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getVecArray(self.localEh)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getVecArray(self.localAh)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] Nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
+        cdef np.ndarray[np.float64_t, ndim=1] Uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
+        cdef np.ndarray[np.float64_t, ndim=1] Eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
+        cdef np.ndarray[np.float64_t, ndim=1] Ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1h + h2h
         

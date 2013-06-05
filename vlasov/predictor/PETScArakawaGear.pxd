@@ -7,8 +7,10 @@ Created on May 24, 2012
 cimport cython
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Vec
+from petsc4py.PETSc cimport Vec
 
+from vlasov.VIDA    cimport VIDA
+from vlasov.VIDA    cimport VIDA
 from vlasov.Toolbox cimport Toolbox
 
 
@@ -21,7 +23,7 @@ cdef class PETScArakawaGear(object):
     cdef np.float64_t hx
     cdef np.float64_t hv
     
-    cdef DA da1
+    cdef VIDA da1
     
     cdef np.ndarray v
     

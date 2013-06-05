@@ -8,8 +8,9 @@ cimport cython
 
 cimport numpy as np
 
-from petsc4py.PETSc cimport DA, Mat, Vec
+from petsc4py.PETSc cimport Mat, Vec
 
+from vlasov.VIDA    cimport VIDA
 from vlasov.Toolbox cimport Toolbox
 
 
@@ -29,8 +30,8 @@ cdef class PETScVlasovMatrix(object):
     
     cdef np.float64_t nu
     
-    cdef DA dax
-    cdef DA da1
+    cdef VIDA dax
+    cdef VIDA da1
     
     cdef Vec H0
     
