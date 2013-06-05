@@ -311,11 +311,17 @@ class DistributionFunction(object):
                 ixp = (ix+1) % nx
                 
                 for iv in np.arange(0, nv-1):
-                    L1 += abs(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
-                    L2 += pow(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1], 2)
+#                    L1 += abs(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
+#                    L2 += pow(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1], 2)
+
+                    L1 += abs(f[ix,iv])
+                    L2 += pow(f[ix,iv], 2)
             
-            self.L1 = 0.25 * (self.grid.hx * self.grid.hv) * L1
-            self.L2 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
+#            self.L1 = 0.25 * (self.grid.hx * self.grid.hv) * L1
+#            self.L2 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
+
+            self.L1 =       (self.grid.hx * self.grid.hv) * L1
+            self.L2 = 0.5 * (self.grid.hx * self.grid.hv) * L2
             
             self.Lmin = f.min() * self.grid.hx * self.grid.hv
             self.Lmax = f.max() * self.grid.hx * self.grid.hv
@@ -325,11 +331,17 @@ class DistributionFunction(object):
                 ixp = (ix+1) % nx
                 
                 for iv in range(0, self.grid.nv-1):
-                    L1 += abs(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1])
-                    L2 += pow(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1], 2)
+#                    L1 += abs(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1])
+#                    L2 += pow(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1], 2)
+
+                    L1 += abs(f0[ix,iv])
+                    L2 += pow(f0[ix,iv], 2)
             
-            self.L1_0 = 0.25 * (self.grid.hx * self.grid.hv) * L1
-            self.L2_0 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
+#            self.L1_0 = 0.25 * (self.grid.hx * self.grid.hv) * L1
+#            self.L2_0 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
+
+            self.L1_0 =       (self.grid.hx * self.grid.hv) * L1
+            self.L2_0 = 0.5 * (self.grid.hx * self.grid.hv) * L2
             
             self.Lmin_0 = f0.min() * self.grid.hx * self.grid.hv
             self.Lmax_0 = f0.max() * self.grid.hx * self.grid.hv

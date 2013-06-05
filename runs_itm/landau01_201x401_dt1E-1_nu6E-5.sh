@@ -5,8 +5,8 @@
 #
 #$ -pe impi_hydra 16
 #
-#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau01_201x401_dt1E-1_nu6E-5.out
-#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau01_201x401_dt1E-1_nu6E-5.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau01_200x401_dt1E-1_nu6E-5.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau01_200x401_dt1E-1_nu6E-5.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -27,7 +27,7 @@ export MODULEPATH=/afs/@cell/common/usr/modules/@sys/modulefiles/libs:${MODULEPA
 export MODULEPATH=/afs/ipp/common/usr/modules/@sys/modulefiles/TOK:${MODULEPATH}
 
 module load hdf5-serial/1.8.9
-module load netcdf-serial
+module load netcdf-serial/4.2.1.1
 
 module load intel/13.1
 module load mkl/11.0

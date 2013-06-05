@@ -49,19 +49,23 @@ cdef class PETScMatrix(object):
     
     cdef Vec Pp
     cdef Vec Np
+    cdef Vec NUp
+    cdef Vec NEp
     cdef Vec Up
     cdef Vec Ep
     cdef Vec Ap
         
     cdef Vec Ph
     cdef Vec Nh
+    cdef Vec NUh
+    cdef Vec NEh
     cdef Vec Uh
     cdef Vec Eh
     cdef Vec Ah
         
     cdef Vec Nc
-    cdef Vec Uc
-    cdef Vec Ec
+    cdef Vec NUc
+    cdef Vec NEc
     
     cdef Vec localH0
     cdef Vec localH1p
@@ -73,18 +77,22 @@ cdef class PETScMatrix(object):
     
     cdef Vec localPp
     cdef Vec localNp
+    cdef Vec localNUp
+    cdef Vec localNEp
     cdef Vec localUp
     cdef Vec localEp
     cdef Vec localAp
     
     cdef Vec localPh
     cdef Vec localNh
+    cdef Vec localNUh
+    cdef Vec localNEh
     cdef Vec localUh
     cdef Vec localEh
     cdef Vec localAh
     
     cdef Vec localNc
-    cdef Vec localUc
-    cdef Vec localEc
+    cdef Vec localNUc
+    cdef Vec localNEc
     
     cdef Toolbox toolbox

@@ -27,7 +27,7 @@ export MODULEPATH=/afs/@cell/common/usr/modules/@sys/modulefiles/libs:${MODULEPA
 export MODULEPATH=/afs/ipp/common/usr/modules/@sys/modulefiles/TOK:${MODULEPATH}
 
 module load hdf5-serial/1.8.9
-module load netcdf-serial
+module load netcdf-serial/4.2.1.1
 
 module load intel/13.1
 module load mkl/11.0

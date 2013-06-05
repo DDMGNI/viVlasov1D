@@ -5,8 +5,8 @@
 #
 #$ -pe impi_hydra 16
 #
-#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu2E-3.out
-#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu2E-3.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_100x201_dt1E-1_nu0.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_100x201_dt1E-1_nu0.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -17,7 +17,7 @@
 #
 
 
-RUNID=jeans_strong_201x401_dt1E-1_nu2E-3
+RUNID=landau02_100x201_dt1E-1_nu0
 
 
 module purge
@@ -43,9 +43,8 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nested.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_newton.py runs_itm/$RUNID.cfg
-#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs_itm/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_corr.py runs_itm/$RUNID.cfg
-#mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_ksp.py runs_itm/$RUNID.cfg
 #mpiexec -perhost 16 -l -n 16 python3.2 run_direct_nonlinear_pred.py runs_itm/$RUNID.cfg
+

@@ -848,17 +848,17 @@ class petscVP1D():
                 print("  Previous Step:                      funcnorm = %24.16E" % (prev_norm))
             
             # calculate initial guess via RK4
-            self.initial_guess_rk4()
+#            self.initial_guess_rk4()
             
             # calculate initial guess via Gear
-#             self.initial_guess_gear(itime)
+            self.initial_guess_gear(itime)
             
             # check if residual went down
-            self.petsc_function.mult(self.x, self.b)
-            ig_norm = self.b.norm()
-            
-            if ig_norm > prev_norm:
-                self.xh.copy(self.x)
+#            self.petsc_function.mult(self.x, self.b)
+#            ig_norm = self.b.norm()
+#            
+#            if ig_norm > prev_norm:
+#                self.xh.copy(self.x)
             
             
             # calculate initial guess via linear solver

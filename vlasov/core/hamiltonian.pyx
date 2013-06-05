@@ -320,17 +320,20 @@ class Hamiltonian(object):
                 
                 for iv in np.arange(0, nv-1):
                     
-                    self.P += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + self.grid.vGrid[iv  ]
-                            + self.grid.vGrid[iv+1]
-                            )
+                    self.P += f[ix, iv] * self.grid.vGrid[iv]
+
+#                    self.P += ( 
+#                            + f[ix,  iv  ]
+#                            + f[ixp, iv  ]
+#                            + f[ixp, iv+1]
+#                            + f[ix,  iv+1]
+#                          ) * ( 
+#                            + self.grid.vGrid[iv  ]
+#                            + self.grid.vGrid[iv+1]
+#                            )
             
-            self.P *= self.mass * 0.25 * 0.5 * self.grid.hx * self.grid.hv
+            self.P *= self.mass * self.grid.hx * self.grid.hv
+#            self.P *= self.mass * 0.25 * 0.5 * self.grid.hx * self.grid.hv
         
     
     def calculate_momentum_error(self):
