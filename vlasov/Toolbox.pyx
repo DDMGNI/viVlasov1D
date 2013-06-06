@@ -114,7 +114,6 @@ cdef class Toolbox(object):
         Arakawa Bracket 4th order
         '''
         
-#         return 0.5 * ( self.arakawa_J1(f, h, i, j) + self.arakawa_J2(f, h, i, j) ) 
         return 2.0 * self.arakawa_J1(f, h, i, j) - self.arakawa_J2(f, h, i, j)
     
     
@@ -207,164 +206,13 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
-    cdef np.float64_t average_J1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j):
-        '''
-        Average
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * f[i-1, j-1] \
-                   + 2. * f[i-1, j  ] \
-                   + 1. * f[i-1, j+1] \
-                   + 2. * f[i,   j-1] \
-                   + 4. * f[i,   j  ] \
-                   + 2. * f[i,   j+1] \
-                   + 1. * f[i+1, j-1] \
-                   + 2. * f[i+1, j  ] \
-                   + 1. * f[i+1, j+1] \
-                 ) / 16.
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t average_J2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j):
-        '''
-        Average
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( \
-                   + 1. * f[i-2, j  ] \
-                   + 2. * f[i-1, j-1] \
-                   + 2. * f[i-1, j+1] \
-                   + 1. * f[i,   j-2] \
-                   + 4. * f[i,   j  ] \
-                   + 1. * f[i,   j+2] \
-                   + 2. * f[i+1, j-1] \
-                   + 2. * f[i+1, j+1] \
-                   + 1. * f[i+2, j  ] \
-                 ) / 16.
-        
-        return result
-    
-    
-    
-    cdef np.float64_t average_J4(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j):
-        '''
-        Average
-        '''
-        
-        cdef np.float64_t result
-        
-#         result = ( \
-#                    + 1. * f[i-1, j-1] \
-#                    + 2. * f[i-1, j  ] \
-#                    + 1. * f[i-1, j+1] \
-#                    + 2. * f[i,   j-1] \
-#                    + 4. * f[i,   j  ] \
-#                    + 2. * f[i,   j+1] \
-#                    + 1. * f[i+1, j-1] \
-#                    + 2. * f[i+1, j  ] \
-#                    + 1. * f[i+1, j+1] \
-#                  ) / 16.
-        
-#         result = ( \
-#                    - 1. * f[i-2, j  ] \
-#                    + 4. * f[i-1, j  ] \
-#                    - 1. * f[i,   j-2] \
-#                    + 4. * f[i,   j-1] \
-#                    + 4. * f[i,   j  ] \
-#                    + 4. * f[i,   j+1] \
-#                    - 1. * f[i,   j+2] \
-#                    + 4. * f[i+1, j  ] \
-#                    - 1. * f[i+2, j  ] \
-#                  ) / 16.
-        
-#         result = ( \
-#                    + 1. * f[i-2, j  ] \
-#                    + 2. * f[i-1, j-1] \
-#                    + 4. * f[i-1, j  ] \
-#                    + 2. * f[i-1, j+1] \
-#                    + 1. * f[i,   j-2] \
-#                    + 4. * f[i,   j-1] \
-#                    + 8. * f[i,   j  ] \
-#                    + 4. * f[i,   j+1] \
-#                    + 1. * f[i,   j+2] \
-#                    + 2. * f[i+1, j-1] \
-#                    + 4. * f[i+1, j  ] \
-#                    + 2. * f[i+1, j+1] \
-#                    + 1. * f[i+2, j  ] \
-#                  ) / 36.
-        
-        result = ( \
-                   + 1.  * f[i-2, j  ] \
-                   + 2.  * f[i-1, j-1] \
-                   + 8.  * f[i-1, j  ] \
-                   + 2.  * f[i-1, j+1] \
-                   + 1.  * f[i,   j-2] \
-                   + 8.  * f[i,   j-1] \
-                   + 20. * f[i,   j  ] \
-                   + 8.  * f[i,   j+1] \
-                   + 1.  * f[i,   j+2] \
-                   + 2.  * f[i+1, j-1] \
-                   + 8.  * f[i+1, j  ] \
-                   + 2.  * f[i+1, j+1] \
-                   + 1.  * f[i+2, j  ] \
-                 ) / 64.
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative_woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                                np.uint64_t i, np.uint64_t j):
+    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
+                                            np.uint64_t i, np.uint64_t j):
         '''
         Time Derivative
         '''
         
         return f[i,j] * self.ht_inv
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        return self.average_J1(f, i, j) * self.ht_inv
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative_J2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        return self.average_J2(f, i, j) * self.ht_inv
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t time_derivative_J4(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j):
-        '''
-        Time Derivative
-        '''
-        
-        return self.average_J4(f, i, j) * self.ht_inv
     
     
     
@@ -379,16 +227,7 @@ cdef class Toolbox(object):
         Collision Operator
         '''
         
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          + 1. * ( (v[j+1] - U[i-1]) * f[i-1, j+1] - (v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
-                          + 2. * ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
-                          + 1. * ( (v[j+1] - U[i+1]) * f[i+1, j+1] - (v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
-                        ) * 0.5 / self.hv
-        
-        return result
+        return ( (self.v[j+1] - U[i  ]) * f[i,   j+1] - (self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
     
     
     
@@ -403,54 +242,7 @@ cdef class Toolbox(object):
         Collision Operator
         '''
         
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                          + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                          + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                        ) * self.hv2_inv
-        
-        return result
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collT1woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                      np.ndarray[np.float64_t, ndim=1] N,
-                                      np.ndarray[np.float64_t, ndim=1] U,
-                                      np.ndarray[np.float64_t, ndim=1] E,
-                                      np.ndarray[np.float64_t, ndim=1] A,
-                                      np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        cdef np.float64_t result
-        
-        result = ( (v[j+1] - U[i  ]) * f[i,   j+1] - (v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
-        
-        return result
-    
-    
-    
-    @cython.boundscheck(False)
-    cdef np.float64_t collT2woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                      np.ndarray[np.float64_t, ndim=1] N,
-                                      np.ndarray[np.float64_t, ndim=1] U,
-                                      np.ndarray[np.float64_t, ndim=1] E,
-                                      np.ndarray[np.float64_t, ndim=1] A,
-                                      np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.float64_t result
-        
-        result = ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
-        
-        return result
+        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
 
 
 
@@ -465,16 +257,7 @@ cdef class Toolbox(object):
         Collision Operator
         '''
         
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          + 1. * ( (N[i-1] * v[j+1] - U[i-1]) * f[i-1, j+1] - (N[i-1] * v[j-1] - U[i-1]) * f[i-1, j-1] ) * A[i-1] \
-                          + 2. * ( (N[i  ] * v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] \
-                          + 1. * ( (N[i+1] * v[j+1] - U[i+1]) * f[i+1, j+1] - (N[i+1] * v[j-1] - U[i+1]) * f[i+1, j-1] ) * A[i+1] \
-                        ) * 0.5 / self.hv
-        
-        return result
+        return ( (N[i  ] * self.v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
     
     
     
@@ -489,66 +272,53 @@ cdef class Toolbox(object):
         Collision Operator
         '''
         
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                     + 1. * ( f[i-1, j+1] - 2. * f[i-1, j  ] + f[i-1, j-1] ) \
-                     + 2. * ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) \
-                     + 1. * ( f[i+1, j+1] - 2. * f[i+1, j  ] + f[i+1, j-1] ) \
-                 ) * self.hv2_inv
-        
-        return result
-
-
-
-    @cython.boundscheck(False)
-    cdef np.float64_t collD4(self, np.ndarray[np.float64_t, ndim=2] f,
-                                   np.uint64_t i, np.uint64_t j):
-        '''
-        Collision Operator
-        '''
-        
-        cdef np.float64_t result
-        
-        result = 0.25 * ( \
-                          + 1. * ( f[i-1, j+2] - 4. * f[i-1, j+1] + 6. * f[i-1, j  ] - 4. * f[i-1, j-1] + f[i-1, j-2] ) \
-                          + 2. * ( f[i,   j+2] - 4. * f[i,   j+1] + 6. * f[i,   j  ] - 4. * f[i,   j-1] + f[i,   j-2] ) \
-                          + 1. * ( f[i+1, j+2] - 4. * f[i+1, j+1] + 6. * f[i+1, j  ] - 4. * f[i+1, j-1] + f[i+1, j-2] ) \
-                        ) / self.hv**4
-        
-        return result
+        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
 
 
 
     def potential_to_hamiltonian(self, Vec P, Vec H):
+        cdef np.float64_t phisum, phiave
+        
         (xs, xe), = self.dax.getRanges()
         
         p = self.dax.getVecArray(P)
         h = self.da1.getVecArray(H)
         
+        phisum = P.sum()
+        phiave = phisum / self.nx
+        
         for j in np.arange(0, self.nv):
-            h[xs:xe, j] = p[xs:xe]
+            h[xs:xe, j] = p[xs:xe] - phiave
 
 
     def compute_density(self, Vec F, Vec N):
-        f = self.da1.getVecArray(F)[...]
-        n = self.dax.getVecArray(N)[...]
+        f = self.da1.getGlobalArray(F)
+        n = self.dax.getGlobalArray(N)
         
         self.compute_density_array(f, n)
     
     
     def compute_velocity_density(self, Vec F, Vec U):
-        f = self.da1.getVecArray(F)[...]
-        u = self.dax.getVecArray(U)[...]
+        f = self.da1.getGlobalArray(F)
+        u = self.dax.getGlobalArray(U)
         
         self.compute_velocity_density_array(f, u)
     
     
     def compute_energy_density(self, Vec F, Vec E):
-        f = self.da1.getVecArray(F)[...]
-        e = self.dax.getVecArray(E)[...]
+        f = self.da1.getGlobalArray(F)
+        e = self.dax.getGlobalArray(E)
         
         self.compute_energy_density_array(f, e)
+    
+    
+    def compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A):
+        n = self.dax.getGlobalArray(N)
+        u = self.dax.getGlobalArray(U)
+        e = self.dax.getGlobalArray(E)
+        a = self.dax.getGlobalArray(A)
+        
+        a[:] = n**2 / (n*e - u**2)
     
     
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n):

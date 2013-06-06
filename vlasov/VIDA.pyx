@@ -24,11 +24,7 @@ cdef class VIDA(DMDA):
          
         if dof > 1: dim += 1
          
-#         cdef ndarray[float64_t, ndim=dim] tarr = tvec.getArray().reshape(shape, order='f')
-#         
-#         return tarr
-        
-        return tvec.getArray().reshape(shape, order='f')
+        return tvec.getArray().reshape(shape)
     
     
     def getLocalArray(self, Vec gvec not None, Vec lvec not None):
@@ -46,9 +42,5 @@ cdef class VIDA(DMDA):
          
         if dof > 1: dim += 1
          
-#         cdef ndarray[float64_t, ndim=dim] larr = lvec.getArray().reshape(shape, order='f')
-#         
-#         return larr
-        
-        return lvec.getArray().reshape(shape, order='f')
+        return lvec.getArray().reshape(shape)
     

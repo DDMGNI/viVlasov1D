@@ -48,6 +48,21 @@ LIBRARY_DIRS += ['/opt/local/lib']
 
 
 ext_modules = [
+        Extension("PETScVlasovSolver",
+                  sources=["PETScVlasovSolver.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovArakawaJ4",
+                  sources=["PETScNLVlasovArakawaJ4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        
         Extension("PETScArakawaRK4",
                   sources=["PETScArakawaRK4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

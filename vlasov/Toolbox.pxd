@@ -67,27 +67,8 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=2] h1)
     
     
-    cdef np.float64_t average_J1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t average_J2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t average_J4(self, np.ndarray[np.float64_t, ndim=2] f,
-                                       np.uint64_t i, np.uint64_t j)
-    
-    
-    cdef np.float64_t time_derivative_woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                                np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t time_derivative_J1(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t time_derivative_J2(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t time_derivative_J4(self, np.ndarray[np.float64_t, ndim=2] f,
-                                               np.uint64_t i, np.uint64_t j)
+    cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
+                                            np.uint64_t i, np.uint64_t j)
     
     
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
@@ -105,21 +86,6 @@ cdef class Toolbox(object):
                                    np.uint64_t i, np.uint64_t j)
     
     
-    cdef np.float64_t collT1woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                      np.ndarray[np.float64_t, ndim=1] N,
-                                      np.ndarray[np.float64_t, ndim=1] U,
-                                      np.ndarray[np.float64_t, ndim=1] E,
-                                      np.ndarray[np.float64_t, ndim=1] A,
-                                      np.uint64_t i, np.uint64_t j)
-    
-    cdef np.float64_t collT2woa(self, np.ndarray[np.float64_t, ndim=2] f,
-                                      np.ndarray[np.float64_t, ndim=1] N,
-                                      np.ndarray[np.float64_t, ndim=1] U,
-                                      np.ndarray[np.float64_t, ndim=1] E,
-                                      np.ndarray[np.float64_t, ndim=1] A,
-                                      np.uint64_t i, np.uint64_t j)
-    
-    
     cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
                                    np.ndarray[np.float64_t, ndim=1] U,
@@ -134,9 +100,6 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=1] A,
                                    np.uint64_t i, np.uint64_t j)
     
-    cdef np.float64_t collD4(self, np.ndarray[np.float64_t, ndim=2] f,
-                               np.uint64_t i, np.uint64_t j)
-
 
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n)
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u)

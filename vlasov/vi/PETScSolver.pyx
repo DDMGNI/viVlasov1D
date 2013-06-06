@@ -14,7 +14,7 @@ from petsc4py import PETSc
 from vlasov.Toolbox import Toolbox
 
 
-cdef class PETScVlasovSolverBase(object):
+cdef class PETScSolverBase(object):
     '''
     The PETScSolver class is the base class for all Solver objects
     containing functions to set up the Jacobian matrix, the function
@@ -65,6 +65,7 @@ cdef class PETScVlasovSolverBase(object):
         # create work and history vectors
         self.H1p = self.da1.createGlobalVec()
         self.H1h = self.da1.createGlobalVec()
+        self.H1d = self.da1.createGlobalVec()
         self.H2p = self.da1.createGlobalVec()
         self.H2h = self.da1.createGlobalVec()
         
@@ -83,6 +84,15 @@ cdef class PETScVlasovSolverBase(object):
         self.Ah  = self.dax.createGlobalVec()
         
         self.Fd  = self.da1.createGlobalVec()
+        self.Pd  = self.dax.createGlobalVec()
+        self.Nd  = self.dax.createGlobalVec()
+        self.Ud  = self.dax.createGlobalVec()
+        self.Ed  = self.dax.createGlobalVec()
+        self.Ad  = self.dax.createGlobalVec()
+        
+        self.Nc  = self.dax.createGlobalVec()
+        self.Uc  = self.dax.createGlobalVec()
+        self.Ec  = self.dax.createGlobalVec()
         
         # create local vectors
         self.localH0  = da1.createLocalVec()
@@ -107,6 +117,15 @@ cdef class PETScVlasovSolverBase(object):
         self.localAh  = dax.createLocalVec()
         
         self.localFd  = da1.createLocalVec()
+        self.localPd  = dax.createLocalVec()
+        self.localNd  = dax.createLocalVec()
+        self.localUd  = dax.createLocalVec()
+        self.localEd  = dax.createLocalVec()
+        self.localAd  = dax.createLocalVec()
+        
+        self.localNc  = dax.createLocalVec()
+        self.localUc  = dax.createLocalVec()
+        self.localEc  = dax.createLocalVec()
         
         # create toolbox object
         self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
@@ -154,10 +173,24 @@ cdef class PETScVlasovSolverBase(object):
         
         
     
-    def update_delta(self, Vec F):
+    def update_delta(self, Vec X):
         (xs, xe), = self.da2.getRanges()
         
-        F.copy(self.Fd)
+        x = self.da2.getVecArray(X)
+        f = self.da1.getVecArray(self.Fd)
+        p = self.dax.getVecArray(self.Pd)
+        n = self.dax.getVecArray(self.Nd)
+        u = self.dax.getVecArray(self.Ud)
+        e = self.dax.getVecArray(self.Ed)
+        
+        f[xs:xe] = x[xs:xe, 0:self.nv]
+        p[xs:xe] = x[xs:xe,   self.nv]
+        n[xs:xe] = x[xs:xe,   self.nv+1]
+        u[xs:xe] = x[xs:xe,   self.nv+2]
+        e[xs:xe] = x[xs:xe,   self.nv+3]
+        
+        self.toolbox.compute_collision_factor(self.Nd, self.Ud, self.Ed, self.Ad)
+        self.toolbox.potential_to_hamiltonian(self.Pd, self.H1d)
         
         
     
@@ -190,6 +223,7 @@ cdef class PETScVlasovSolverBase(object):
         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
         self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        self.h1d = self.da1.getLocalArray(self.H1d, self.localH1d)
         self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
         
@@ -208,3 +242,12 @@ cdef class PETScVlasovSolverBase(object):
         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
         
         self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
+        self.pd  = self.dax.getLocalArray(self.Pd,  self.localPd)
+        self.nd  = self.dax.getLocalArray(self.Nd,  self.localNd)
+        self.ud  = self.dax.getLocalArray(self.Ud,  self.localUd)
+        self.ed  = self.dax.getLocalArray(self.Ed,  self.localEd)
+        self.ad  = self.dax.getLocalArray(self.Ad,  self.localAd)
+        
+        self.nc  = self.dax.getLocalArray(self.Nc,  self.localNc)
+        self.uc  = self.dax.getLocalArray(self.Uc,  self.localUc)
+        self.ec  = self.dax.getLocalArray(self.Ec,  self.localEc)
