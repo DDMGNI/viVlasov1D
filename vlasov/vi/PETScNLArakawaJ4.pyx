@@ -222,8 +222,6 @@ cdef class PETScSolver(PETScSolverBase):
         cdef npy.uint64_t ix, iy
         cdef npy.uint64_t xe, xs
         
-        cdef npy.float64_t nmean = self.Np.sum() / self.nx
-        
         self.toolbox.compute_density(self.Fd, self.Nc)
         self.toolbox.compute_velocity_density(self.Fd, self.Uc)
         self.toolbox.compute_energy_density(self.Fd, self.Ec)
@@ -233,6 +231,9 @@ cdef class PETScSolver(PETScSolverBase):
         (xs, xe), = self.da2.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da2.getGlobalArray(Y)
+        
+        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (self.fp + self.fh)
+        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) + 0.5 * (self.h2p + self.h2h)
         
         
         for i in npy.arange(xs, xe):
@@ -260,8 +261,8 @@ cdef class PETScSolver(PETScSolverBase):
                     ### collision operator not complete ###
                     ### TODO ###
                     y[iy, j] = self.toolbox.time_derivative(self.fd, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(self.fd,    self.h_ave, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(self.f_ave, self.h1d,   ix, j) #\
+                             + 0.5 * self.toolbox.arakawa_J4(self.fd, h_ave,      ix, j) \
+                             + 0.5 * self.toolbox.arakawa_J4(f_ave,   self.h1d,   ix, j) #\
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fd, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fd, self.np, self.up, self.ep, self.ap, ix, j)
             

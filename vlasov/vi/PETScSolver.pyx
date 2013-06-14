@@ -44,6 +44,10 @@ cdef class PETScSolverBase(object):
         self.hx = hx
         self.hv = hv
         
+        self.ht_inv = 1. / self.ht
+        self.hx_inv = 1. / self.hx
+        self.hv_inv = 1. / self.hv
+        
         self.hx2     = hx**2
         self.hx2_inv = 1. / self.hx2 
         

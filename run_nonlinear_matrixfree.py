@@ -42,9 +42,6 @@ class petscVP1Dgmres(petscVP1Dbase):
     def updateJacobian(self, snes, X, J, P):
         self.petsc_solver.update_previous(X)
         
-        self.petsc_solver.formJacobian(J)
-        J.setNullSpace(self.nullspace)
-        
         if J != P:
             self.petsc_solver.formJacobian(P)
             P.setNullSpace(self.nullspace)
@@ -61,8 +58,8 @@ class petscVP1Dgmres(petscVP1Dbase):
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Linear Solver:                          funcnorm = %24.16E" % (ignorm))
-            print("                                          sum(phi) = %24.16E" % (phisum))
+            print("  Linear Solver:                      funcnorm = %24.16E" % (ignorm))
+            print("                                      sum(phi) = %24.16E" % (phisum))
         
     
     def run(self):
@@ -84,6 +81,15 @@ class petscVP1Dgmres(petscVP1Dbase):
                                             self.charge, coll_freq=self.coll_freq)
         
 
+        # initialise matrixfree Jacobian
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], 
+                                            context=self.petsc_solver,
+                                            comm=PETSc.COMM_WORLD)
+        self.Jmf.setUp()
+#         self.Jmf.setNullSpace(self.nullspace)
+        
+        
+
         # copy external potential
         self.petsc_solver.update_external(self.p_ext)
         
@@ -94,7 +100,7 @@ class petscVP1Dgmres(petscVP1Dbase):
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_solver.function_snes_mult, self.b)
-        self.snes.setJacobian(self.updateJacobian, self.J)
+        self.snes.setJacobian(self.updateJacobian, self.Jmf)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().getPC().setType('none')
@@ -161,8 +167,8 @@ class petscVP1Dgmres(petscVP1Dbase):
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Nonlin Solver:  %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
-                print("                  %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum) )
+                print("  Nonlinear Solver: %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
+                print("                    %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum))
                 print()
             
             if self.snes.getConvergedReason() < 0:
@@ -191,7 +197,7 @@ class petscVP1Dgmres(petscVP1Dbase):
             
             # save to hdf5
             self.save_to_hdf5(itime)
-            
+                        
  
 
 if __name__ == '__main__':

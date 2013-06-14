@@ -33,9 +33,9 @@ class petscVP1Dbase():
         '''
         
         # number of iterations for initial guess
-        self.nInitial = 1
+#         self.nInitial = 1
 #         self.nInitial = 4
-#         self.nInitial = 10
+        self.nInitial = 10
 #         self.nInitial = 100
         
         
@@ -606,6 +606,9 @@ class petscVP1Dbase():
             self.copy_f_to_x()
             
             self.calculate_moments(output=False)
+                
+            if i < self.nInitial-1:
+                self.arakawa_gear.update_history(self.f, self.h1)
         
         
         self.petsc_solver.function_mult(self.x, self.b)

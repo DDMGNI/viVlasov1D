@@ -115,9 +115,13 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
     @cython.boundscheck(False)
     def jacobian(self, Vec Y):
-        cdef npy.uint64_t i, j
-        cdef npy.uint64_t ix, iy
-        cdef npy.uint64_t xe, xs
+        cdef npy.int64_t i, j
+        cdef npy.int64_t ix, iy
+        cdef npy.int64_t xe, xs
+        
+        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef npy.float64_t result_J1, result_J2, result_J4
         
         self.get_data_arrays()
         
@@ -125,6 +129,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
         
+        cdef npy.ndarray[npy.float64_t, ndim=2] f     = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
@@ -136,24 +141,63 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             for j in npy.arange(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = self.fd[ix,j]
+                    y[iy, j] = f[ix,j]
                     
                 else:
                     ### TODO ###
                     ### collision operator not complete ###
                     ### TODO ###
-                    y[iy, j] = self.toolbox.time_derivative(self.fd, ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(self.fd, h_ave,    ix, j) \
+#                     y[iy, j] = self.toolbox.time_derivative(f, ix, j) \
+#                              + 0.5 * self.toolbox.arakawa_J4(f, h_ave, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fd, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fd, self.np, self.up, self.ep, self.ap, ix, j)
             
-            
+                    
+                    jpp_J1 = (f[ix+1, j  ] - f[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
+                           - (f[ix,   j+1] - f[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
+                    
+                    jpc_J1 = f[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                           - f[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
+                           - f[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
+                           + f[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    
+                    jcp_J1 = f[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
+                           - f[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
+                           - f[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
+                           + f[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
+                    
+                    jcc_J2 = (f[ix+1, j+1] - f[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
+                           - (f[ix-1, j+1] - f[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
+                    
+                    jpc_J2 = f[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                           - f[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
+                           - f[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
+                           + f[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    
+                    jcp_J2 = f[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
+                           - f[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
+                           - f[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
+                           + f[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
+                    
+                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                    result_J4 = result_J1 - 0.5 * result_J2
+         
+         
+                    y[iy, j] = f[ix, j] * self.ht_inv \
+                             + result_J4 * self.hx_inv * self.hv_inv
+    
+    
     
     @cython.boundscheck(False)
     def function(self, Vec Y):
-        cdef npy.uint64_t i, j
-        cdef npy.uint64_t ix, iy
-        cdef npy.uint64_t xe, xs
+        cdef npy.int64_t i, j
+        cdef npy.int64_t ix, iy
+        cdef npy.int64_t xe, xs
+        
+        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef npy.float64_t result_J1, result_J2, result_J4
         
         self.get_data_arrays()
         
@@ -161,7 +205,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (self.fd + self.fh)
+        cdef npy.ndarray[npy.float64_t, ndim=2] fp    = self.fd
+        cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
+        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
@@ -174,13 +220,48 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             for j in npy.arange(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = self.fd[ix,j]
+                    y[iy, j] = fp[ix,j]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative(self.fd, ix, j) \
-                             - self.toolbox.time_derivative(self.fh, ix, j) \
-                             + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) #\
+#                     y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
+#                              - self.toolbox.time_derivative(fh, ix, j) \
+#                              + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) #\
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fp, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fh, self.nh, self.uh, self.eh, self.ah, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fp, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fh, self.nh, self.uh, self.eh, self.ah, ix, j)
+
+
+                    jpp_J1 = (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
+                           - (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
+                    
+                    jpc_J1 = f_ave[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                           - f_ave[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
+                           - f_ave[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
+                           + f_ave[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    
+                    jcp_J1 = f_ave[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
+                           - f_ave[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
+                           - f_ave[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
+                           + f_ave[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
+                    
+                    jcc_J2 = (f_ave[ix+1, j+1] - f_ave[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
+                           - (f_ave[ix-1, j+1] - f_ave[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
+                    
+                    jpc_J2 = f_ave[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                           - f_ave[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
+                           - f_ave[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
+                           + f_ave[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    
+                    jcp_J2 = f_ave[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
+                           - f_ave[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
+                           - f_ave[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
+                           + f_ave[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
+                    
+                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                    result_J4 = 2. * result_J1 - result_J2
+                    
+                    
+                    y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
+                             + result_J4 * self.hx_inv * self.hv_inv

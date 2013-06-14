@@ -21,6 +21,10 @@ cdef class PETScVlasovSolverBase(object):
     cdef npy.float64_t hx
     cdef npy.float64_t hv
     
+    cdef npy.float64_t ht_inv
+    cdef npy.float64_t hx_inv
+    cdef npy.float64_t hv_inv
+    
     cdef npy.float64_t hx2
     cdef npy.float64_t hx2_inv
     
