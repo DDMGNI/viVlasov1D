@@ -77,6 +77,18 @@ class petscVP1Dgmres(petscVP1Dbase):
 #         OptDB.setValue('snes_ls', 'basic')
 
 
+        # initialise matrix
+        self.A = self.da2.createMat()
+        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.A.setUp()
+        self.A.setNullSpace(self.nullspace)
+
+        # initialise Jacobian
+        self.J = self.da2.createMat()
+        self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.J.setUp()
+        self.J.setNullSpace(self.nullspace)
+        
         # create Jacobian, Function, and linear Matrix objects
         self.petsc_solver = PETScSolver(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,

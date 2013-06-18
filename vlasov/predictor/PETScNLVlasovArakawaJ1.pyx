@@ -56,12 +56,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         # Vlasov Equation
-#         for j in npy.arange(0, self.nv):
-#             row.field = j
-#             for i in npy.arange(xs, xe):
-#                 ix = i-xs+2
-#                 row.index = (i,)
-
         for i in npy.arange(xs, xe):
             ix = i-xs+2
             
@@ -77,36 +71,24 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                 else:
                     
                     for index, field, value in [
-                            ((i-2,), j  , - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i-1,), j-1, - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
-                                          - (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+                            ((i-1,), j-1, - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1),
                             ((i-1,), j  , - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
                                           - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1),
-                            ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                          - (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) * arak_fac_J2 \
-                                          - (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i,  ), j-2, + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+                            ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1),
                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                          - coll1_fac * ( self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                                          - coll1_fac * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
-                            ((i,  ), j  , + time_fac \
+                            ((i,  ), j  , + time_fac
                                           - 2. * coll2_fac),
                             ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
-                                          + coll1_fac * ( self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                                          + coll1_fac * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
-                            ((i,  ), j+2, - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J2),
-                            ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
-                                          + (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+                            ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1),
                             ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1),
-                            ((i+1,), j+1, + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1 \
-                                          + (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) * arak_fac_J2 \
-                                          + (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
-                            ((i+2,), j  , + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+                            ((i+1,), j+1, + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1),
                         ]:
 
                         col.index = index
@@ -138,11 +120,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-#         for j in npy.arange(0, self.nv):
-#             for i in npy.arange(xs, xe):
-#                 ix = i-xs+2
-#                 iy = i-xs
-
         for i in npy.arange(xs, xe):
             ix = i-xs+2
             iy = i-xs
@@ -157,11 +134,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     ### TODO ###
                     ### collision operator not complete ###
                     ### TODO ###
-#                     y[iy, j] = self.toolbox.time_derivative(f, ix, j) \
-#                              + 0.5 * self.toolbox.arakawa_J4(f, h_ave, ix, j) \
-#                              - 0.5 * self.nu * self.toolbox.collT1(self.fd, self.np, self.up, self.ep, self.ap, ix, j) \
-#                              - 0.5 * self.nu * self.toolbox.collT2(self.fd, self.np, self.up, self.ep, self.ap, ix, j)
-            
                     
                     jpp_J1 = (f[ix+1, j  ] - f[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
                            - (f[ix,   j+1] - f[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
@@ -176,26 +148,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                            - f[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
                            + f[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
                     
-                    jcc_J2 = (f[ix+1, j+1] - f[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
-                           - (f[ix-1, j+1] - f[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
-                    
-                    jpc_J2 = f[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - f[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - f[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + f[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
-                    
-                    jcp_J2 = f[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
-                           - f[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
-                           - f[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
-                           + f[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
-                    
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
-                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
-                    result_J4 = 2. * result_J1 - result_J2
          
          
                     y[iy, j] = f[ix, j] * self.ht_inv \
-                             + 0.5 * result_J4 * self.hx_inv * self.hv_inv
+                             + 0.5 * result_J1 * self.hx_inv * self.hv_inv
     
     
     
@@ -222,11 +179,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                                                 + 0.5 * (self.h2p + self.h2h)
         
         
-#         for j in npy.arange(0, self.nv):
-#             for i in npy.arange(xs, xe):
-#                 ix = i-xs+2
-#                 iy = i-xs
-
         for i in npy.arange(xs, xe):
             ix = i-xs+2
             iy = i-xs
@@ -238,15 +190,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-#                     y[iy, j] = self.toolbox.time_derivative(fp, ix, j) \
-#                              - self.toolbox.time_derivative(fh, ix, j) \
-#                              + self.toolbox.arakawa_J4(f_ave, h_ave, ix, j) #\
-#                              - 0.5 * self.nu * self.toolbox.collT1(self.fp, self.np, self.up, self.ep, self.ap, ix, j) \
-#                              - 0.5 * self.nu * self.toolbox.collT1(self.fh, self.nh, self.uh, self.eh, self.ah, ix, j) \
-#                              - 0.5 * self.nu * self.toolbox.collT2(self.fp, self.np, self.up, self.ep, self.ap, ix, j) \
-#                              - 0.5 * self.nu * self.toolbox.collT2(self.fh, self.nh, self.uh, self.eh, self.ah, ix, j)
-
-
+                    ### TODO ###
+                    ### collision operator not complete ###
+                    ### TODO ###
+                    
                     jpp_J1 = (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
                            - (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
                     
@@ -260,23 +207,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                            - f_ave[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
                            + f_ave[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
                     
-                    jcc_J2 = (f_ave[ix+1, j+1] - f_ave[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
-                           - (f_ave[ix-1, j+1] - f_ave[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
-                    
-                    jpc_J2 = f_ave[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - f_ave[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - f_ave[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + f_ave[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
-                    
-                    jcp_J2 = f_ave[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
-                           - f_ave[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
-                           - f_ave[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
-                           + f_ave[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
-                    
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
-                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
-                    result_J4 = 2. * result_J1 - result_J2
                     
                     
                     y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
-                             + result_J4 * self.hx_inv * self.hv_inv
+                             + result_J1 * self.hx_inv * self.hv_inv

@@ -9,6 +9,8 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
+from libc.math cimport exp, pow, sqrt
+
 
 cdef class Toolbox(object):
     '''
@@ -185,6 +187,10 @@ cdef class Toolbox(object):
         cdef np.uint64_t ix, iy, i, j
         cdef np.uint64_t xs, xe
         
+        cdef np.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef np.float64_t result_J1, result_J2, result_J4
+        
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
         
         (xs, xe), = self.da1.getRanges()
@@ -201,7 +207,101 @@ cdef class Toolbox(object):
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = - self.arakawa_J4(x, h, ix, j)
+#                     y[iy, j] = - self.arakawa_J4(x, h, ix, j)
+    
+                    jpp_J1 = (x[ix+1, j  ] - x[ix-1, j  ]) * (h[ix,   j+1] - h[ix,   j-1]) \
+                           - (x[ix,   j+1] - x[ix,   j-1]) * (h[ix+1, j  ] - h[ix-1, j  ])
+                    
+                    jpc_J1 = x[ix+1, j  ] * (h[ix+1, j+1] - h[ix+1, j-1]) \
+                           - x[ix-1, j  ] * (h[ix-1, j+1] - h[ix-1, j-1]) \
+                           - x[ix,   j+1] * (h[ix+1, j+1] - h[ix-1, j+1]) \
+                           + x[ix,   j-1] * (h[ix+1, j-1] - h[ix-1, j-1])
+                    
+                    jcp_J1 = x[ix+1, j+1] * (h[ix,   j+1] - h[ix+1, j  ]) \
+                           - x[ix-1, j-1] * (h[ix-1, j  ] - h[ix,   j-1]) \
+                           - x[ix-1, j+1] * (h[ix,   j+1] - h[ix-1, j  ]) \
+                           + x[ix+1, j-1] * (h[ix+1, j  ] - h[ix,   j-1])
+                    
+                    jcc_J2 = (x[ix+1, j+1] - x[ix-1, j-1]) * (h[ix-1, j+1] - h[ix+1, j-1]) \
+                           - (x[ix-1, j+1] - x[ix+1, j-1]) * (h[ix+1, j+1] - h[ix-1, j-1])
+                    
+                    jpc_J2 = x[ix+2, j  ] * (h[ix+1, j+1] - h[ix+1, j-1]) \
+                           - x[ix-2, j  ] * (h[ix-1, j+1] - h[ix-1, j-1]) \
+                           - x[ix,   j+2] * (h[ix+1, j+1] - h[ix-1, j+1]) \
+                           + x[ix,   j-2] * (h[ix+1, j-1] - h[ix-1, j-1])
+                    
+                    jcp_J2 = x[ix+1, j+1] * (h[ix,   j+2] - h[ix+2, j  ]) \
+                           - x[ix-1, j-1] * (h[ix-2, j  ] - h[ix,   j-2]) \
+                           - x[ix-1, j+1] * (h[ix,   j+2] - h[ix-2, j  ]) \
+                           + x[ix+1, j-1] * (h[ix+2, j  ] - h[ix,   j-2])
+                    
+                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                    result_J4 = 2. * result_J1 - result_J2
+                    
+                    
+                    y[iy, j] = - result_J4 * self.hx_inv * self.hv_inv
+    
+    
+    @cython.boundscheck(False)
+    cdef arakawa_J4_timestep_h(self, np.ndarray[np.float64_t, ndim=2] x,
+                                     np.ndarray[np.float64_t, ndim=2] y,
+                                     np.ndarray[np.float64_t, ndim=2] h):
+        
+        cdef np.uint64_t ix, iy, i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef np.float64_t result_J1, result_J2, result_J4
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        
+        for i in np.arange(xs, xe):
+            for j in np.arange(0, self.nv):
+                ix = i-xs+2
+                iy = i-xs
+                
+                if j <= 1 or j >= self.nv-2:
+                    # Dirichlet boundary conditions
+                    y[iy, j] = 0.0
+                    
+                else:
+                    # Vlasov equation
+    
+                    jpp_J1 = (x[ix+1, j  ] - x[ix-1, j  ]) * (h[ix,   j+1] - h[ix,   j-1]) \
+                           - (x[ix,   j+1] - x[ix,   j-1]) * (h[ix+1, j  ] - h[ix-1, j  ])
+                    
+                    jpc_J1 = x[ix+1, j  ] * (h[ix+1, j+1] - h[ix+1, j-1]) \
+                           - x[ix-1, j  ] * (h[ix-1, j+1] - h[ix-1, j-1]) \
+                           - x[ix,   j+1] * (h[ix+1, j+1] - h[ix-1, j+1]) \
+                           + x[ix,   j-1] * (h[ix+1, j-1] - h[ix-1, j-1])
+                    
+                    jcp_J1 = x[ix+1, j+1] * (h[ix,   j+1] - h[ix+1, j  ]) \
+                           - x[ix-1, j-1] * (h[ix-1, j  ] - h[ix,   j-1]) \
+                           - x[ix-1, j+1] * (h[ix,   j+1] - h[ix-1, j  ]) \
+                           + x[ix+1, j-1] * (h[ix+1, j  ] - h[ix,   j-1])
+                    
+                    jcc_J2 = (x[ix+1, j+1] - x[ix-1, j-1]) * (h[ix-1, j+1] - h[ix+1, j-1]) \
+                           - (x[ix-1, j+1] - x[ix+1, j-1]) * (h[ix+1, j+1] - h[ix-1, j-1])
+                    
+                    jpc_J2 = x[ix+2, j  ] * (h[ix+1, j+1] - h[ix+1, j-1]) \
+                           - x[ix-2, j  ] * (h[ix-1, j+1] - h[ix-1, j-1]) \
+                           - x[ix,   j+2] * (h[ix+1, j+1] - h[ix-1, j+1]) \
+                           + x[ix,   j-2] * (h[ix+1, j-1] - h[ix-1, j-1])
+                    
+                    jcp_J2 = x[ix+1, j+1] * (h[ix,   j+2] - h[ix+2, j  ]) \
+                           - x[ix-1, j-1] * (h[ix-2, j  ] - h[ix,   j-2]) \
+                           - x[ix-1, j+1] * (h[ix,   j+2] - h[ix-2, j  ]) \
+                           + x[ix+1, j-1] * (h[ix+2, j  ] - h[ix,   j-2])
+                    
+                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                    result_J4 = 2. * result_J1 - result_J2
+                    
+                    
+                    y[iy, j] = - result_J4 * self.hx_inv * self.hv_inv
     
     
     
@@ -267,7 +367,7 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=1] U,
                                    np.ndarray[np.float64_t, ndim=1] E,
                                    np.ndarray[np.float64_t, ndim=1] A,
-                                  np.uint64_t i, np.uint64_t j):
+                                   np.uint64_t i, np.uint64_t j):
         '''
         Collision Operator
         '''
@@ -276,7 +376,7 @@ cdef class Toolbox(object):
 
 
 
-    def potential_to_hamiltonian(self, Vec P, Vec H):
+    cpdef potential_to_hamiltonian(self, Vec P, Vec H):
         cdef np.float64_t phisum, phiave
         
         (xs, xe), = self.dax.getRanges()
@@ -291,28 +391,28 @@ cdef class Toolbox(object):
             h[xs:xe, j] = p[xs:xe] - phiave
 
 
-    def compute_density(self, Vec F, Vec N):
+    cpdef compute_density(self, Vec F, Vec N):
         f = self.da1.getGlobalArray(F)
         n = self.dax.getGlobalArray(N)
         
         self.compute_density_array(f, n)
     
     
-    def compute_velocity_density(self, Vec F, Vec U):
+    cpdef compute_velocity_density(self, Vec F, Vec U):
         f = self.da1.getGlobalArray(F)
         u = self.dax.getGlobalArray(U)
         
         self.compute_velocity_density_array(f, u)
     
     
-    def compute_energy_density(self, Vec F, Vec E):
+    cpdef compute_energy_density(self, Vec F, Vec E):
         f = self.da1.getGlobalArray(F)
         e = self.dax.getGlobalArray(E)
         
         self.compute_energy_density_array(f, e)
     
     
-    def compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A):
+    cpdef compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A):
         n = self.dax.getGlobalArray(N)
         u = self.dax.getGlobalArray(U)
         e = self.dax.getGlobalArray(E)
@@ -322,53 +422,119 @@ cdef class Toolbox(object):
     
     
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+        
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(xs, xe):
-            ix = i-xs
-            iy = i-xs
-            
-            n[iy] = 0.
+        for i in np.arange(0, xe-xs):
+            n[i] = 0.
             
             for j in np.arange(0, (self.nv-1)/2):
-                n[iy] += f[ix, j] + f[ix, self.nv-1-j]
+                n[i] += f[i,j] + f[i, self.nv-1-j]
 
-            n[iy] += f[ix, (self.nv-1)/2]
+            n[i] += f[i, (self.nv-1)/2]
                 
-            n[iy] *= self.hv
+            n[i] *= self.hv
     
 
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(xs, xe):
-            ix = i-xs
-            iy = i-xs
-            
-            u[iy] = 0.
+        for i in np.arange(0, xe-xs):
+            u[i] = 0.
             
             for j in np.arange(0, (self.nv-1)/2):
-                u[iy] += self.v[j] * f[ix, j] + self.v[self.nv-1-j] * f[ix, self.nv-1-j]
+                u[i] += v[j] * f[i,j] + v[self.nv-1-j] * f[i, self.nv-1-j]
 
-            u[iy] += self.v[(self.nv-1)/2] * f[ix, (self.nv-1)/2]
+            u[i] += v[(self.nv-1)/2] * f[i, (self.nv-1)/2]
                 
-            u[iy] *= self.hv
+            u[i] *= self.hv
     
 
     cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(xs, xe):
-            ix = i-xs
-            iy = i-xs
-            
-            e[iy] = 0.
+        for i in np.arange(0, xe-xs):
+            e[i] = 0.
             
             for j in np.arange(0, (self.nv-1)/2):
-                e[iy] += self.v[j]**2 * f[ix, j] + self.v[self.nv-1-j]**2 * f[ix, self.nv-1-j]
+                e[i] += v[j]**2 * f[i,j] + v[self.nv-1-j]**2 * f[i, self.nv-1-j]
 
-            e[iy] += self.v[(self.nv-1)/2]**2 * f[ix, (self.nv-1)/2]
+            e[i] += v[(self.nv-1)/2]**2 * f[i, (self.nv-1)/2]
                 
-            e[iy] *= self.hv
+            e[i] *= self.hv
     
+
+
+#     def initialise_kinetic_hamiltonian(self, np.ndarray[np.float64_t, ndim=2] h_arr,
+#                                              np.float64_t mass):
+#         cdef np.uint64_t i, j
+#         cdef np.uint64_t xs, xe
+#         
+#         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+#        
+#         (xs, xe), = self.da1.getRanges()
+# 
+#         for i in np.arange(0, xe-xs):
+#             for j in np.arange(0, self.nv):
+#                 h_arr[i,j] = 0.5 * v[j]**2 * mass
+# 
+# 
+#     def initialise_distribution_function(self, np.ndarray[np.float64_t, ndim=2] f_arr,
+#                                                np.ndarray[np.float64_t, ndim=1] xGrid,
+#                                                init_function):
+#         cdef np.uint64_t i, j
+#         cdef np.uint64_t xs, xe
+#         
+#         cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
+#        
+#         (xs, xe), = self.da1.getRanges()
+# 
+#         for i in np.arange(0, xe-xs):
+#             for j in np.arange(0, self.nv):
+#                 if j <= 1 or j >= self.nv-2:
+#                     f_arr[i,j] = 0.0
+#                 else:
+#                     f_arr[i,j] = init_function(xGrid[i], vGrid[j]) 
+# 
+# 
+#     def initialise_distribution_nT(self, np.ndarray[np.float64_t, ndim=2] f_arr,
+#                                          np.ndarray[np.float64_t, ndim=1] n_arr,
+#                                          np.ndarray[np.float64_t, ndim=1] T_arr):
+#         cdef np.uint64_t i, j
+#         cdef np.uint64_t xs, xe
+#         
+#         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+#         
+#         cdef np.float64_t pi  = np.pi
+#         cdef np.float64_t fac = sqrt(0.5 / pi)
+#         
+#         (xs, xe), = self.da1.getRanges()
+# 
+#         for i in np.arange(0, xe-xs):
+#             for j in np.arange(0, self.nv):
+#                 if j <= 1 or j >= self.nv-2:
+#                     f_arr[i,j] = 0.0
+#                 else:
+#                     f_arr[i,j] = n_arr[i] * fac * exp( - 0.5 * v[j]**2 / T_arr[i] ) 
+
+
+#     cdef maxwellian(self, np.float64_t temperature, np.float64_t velocity, np.float64_t vOffset):
+#         return self.boltzmannian(temperature, 0.5 * pow(velocity+vOffset, 2))
+#     
+#     
+#     cdef boltzmannian(self, np.float64_t temperature, np.float64_t energy):
+#         return sqrt(0.5 / np.pi) * exp( - energy / temperature )
+
 

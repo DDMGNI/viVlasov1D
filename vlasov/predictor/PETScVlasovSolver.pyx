@@ -117,7 +117,7 @@ cdef class PETScVlasovSolverBase(object):
         
         
     
-    def update_history(self, Vec X):
+    cpdef update_history(self, Vec X):
         (xs, xe), = self.da2.getRanges()
         
         x = self.da2.getVecArray(X)
@@ -137,7 +137,7 @@ cdef class PETScVlasovSolverBase(object):
         self.toolbox.potential_to_hamiltonian(self.Ph, self.H1h)
         
     
-    def update_previous(self, Vec X):
+    cpdef update_previous(self, Vec X):
         (xs, xe), = self.da2.getRanges()
         
         x = self.da2.getVecArray(X)
@@ -158,34 +158,34 @@ cdef class PETScVlasovSolverBase(object):
         
         
     
-    def update_delta(self, Vec F):
+    cpdef update_delta(self, Vec F):
         (xs, xe), = self.da2.getRanges()
         
         F.copy(self.Fd)
         
         
     
-    def update_external(self, Vec Pext):
+    cpdef update_external(self, Vec Pext):
         self.H2p.copy(self.H2h)
         self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
         
     
-    def snes_mult(self, SNES snes, Vec X, Vec Y):
+    cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
         self.update_delta(X)
         self.jacobian(Y)
         
     
-    def mult(self, Mat mat, Vec X, Vec Y):
+    cpdef mult(self, Mat mat, Vec X, Vec Y):
         self.update_delta(X)
         self.jacobian(Y)
         
     
-    def function_snes_mult(self, SNES snes, Vec X, Vec Y):
+    cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y):
         self.update_delta(X)
         self.function(Y)
         
     
-    def function_mult(self, Vec X, Vec Y):
+    cpdef function_mult(self, Vec X, Vec Y):
         self.update_delta(X)
         self.function(Y)
         

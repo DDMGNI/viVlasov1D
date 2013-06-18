@@ -66,6 +66,10 @@ cdef class Toolbox(object):
                                    np.ndarray[np.float64_t, ndim=2] h0,
                                    np.ndarray[np.float64_t, ndim=2] h1)
     
+    cdef arakawa_J4_timestep_h(self, np.ndarray[np.float64_t, ndim=2] x,
+                                     np.ndarray[np.float64_t, ndim=2] y,
+                                     np.ndarray[np.float64_t, ndim=2] h)
+    
     
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
                                             np.uint64_t i, np.uint64_t j)
@@ -101,7 +105,16 @@ cdef class Toolbox(object):
                                    np.uint64_t i, np.uint64_t j)
     
 
+    cpdef potential_to_hamiltonian(self, Vec P, Vec H)
+    cpdef compute_density(self, Vec F, Vec N)
+    cpdef compute_velocity_density(self, Vec F, Vec U)
+    cpdef compute_energy_density(self, Vec F, Vec E)
+    cpdef compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A)
+
+
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n)
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u)
     cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e)
 
+#     cdef maxwellian(self, np.float64_t temperature, np.float64_t velocity, np.float64_t vOffset)
+#     cdef boltzmannian(self, np.float64_t temperature, np.float64_t energy)

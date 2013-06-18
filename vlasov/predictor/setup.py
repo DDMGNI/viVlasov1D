@@ -55,6 +55,22 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+               
+        Extension("PETScVlasovArakawaJ4",
+                  sources=["PETScVlasovArakawaJ4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+               
+        Extension("PETScNLVlasovArakawaJ1",
+                  sources=["PETScNLVlasovArakawaJ1.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScNLVlasovArakawaJ4",
                   sources=["PETScNLVlasovArakawaJ4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -62,6 +78,21 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+               
+#         Extension("PETScNLVlasovArakawaJ4kinetic",
+#                   sources=["PETScNLVlasovArakawaJ4kinetic.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS
+#                  ),
+#         Extension("PETScNLVlasovArakawaJ4potential",
+#                   sources=["PETScNLVlasovArakawaJ4potential.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS
+#                  ),
         
         Extension("PETScArakawaRK4",
                   sources=["PETScArakawaRK4.pyx"],
@@ -72,6 +103,13 @@ ext_modules = [
                  ),
         Extension("PETScArakawaGear",
                   sources=["PETScArakawaGear.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScArakawaSymplectic",
+                  sources=["PETScArakawaSymplectic.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
@@ -93,6 +131,13 @@ ext_modules = [
                  ),
         Extension("PETScPoissonMatrixJ4",
                   sources=["PETScPoissonMatrixJ4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScPoissonMatrixFD4",
+                  sources=["PETScPoissonMatrixFD4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,

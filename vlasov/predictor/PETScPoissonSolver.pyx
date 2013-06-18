@@ -23,13 +23,12 @@ cdef class PETScPoissonSolver(object):
     def __init__(self, VIDA da1, VIDA dax, 
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t hx, np.float64_t hv,
-                 np.float64_t poisson_const):
+                 np.float64_t charge):
         '''
         Constructor
         '''
         
         # disstributed array
-        self.da1 = da1
         self.dax = dax
         
         # grid
@@ -39,13 +38,15 @@ cdef class PETScPoissonSolver(object):
         self.hx = hx
         self.hv = hv
         
+        self.hx2     = hx**2
+        self.hx2_inv = 1. / self.hx2 
+        
         # poisson constant
-        self.poisson_const = poisson_const
-        self.eps = 1.E-3
+        self.charge = charge
         
         # create local vectors
         self.localX = dax.createLocalVec()
-        self.localF = da1.createLocalVec()
+        self.localN = dax.createLocalVec()
         
     
     def mult(self, Mat mat, Vec X, Vec Y):
@@ -61,30 +62,26 @@ cdef class PETScPoissonSolver(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        self.dax.globalToLocal(X, self.localX)
-        
-        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getVecArray(Y)[...]
-        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getVecArray(self.localX)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
         
         
         for i in np.arange(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) / self.hx**2
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv
         
     
     @cython.boundscheck(False)
-    def formRHS(self, Vec F, Vec B):
+    def formRHS(self, Vec N, Vec B):
         cdef np.int64_t i, ix, iy
         cdef np.int64_t xs, xe
         
-        cdef np.float64_t fsum = F.sum() * self.hv / self.nx
+        cdef np.float64_t nmean = N.sum() / self.nx
         
-        self.da1.globalToLocal(F, self.localF)
-        
-        cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getVecArray(B)[...]
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getVecArray(self.localF)[...]
+        cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getGlobalArray(B)
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
         
         
         (xs, xe), = self.dax.getRanges()
@@ -93,11 +90,5 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+2
             iy = i-xs
             
-            integral = ( \
-                         + 1. * f[ix-1, :].sum() \
-                         + 2. * f[ix,   :].sum() \
-                         + 1. * f[ix+1, :].sum() \
-                       ) * 0.25 * self.hv
-            
-            b[iy] = - (integral - fsum) * self.poisson_const
+            b[iy] = - ( n[ix] - nmean) * self.charge
         

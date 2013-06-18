@@ -111,4 +111,15 @@ cdef class PETScVlasovSolverBase(object):
     cdef Toolbox toolbox
     
     
+    cpdef update_history(self, Vec X)
+    cpdef update_previous(self, Vec X)
+    cpdef update_delta(self, Vec F)
+    cpdef update_external(self, Vec Pext)
+    
+    cpdef snes_mult(self, SNES snes, Vec X, Vec Y)
+    cpdef mult(self, Mat mat, Vec X, Vec Y)
+    
+    cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y)
+    cpdef function_mult(self, Vec X, Vec Y)
+    
     cdef get_data_arrays(self)

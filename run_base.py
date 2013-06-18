@@ -8,6 +8,8 @@ import sys
 import petsc4py
 petsc4py.init(sys.argv)
 
+import numpy as np
+
 from petsc4py import PETSc
 
 from vlasov.VIDA    import VIDA
@@ -16,9 +18,11 @@ from vlasov.Toolbox import Toolbox
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian
 
-from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
-from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
-from vlasov.predictor.PETScPoissonMatrixJ4  import PETScPoissonMatrix
+from vlasov.predictor.PETScArakawaRK4        import PETScArakawaRK4
+from vlasov.predictor.PETScArakawaGear       import PETScArakawaGear
+from vlasov.predictor.PETScArakawaSymplectic import PETScArakawaSymplectic
+from vlasov.predictor.PETScPoissonMatrixJ4   import PETScPoissonMatrix
+from vlasov.predictor.PETScPoissonMatrixFD4  import PETScPoissonMatrixFD
 
 
 class petscVP1Dbase():
@@ -32,10 +36,10 @@ class petscVP1Dbase():
         Constructor
         '''
         
-        # number of iterations for initial guess
-#         self.nInitial = 1
+#         number of iterations for initial guess
+        self.nInitial = 1
 #         self.nInitial = 4
-        self.nInitial = 10
+#         self.nInitial = 10
 #         self.nInitial = 100
         
         
@@ -88,6 +92,9 @@ class petscVP1Dbase():
         OptDB.setValue('snes_max_it', self.cfg['solver']['petsc_snes_max_iter'])
         
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Initialising Distributed Arrays.")
+            
         # create DA for 2d grid (f only)
         self.da1 = VIDA().create(dim=1, dof=self.nv,
                                        sizes=[self.nx],
@@ -211,14 +218,25 @@ class petscVP1Dbase():
         self.nullspace = PETSc.NullSpace().create(constant=False, vectors=(self.x_nvec,))
         
         
+        # create Toolbox
+        self.toolbox = Toolbox(self.da1, self.da2, self.dax, self.vGrid, self.nx, self.nv, self.ht, self.hx, self.hv)
+        
+        
         # initialise kinetic hamiltonian
-        h0_arr = self.da1.getVecArray(self.h0)
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Initialising kinetic Hamiltonian.")
+        h0_arr = self.da1.getGlobalArray(self.h0)
         
-        for i in range(xs, xe):
-            for j in range(0, self.nv):
-                h0_arr[i, j] = 0.5 * self.vGrid[j]**2 * self.mass
+#         self.toolbox.initialise_kinetic_hamiltonian(h0_arr, self.mass)
         
+        for i in np.arange(0, xe-xs):
+            for j in np.arange(0, self.nv):
+                h0_arr[i,j] = 0.5 * self.vGrid[j]**2 * self.mass
+                
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Instantiating Initial Guess Objects.")
+            
         # create Arakawa RK4 solver object
         self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.da2, self.dax,
                                            self.h0, self.vGrid,
@@ -228,49 +246,78 @@ class petscVP1Dbase():
                                              self.h0, self.vGrid,
                                              self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
         
-        # create Toolbox
-        self.toolbox = Toolbox(self.da1, self.da2, self.dax, self.vGrid, self.nx, self.nv, self.ht, self.hx, self.hv)
+        self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.da2, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Create Matrices.")
         
-        # initialise matrix
-        self.A = self.da2.createMat()
-        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.A.setUp()
-        self.A.setNullSpace(self.nullspace)
-
-        # initialise Jacobian
-        self.J = self.da2.createMat()
-        self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.J.setUp()
-        self.J.setNullSpace(self.nullspace)
+        # matrix place holders
+        self.A = None
+        self.J = None
 
 
         # create placeholder for solver object
         self.petsc_solver = None
         
-        # create Poisson object
-        self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
-                                              self.nx, self.nv, self.hx, self.hv,
-                                              self.charge)
-        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Instantiating Poisson Object.")
+            
         # initialise Poisson matrix
         self.poisson_A = self.dax.createMat()
         self.poisson_A.setOption(self.poisson_A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
         self.poisson_A.setUp()
         self.poisson_A.setNullSpace(self.p_nullspace)
         
+        self.poisson_fd_A = self.dax.createMat()
+        self.poisson_fd_A.setOption(self.poisson_A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+        self.poisson_fd_A.setUp()
+        self.poisson_fd_A.setNullSpace(self.p_nullspace)
+        
+        # create Poisson object
+        self.poisson_mat = PETScPoissonMatrix(self.da1, self.dax, 
+                                              self.nx, self.nv, self.hx, self.hv,
+                                              self.charge)
+        self.poisson_mat.formMat(self.poisson_A)
+        
+        self.poisson_mat_fd = PETScPoissonMatrixFD(self.da1, self.dax, 
+                                                   self.nx, self.nv, self.hx, self.hv,
+                                                   self.charge)
+        self.poisson_mat_fd.formMat(self.poisson_fd_A)
+        
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Create Poisson Solver.")
+            
         # create linear Poisson solver
         OptDB.setValue('ksp_rtol', 1E-13)
+
+#         OptDB.setValue('pc_gamg_type', 'agg')
+#         OptDB.setValue('pc_gamg_agg_nsmooths', '1')
+        
+#         OptDB.setValue('pc_hypre_type', 'boomeramg')
+
 
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
         self.poisson_ksp.setOperators(self.poisson_A)
+#         self.poisson_ksp.setType('gmres')
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
-        self.poisson_ksp.getPC().setType('none')
+#         self.poisson_ksp.getPC().setType('none')
+#         self.poisson_ksp.getPC().setType('gamg')
+        self.poisson_ksp.getPC().setType('hypre')
+#         self.poisson_ksp.getPC().setType('ml')
         
 #         self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
 #         self.poisson_ksp.setNullSpace(self.poisson_nsp)
+        
+        self.poisson_fd_ksp = PETSc.KSP().create()
+        self.poisson_fd_ksp.setFromOptions()
+        self.poisson_fd_ksp.setOperators(self.poisson_fd_A)
+        self.poisson_fd_ksp.setType('cg')
+        
         
         OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
         
@@ -306,9 +353,10 @@ class petscVP1Dbase():
         n0.setName('n0')
         T0.setName('T0')
         
-        n0_arr = self.dax.getVecArray(n0)
-        T0_arr = self.dax.getVecArray(T0)
-        f_arr  = self.da1.getVecArray(self.f)
+        n0_arr = self.dax.getGlobalArray(n0)
+        T0_arr = self.dax.getGlobalArray(T0)
+        f_arr  = self.da1.getGlobalArray(self.f)
+        x_arr  = self.dax.getGlobalArray(coords_x)
         
         
         if self.cfg['initial_data']['distribution_python'] != None:
@@ -317,15 +365,17 @@ class petscVP1Dbase():
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("Initialising distribution function with Python function.")
             
-            for i in range(xs, xe):
+#             self.toolbox.initialise_distribution_function(f_arr, x_arr, init_data.distribution)
+            
+            for i in range(0, xe-xs):
                 for j in range(0, self.nv):
                     if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
                     else:
                         f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
             
-            n0_arr[xs:xe] = 0.
-            T0_arr[xs:xe] = 0.
+            n0_arr[:] = 0.
+            T0_arr[:] = 0.
         
         else:
             if self.cfg['initial_data']['density_python'] != None:
@@ -334,11 +384,11 @@ class petscVP1Dbase():
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print("Initialising density with Python function.")
             
-                for i in range(xs, xe):
-                    n0_arr[i] = init_data.density(self.xGrid[i], L) 
+                for i in range(0, xe-xs):
+                    n0_arr[i] = init_data.density(x_arr[i], L) 
             
             else:
-                n0_arr[xs:xe] = self.cfg['initial_data']['density']            
+                n0_arr[:] = self.cfg['initial_data']['density']            
             
             
             if self.cfg['initial_data']['temperature_python'] != None:
@@ -347,17 +397,19 @@ class petscVP1Dbase():
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print("Initialising temperature with Python function.")
             
-                for i in range(xs, xe):
-                    T0_arr[i] = init_data.temperature(self.xGrid[i]) 
+                for i in range(0, xe-xs):
+                    T0_arr[i] = init_data.temperature(x_arr[i]) 
             
             else:
-                T0_arr[xs:xe] = self.cfg['initial_data']['temperature']            
+                T0_arr[:] = self.cfg['initial_data']['temperature']            
             
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("Initialising distribution function with Maxwellian.")
             
-            for i in range(xs, xe):
+#             self.toolbox.initialise_distribution_nT(f_arr, n0_arr, T0_arr)
+            
+            for i in range(0, xe-xs):
                 for j in range(0, self.nv):
                     if j <= 1 or j >= self.nv-2:
                         f_arr[i,j] = 0.0
@@ -452,7 +504,6 @@ class petscVP1Dbase():
     
     def calculate_potential(self, output=True):
         
-        self.poisson_mat.formMat(self.poisson_A)
         self.poisson_mat.formRHS(self.n, self.pb)
         self.poisson_ksp.solve(self.pb, self.p)
         
@@ -460,7 +511,23 @@ class petscVP1Dbase():
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Poisson:                            sum(phi) = %24.16E" % (phisum))
+                print("  Poisson:                               sum(phi) = %24.16E" % (phisum))
+    
+    
+    def calculate_potential_fd(self, output=True):
+        self.toolbox.compute_density(self.f, self.n)
+        
+        self.poisson_mat_fd.formRHS(self.n, self.pb)
+        self.poisson_fd_ksp.solve(self.pb, self.p)
+        
+        self.copy_p_to_h()
+        
+        
+        if output:
+            phisum = self.p.sum()
+            
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("  Poisson:                               sum(phi) = %24.16E" % (phisum))
     
     
     def calculate_external(self, t):
@@ -595,6 +662,73 @@ class petscVP1Dbase():
         self.hdf5_viewer(self.h2)
 
     
+    def initial_guess_symplectic2(self):
+        # calculate initial guess for distribution function
+
+        for i in range(0, self.nInitial):
+            
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
+            self.copy_f_to_x()
+            self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, 1.0)
+
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
+            self.copy_f_to_x()
+            self.calculate_moments(output=False)
+            
+            
+        self.petsc_solver.function_mult(self.x, self.b)
+        ignorm = self.b.norm()
+        phisum = self.p.sum()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("                                             sum(phi) = %24.16E" % (phisum))
+         
+    
+    def initial_guess_symplectic4(self):
+        # calculate initial guess for distribution function
+        
+        fac2 = 2.**(1./3.)
+        
+        c1 = 0.5 / ( 2. - fac2 )
+        c2 = c1  * ( 1. - fac2 )
+        c3 = c2
+        c4 = c1
+        
+        d1 = 1. / ( 2. - fac2 )
+        d2 = - d1 * fac2
+        d3 = d1
+        
+        
+        for i in range(0, self.nInitial):
+            
+            self.arakawa_symplectic.kinetic(self.f, c1)
+            self.calculate_potential_fd(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d1)
+            
+            self.arakawa_symplectic.kinetic(self.f, c2)
+            self.calculate_potential_fd(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d2)
+            
+            self.arakawa_symplectic.kinetic(self.f, c3)
+            self.calculate_potential_fd(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d3)
+            
+            self.arakawa_symplectic.kinetic(self.f, c4)
+            self.copy_f_to_x()
+            self.calculate_moments(output=False)
+            
+            
+        self.petsc_solver.function_mult(self.x, self.b)
+        ignorm = self.b.norm()
+        phisum = self.p.sum()
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("                                             sum(phi) = %24.16E" % (phisum))
+         
+    
     def initial_guess_rk4(self):
         # calculate initial guess for distribution function
 
@@ -603,21 +737,20 @@ class petscVP1Dbase():
 #             self.arakawa_rk4.rk4_J2(self.f, self.h1)
             self.arakawa_rk4.rk4_J4(self.f, self.h1)
             
-            self.copy_f_to_x()
-            
-            self.calculate_moments(output=False)
-                
             if i < self.nInitial-1:
+                self.calculate_potential_fd(output=False)
                 self.arakawa_gear.update_history(self.f, self.h1)
         
+        self.copy_f_to_x()
+        self.calculate_moments(output=False)
         
         self.petsc_solver.function_mult(self.x, self.b)
         ignorm = self.b.norm()
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  RK4 Initial Guess:                      funcnorm = %24.16E" % (ignorm))
-            print("                                          sum(phi) = %24.16E" % (phisum))
+            print("  RK4 Initial Guess:                         funcnorm = %24.16E" % (ignorm))
+            print("                                             sum(phi) = %24.16E" % (phisum))
          
     
     def initial_guess_gear(self, itime):
@@ -636,21 +769,20 @@ class petscVP1Dbase():
             for i in range(0, self.nInitial):
                 gear(self.f)
                 
-                self.copy_f_to_x()
-                
-                self.calculate_moments(output=False)
-                
                 if i < self.nInitial-1:
+                    self.calculate_potential_fd(output=False)
                     self.arakawa_gear.update_history(self.f, self.h1)
             
+            self.copy_f_to_x()
+            self.calculate_moments(output=False)
             
             self.petsc_solver.function_mult(self.x, self.b)
             ignorm = self.b.norm()
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Gear Initial Guess:                     funcnorm = %24.16E" % (ignorm))
-                print("                                          sum(phi) = %24.16E" % (phisum))
+                print("  Gear Initial Guess:                        funcnorm = %24.16E" % (ignorm))
+                print("                                             sum(phi) = %24.16E" % (phisum))
          
         
         

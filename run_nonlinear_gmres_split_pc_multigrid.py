@@ -54,23 +54,23 @@ class petscVP1Dgmres(petscVP1Dbase):
 
         OptDB = PETSc.Options()
         
-#         OptDB.setValue('ksp_monitor',  '')
+        OptDB.setValue('ksp_monitor',  '')
 #         OptDB.setValue('snes_monitor', '')
         
 #        OptDB.setValue('log_info',    '')
 #        OptDB.setValue('log_summary', '')
         
-        # initialise matrix
-        self.A = self.da2.createMat()
-        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.A.setUp()
-        self.A.setNullSpace(self.nullspace)
-
-        # initialise Jacobian
-        self.J = self.da2.createMat()
-        self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.J.setUp()
-        self.J.setNullSpace(self.nullspace)
+#         # initialise matrix
+#         self.A = self.da2.createMat()
+#         self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+#         self.A.setUp()
+#         self.A.setNullSpace(self.nullspace)
+# 
+#         # initialise Jacobian
+#         self.J = self.da2.createMat()
+#         self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+#         self.J.setUp()
+#         self.J.setNullSpace(self.nullspace)
         
         # create RHS vector for predictor
         self.bpred = self.da1.createGlobalVec()
@@ -105,12 +105,24 @@ class petscVP1Dgmres(petscVP1Dbase):
         # create nonlinear predictor solver
         OptDB.setValue('ksp_rtol', 1E-13)
 
-#         OptDB.setValue('sub_ksp_type', 'gmres')
-#         OptDB.setValue('sub_pc_type', 'none')
+#         OptDB.setValue('pc_mg_type', 'multiplicative')
+#         OptDB.setValue('pc_mg_type', 'additive')
+#         OptDB.setValue('pc_mg_type', 'full')
 
-#         OptDB.setValue('sub_ksp_type', 'preonly')
-#         OptDB.setValue('sub_pc_type', 'ilu')
-#         OptDB.setValue('sub_pc_factor_levels', 1)
+#         OptDB.setValue('mg_coarse_pc_type', 'svd')
+#         OptDB.setValue('mg_levels_pc_type', 'sor')
+
+#         OptDB.setValue('mg_coarse_pc_type', 'lu')
+#         OptDB.setValue('mg_levels_0_pc_type', 'lu')
+#         OptDB.setValue('mg_levels_1_sub_pc_type', 'cholesky')
+#         OptDB.setValue('mg_coarse_pc_factor_mat_solver_package', 'mumps')
+#         OptDB.setValue('mg_levels_0_pc_factor_mat_solver_package', 'mumps')
+         
+#         OptDB.setValue('mg_levels_pc_type', 'gmres')
+
+#         OptDB.setValue('pc_mg_levels', '1')
+#         OptDB.setValue('pc_mg_cycles', 'v')
+#         OptDB.setValue('pc_mg_galerkin', '')
 
         self.snes_pred = PETSc.SNES().create()
         self.snes_pred.setType('ksponly')
@@ -119,25 +131,38 @@ class petscVP1Dgmres(petscVP1Dbase):
         self.snes_pred.setFromOptions()
         self.snes_pred.getKSP().setType('gmres')
         self.snes_pred.getKSP().getPC().setType('none')
-#         self.snes_pred.getKSP().getPC().setType('jacobi')
-#         self.snes_pred.getKSP().getPC().setType('bjacobi')
-#         self.snes_pred.getKSP().getPC().setType('asm')
+#         self.snes_pred.getKSP().getPC().setType('gamg')
+#         self.snes_pred.getKSP().getPC().setType('hypre')
+#         self.snes_pred.getKSP().getPC().setType('ml')
+        
+        self.poisson_ksp = PETSc.KSP().create()
+        self.poisson_ksp.setFromOptions()
+        self.poisson_ksp.setOperators(self.poisson_A)
+#         self.poisson_ksp.setType('gmres')
+        self.poisson_ksp.setType('cg')
+#         self.poisson_ksp.setType('bcgs')
+#         self.poisson_ksp.setType('ibcgs')
+#         self.poisson_ksp.getPC().setType('none')
+#         self.poisson_ksp.getPC().setType('gamg')
+        self.poisson_ksp.getPC().setType('hypre')
+#         self.poisson_ksp.getPC().setType('ml')
+        
         
         OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
         
-        # create nonlinear solver
-        self.snes = PETSc.SNES().create()
-        self.snes.setFunction(self.petsc_solver.function_snes_mult, self.b)
-#         self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
-        self.snes.setJacobian(self.updateJacobian, self.J)
-        self.snes.setFromOptions()
-        self.snes.getKSP().setType('gmres')
-        self.snes.getKSP().getPC().setType('none')
-#         self.snes.getKSP().getPC().setType('bjacobi')
-#         self.snes.getKSP().getPC().setType('asm')
-        
-#        self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
-#        self.snes.getKSP().setNullSpace(self.snes_nsp)
+#         # create nonlinear solver
+#         self.snes = PETSc.SNES().create()
+#         self.snes.setFunction(self.petsc_solver.function_snes_mult, self.b)
+# #         self.snes.setJacobian(self.updateJacobian, self.Jmf, self.J)
+#         self.snes.setJacobian(self.updateJacobian, self.J)
+#         self.snes.setFromOptions()
+#         self.snes.getKSP().setType('gmres')
+#         self.snes.getKSP().getPC().setType('none')
+# #         self.snes.getKSP().getPC().setType('bjacobi')
+# #         self.snes.getKSP().getPC().setType('asm')
+#         
+# #        self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
+# #        self.snes.getKSP().setNullSpace(self.snes_nsp)
         
         
         
@@ -232,24 +257,24 @@ class petscVP1Dgmres(petscVP1Dbase):
                     break
             
             # nonlinear solve
-            self.snes.solve(None, self.x)
+#             self.snes.solve(None, self.x)
             
             # update data vectors
             self.copy_x_to_data()
             
-            # output some solver info
-            phisum = self.p.sum()
-            
-            if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Nonlinear Solver: %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
-                print("                    %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum))
-                print()
-            
-            if self.snes.getConvergedReason() < 0:
-                if PETSc.COMM_WORLD.getRank() == 0:
-                    print()
-                    print("Solver not converging...   %i" % (self.snes.getConvergedReason()))
-                    print()
+#             # output some solver info
+#             phisum = self.p.sum()
+#             
+#             if PETSc.COMM_WORLD.getRank() == 0:
+#                 print("  Nonlinear Solver: %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
+#                 print("                    %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum))
+#                 print()
+#             
+#             if self.snes.getConvergedReason() < 0:
+#                 if PETSc.COMM_WORLD.getRank() == 0:
+#                     print()
+#                     print("Solver not converging...   %i" % (self.snes.getConvergedReason()))
+#                     print()
             
             
             # update history

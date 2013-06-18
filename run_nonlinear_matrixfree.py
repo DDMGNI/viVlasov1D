@@ -25,7 +25,7 @@ solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
-class petscVP1Dgmres(petscVP1Dbase):
+class petscVP1Dmatrixfree(petscVP1Dbase):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -207,6 +207,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dgmres(args.runfile)
+    petscvp = petscVP1Dmatrixfree(args.runfile)
     petscvp.run()
     
