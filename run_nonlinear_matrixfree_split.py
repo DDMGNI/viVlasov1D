@@ -93,7 +93,7 @@ class petscVP1Dmatrixfree(petscVP1Dbase):
 
 
         # create nonlinear predictor solver
-        OptDB.setValue('ksp_rtol', 1E-13)
+#         OptDB.setValue('ksp_rtol', 1E-13)
 
         self.snes = PETSc.SNES().create()
         self.snes.setType('ksponly')
@@ -103,7 +103,7 @@ class petscVP1Dmatrixfree(petscVP1Dbase):
         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().getPC().setType('none')
         
-        OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
+#         OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
         
         
         self.petsc_poisson_solver = PETScPoissonSolver(self.da1, self.dax,
@@ -155,7 +155,7 @@ class petscVP1Dmatrixfree(petscVP1Dbase):
             prev_norm = self.b.norm()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Previous Step:                          funcnorm = %24.16E" % (prev_norm))
+                print("  Previous Step:                             funcnorm = %24.16E" % (prev_norm))
             
             # calculate initial guess via RK4
             self.initial_guess_rk4()

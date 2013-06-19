@@ -227,11 +227,11 @@ class petscVP1Dbase():
             print("Initialising kinetic Hamiltonian.")
         h0_arr = self.da1.getGlobalArray(self.h0)
         
-#         self.toolbox.initialise_kinetic_hamiltonian(h0_arr, self.mass)
+        self.toolbox.initialise_kinetic_hamiltonian(h0_arr, self.mass)
         
-        for i in np.arange(0, xe-xs):
-            for j in np.arange(0, self.nv):
-                h0_arr[i,j] = 0.5 * self.vGrid[j]**2 * self.mass
+#         for i in np.arange(0, xe-xs):
+#             for j in np.arange(0, self.nv):
+#                 h0_arr[i,j] = 0.5 * self.vGrid[j]**2 * self.mass
                 
         
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -365,14 +365,14 @@ class petscVP1Dbase():
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("Initialising distribution function with Python function.")
             
-#             self.toolbox.initialise_distribution_function(f_arr, x_arr, init_data.distribution)
+            self.toolbox.initialise_distribution_function(f_arr, x_arr, init_data.distribution)
             
-            for i in range(0, xe-xs):
-                for j in range(0, self.nv):
-                    if j <= 1 or j >= self.nv-2:
-                        f_arr[i,j] = 0.0
-                    else:
-                        f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
+#             for i in range(0, xe-xs):
+#                 for j in range(0, self.nv):
+#                     if j <= 1 or j >= self.nv-2:
+#                         f_arr[i,j] = 0.0
+#                     else:
+#                         f_arr[i,j] = init_data.distribution(self.xGrid[i], self.vGrid[j]) 
             
             n0_arr[:] = 0.
             T0_arr[:] = 0.
@@ -407,14 +407,14 @@ class petscVP1Dbase():
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("Initialising distribution function with Maxwellian.")
             
-#             self.toolbox.initialise_distribution_nT(f_arr, n0_arr, T0_arr)
+            self.toolbox.initialise_distribution_nT(f_arr, n0_arr, T0_arr)
             
-            for i in range(0, xe-xs):
-                for j in range(0, self.nv):
-                    if j <= 1 or j >= self.nv-2:
-                        f_arr[i,j] = 0.0
-                    else:
-                        f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
+#             for i in range(0, xe-xs):
+#                 for j in range(0, self.nv):
+#                     if j <= 1 or j >= self.nv-2:
+#                         f_arr[i,j] = 0.0
+#                     else:
+#                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
         
         
         # normalise f to fit density and copy f to x

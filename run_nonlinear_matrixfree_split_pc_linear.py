@@ -66,7 +66,7 @@ class petscVP1Dmatrixfree(petscVP1Dbase):
         
         OptDB.setValue('snes_ls', 'basic')
 
-#         OptDB.setValue('ksp_monitor',  '')
+        OptDB.setValue('ksp_monitor',  '')
 #         OptDB.setValue('snes_monitor', '')
         
 #        OptDB.setValue('log_info',    '')
