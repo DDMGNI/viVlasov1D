@@ -81,6 +81,7 @@ cdef class PETScVlasovJacobian(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def mult(self, Mat mat, Vec X, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
@@ -106,11 +107,11 @@ cdef class PETScVlasovJacobian(object):
         cdef np.ndarray[np.float64_t, ndim=2] hh = h0 + h1h
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            for j in np.arange(ys, ye):
+            for j in range(ys, ye):
                 jx = j-ys
                 jy = j-ys
             

@@ -98,10 +98,10 @@ class Hamiltonian(object):
         Epot = 0.0
         
         if f != None:
-            for ix in np.arange(0, nx):
+            for ix in range(0, nx):
                 ixp = (ix+1) % nx
                 
-                for iv in np.arange(0, nv-1):
+                for iv in range(0, nv-1):
                     
                     Ekin += ( 
                             + f[ix,  iv  ]
@@ -148,11 +148,11 @@ class Hamiltonian(object):
         Epot = 0.0
         
         if f != None:
-            for ix in np.arange(0, nx):
+            for ix in range(0, nx):
                 ixm = (ix-1+nx) % nx
                 ixp = (ix+1+nx) % nx
                 
-                for iv in np.arange(1, nv-1):
+                for iv in range(1, nv-1):
                     
                     Ekin += ( 
                               + f[ixm, iv  ]
@@ -199,11 +199,11 @@ class Hamiltonian(object):
         Epot = 0.0
         
         if f != None:
-            for ix in np.arange(0, nx):
+            for ix in range(0, nx):
                 ixm = (ix-1+nx) % nx
                 ixp = (ix+1+nx) % nx
                 
-                for iv in np.arange(1, nv-1):
+                for iv in range(1, nv-1):
                     
                     Ekin += ( 
                               + f[ixm, iv  ]
@@ -256,8 +256,8 @@ class Hamiltonian(object):
         Epot = 0.0
         
         if f != None:
-            for ix in np.arange(0, nx):
-                for iv in np.arange(0, nv):
+            for ix in range(0, nx):
+                for iv in range(0, nv):
                     
                     Ekin += f[ix,  iv  ] * h0[ix,  iv  ]
                     Epot += f[ix,  iv  ] * h1[ix,  iv  ]
@@ -315,10 +315,10 @@ class Hamiltonian(object):
         self.P = 0.0
         
         if self.f != None:
-            for ix in np.arange(0, nx):
+            for ix in range(0, nx):
                 ixp = (ix+1) % nx
                 
-                for iv in np.arange(0, nv-1):
+                for iv in range(0, nv-1):
                     
                     self.P += f[ix, iv] * self.grid.vGrid[iv]
 

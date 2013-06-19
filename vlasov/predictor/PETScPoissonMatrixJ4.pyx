@@ -52,6 +52,7 @@ cdef class PETScPoissonMatrix(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j
         cdef np.int64_t xe, xs
@@ -65,7 +66,7 @@ cdef class PETScPoissonMatrix(object):
         
         
         # Laplace operator
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             row.index = (i,)
             row.field = 0
             col.field = 0
@@ -104,6 +105,7 @@ cdef class PETScPoissonMatrix(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formRHS(self, Vec N, Vec B):
         cdef np.int64_t i, ix, iy
         cdef np.int64_t xs, xe
@@ -116,7 +118,7 @@ cdef class PETScPoissonMatrix(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             

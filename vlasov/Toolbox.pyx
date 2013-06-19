@@ -53,6 +53,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t arakawa_J1(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.ndarray[np.float64_t, ndim=2] h,
                                        np.uint64_t i, np.uint64_t j):
@@ -81,6 +82,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t arakawa_J2(self, np.ndarray[np.float64_t, ndim=2] f,
                                        np.ndarray[np.float64_t, ndim=2] h,
                                        np.uint64_t i, np.uint64_t j):
@@ -121,6 +123,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
                                    np.ndarray[np.float64_t, ndim=2] h0,
@@ -134,8 +137,8 @@ cdef class Toolbox(object):
         (xs, xe), = self.da1.getRanges()
         
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -150,6 +153,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
                                    np.ndarray[np.float64_t, ndim=2] h0,
@@ -163,8 +167,8 @@ cdef class Toolbox(object):
         (xs, xe), = self.da1.getRanges()
         
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -179,6 +183,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
                                    np.ndarray[np.float64_t, ndim=2] y,
                                    np.ndarray[np.float64_t, ndim=2] h0,
@@ -196,8 +201,8 @@ cdef class Toolbox(object):
         (xs, xe), = self.da1.getRanges()
         
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -244,6 +249,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef arakawa_J4_timestep_h(self, np.ndarray[np.float64_t, ndim=2] x,
                                      np.ndarray[np.float64_t, ndim=2] y,
                                      np.ndarray[np.float64_t, ndim=2] h):
@@ -258,8 +264,8 @@ cdef class Toolbox(object):
         (xs, xe), = self.da1.getRanges()
         
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -306,6 +312,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
                                             np.uint64_t i, np.uint64_t j):
         '''
@@ -317,6 +324,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t collT1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
                                    np.ndarray[np.float64_t, ndim=1] U,
@@ -332,6 +340,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t collT2(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
                                    np.ndarray[np.float64_t, ndim=1] U,
@@ -347,6 +356,7 @@ cdef class Toolbox(object):
 
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t collE1(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
                                    np.ndarray[np.float64_t, ndim=1] U,
@@ -362,6 +372,7 @@ cdef class Toolbox(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef np.float64_t collE2(self, np.ndarray[np.float64_t, ndim=2] f,
                                    np.ndarray[np.float64_t, ndim=1] N,
                                    np.ndarray[np.float64_t, ndim=1] U,
@@ -387,7 +398,7 @@ cdef class Toolbox(object):
         phisum = P.sum()
         phiave = phisum / self.nx
         
-        for j in np.arange(0, self.nv):
+        for j in range(0, self.nv):
             h[xs:xe, j] = p[xs:xe] - phiave
 
 
@@ -421,16 +432,18 @@ cdef class Toolbox(object):
         a[:] = n**2 / (n*e - u**2)
     
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(0, xe-xs):
+        for i in range(0, xe-xs):
             n[i] = 0.
             
-            for j in np.arange(0, (self.nv-1)/2):
+            for j in range(0, (self.nv-1)/2):
                 n[i] += f[i,j] + f[i, self.nv-1-j]
 
             n[i] += f[i, (self.nv-1)/2]
@@ -438,6 +451,8 @@ cdef class Toolbox(object):
             n[i] *= self.hv
     
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe
@@ -446,10 +461,10 @@ cdef class Toolbox(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(0, xe-xs):
+        for i in range(0, xe-xs):
             u[i] = 0.
             
-            for j in np.arange(0, (self.nv-1)/2):
+            for j in range(0, (self.nv-1)/2):
                 u[i] += v[j] * f[i,j] + v[self.nv-1-j] * f[i, self.nv-1-j]
 
             u[i] += v[(self.nv-1)/2] * f[i, (self.nv-1)/2]
@@ -457,6 +472,8 @@ cdef class Toolbox(object):
             u[i] *= self.hv
     
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe
@@ -465,10 +482,10 @@ cdef class Toolbox(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(0, xe-xs):
+        for i in range(0, xe-xs):
             e[i] = 0.
             
-            for j in np.arange(0, (self.nv-1)/2):
+            for j in range(0, (self.nv-1)/2):
                 e[i] += v[j]**2 * f[i,j] + v[self.nv-1-j]**2 * f[i, self.nv-1-j]
 
             e[i] += v[(self.nv-1)/2]**2 * f[i, (self.nv-1)/2]
@@ -477,57 +494,57 @@ cdef class Toolbox(object):
     
 
 
-#     def initialise_kinetic_hamiltonian(self, np.ndarray[np.float64_t, ndim=2] h_arr,
-#                                              np.float64_t mass):
-#         cdef np.uint64_t i, j
-#         cdef np.uint64_t xs, xe
-#         
-#         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-#        
-#         (xs, xe), = self.da1.getRanges()
-# 
-#         for i in np.arange(0, xe-xs):
-#             for j in np.arange(0, self.nv):
-#                 h_arr[i,j] = 0.5 * v[j]**2 * mass
-# 
-# 
-#     def initialise_distribution_function(self, np.ndarray[np.float64_t, ndim=2] f_arr,
-#                                                np.ndarray[np.float64_t, ndim=1] xGrid,
-#                                                init_function):
-#         cdef np.uint64_t i, j
-#         cdef np.uint64_t xs, xe
-#         
-#         cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
-#        
-#         (xs, xe), = self.da1.getRanges()
-# 
-#         for i in np.arange(0, xe-xs):
-#             for j in np.arange(0, self.nv):
-#                 if j <= 1 or j >= self.nv-2:
-#                     f_arr[i,j] = 0.0
-#                 else:
-#                     f_arr[i,j] = init_function(xGrid[i], vGrid[j]) 
-# 
-# 
-#     def initialise_distribution_nT(self, np.ndarray[np.float64_t, ndim=2] f_arr,
-#                                          np.ndarray[np.float64_t, ndim=1] n_arr,
-#                                          np.ndarray[np.float64_t, ndim=1] T_arr):
-#         cdef np.uint64_t i, j
-#         cdef np.uint64_t xs, xe
-#         
-#         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-#         
-#         cdef np.float64_t pi  = np.pi
-#         cdef np.float64_t fac = sqrt(0.5 / pi)
-#         
-#         (xs, xe), = self.da1.getRanges()
-# 
-#         for i in np.arange(0, xe-xs):
-#             for j in np.arange(0, self.nv):
-#                 if j <= 1 or j >= self.nv-2:
-#                     f_arr[i,j] = 0.0
-#                 else:
-#                     f_arr[i,j] = n_arr[i] * fac * exp( - 0.5 * v[j]**2 / T_arr[i] ) 
+    def initialise_kinetic_hamiltonian(self, np.ndarray[np.float64_t, ndim=2] h_arr,
+                                             np.float64_t mass):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+         
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        
+        (xs, xe), = self.da1.getRanges()
+ 
+        for i in range(0, xe-xs):
+            for j in range(0, self.nv):
+                h_arr[i,j] = 0.5 * v[j]**2 * mass
+ 
+ 
+    def initialise_distribution_function(self, np.ndarray[np.float64_t, ndim=2] f_arr,
+                                               np.ndarray[np.float64_t, ndim=1] xGrid,
+                                               init_function):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+         
+        cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
+        
+        (xs, xe), = self.da1.getRanges()
+ 
+        for i in range(0, xe-xs):
+            for j in range(0, self.nv):
+                if j <= 1 or j >= self.nv-2:
+                    f_arr[i,j] = 0.0
+                else:
+                    f_arr[i,j] = init_function(xGrid[i], vGrid[j]) 
+ 
+ 
+    def initialise_distribution_nT(self, np.ndarray[np.float64_t, ndim=2] f_arr,
+                                         np.ndarray[np.float64_t, ndim=1] n_arr,
+                                         np.ndarray[np.float64_t, ndim=1] T_arr):
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+         
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+         
+        cdef np.float64_t pi  = np.pi
+        cdef np.float64_t fac = sqrt(0.5 / pi)
+         
+        (xs, xe), = self.da1.getRanges()
+ 
+        for i in range(0, xe-xs):
+            for j in range(0, self.nv):
+                if j <= 1 or j >= self.nv-2:
+                    f_arr[i,j] = 0.0
+                else:
+                    f_arr[i,j] = n_arr[i] * fac * exp( - 0.5 * v[j]**2 / T_arr[i] ) 
 
 
 #     cdef maxwellian(self, np.float64_t temperature, np.float64_t velocity, np.float64_t vOffset):

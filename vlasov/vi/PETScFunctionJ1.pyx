@@ -134,6 +134,7 @@ cdef class PETScFunction(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def mult(self, Vec X, Vec Y):
         cdef np.float64_t phisum, phiave
         
@@ -161,7 +162,7 @@ cdef class PETScFunction(object):
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
         
-        for j in np.arange(0, self.nv):
+        for j in range(0, self.nv):
             h1[xs:xe, j] = p[xs:xe] - phiave
         
         
@@ -169,6 +170,7 @@ cdef class PETScFunction(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def matrix_mult(self, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy
@@ -226,7 +228,7 @@ cdef class PETScFunction(object):
         
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
@@ -244,7 +246,7 @@ cdef class PETScFunction(object):
             
             
             # Vlasov equation
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]

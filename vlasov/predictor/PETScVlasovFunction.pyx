@@ -73,6 +73,7 @@ cdef class PETScVlasovFunction(object):
         
     
 #    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def matrix_mult(self, Vec F, Vec H1, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy, jx, jy
@@ -95,11 +96,11 @@ cdef class PETScVlasovFunction(object):
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            for j in np.arange(ys, ye):
+            for j in range(ys, ye):
                 jx = j-ys
                 jy = j-ys
             

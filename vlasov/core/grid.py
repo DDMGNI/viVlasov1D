@@ -53,7 +53,7 @@ class Grid(object):
             self.ht   = ht
             self.nt   = nt
             
-            self.tGrid = ht * np.arange( 0, nt+1 )
+            self.tGrid = ht * range( 0, nt+1 )
             self.xGrid = np.linspace(  0.0,    L, nx, endpoint=False )
             self.vGrid = np.linspace( vMin, vMax, nv, endpoint=True  )
             

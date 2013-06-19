@@ -68,6 +68,7 @@ cdef class PETScVlasovMatrix(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formMat(self, Mat A, Vec H1):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs, ye, ys
@@ -88,10 +89,10 @@ cdef class PETScVlasovMatrix(object):
         (xs, xe), = self.da1.getRanges()
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 
                 row.index = (i,)
                 row.field = j
@@ -126,6 +127,7 @@ cdef class PETScVlasovMatrix(object):
         
         
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formRHS(self, Vec B, Vec Fh, Vec H1):
         cdef np.int64_t ix, jx
         cdef np.int64_t xs, xe, ys, ye
@@ -144,11 +146,11 @@ cdef class PETScVlasovMatrix(object):
         
         (xs, xe), = self.da1.getRanges()
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 
                 if j == 0 or j == self.nv-1:
                     # Dirichlet boundary conditions

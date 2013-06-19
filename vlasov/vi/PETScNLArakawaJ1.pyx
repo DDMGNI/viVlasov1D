@@ -22,6 +22,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
     '''
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formJacobian(self, Mat A):
         cdef npy.int64_t i, j, ix
         cdef npy.int64_t xe, xs
@@ -54,7 +55,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
         
         
         # Poisson equation
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             row.index = (i,)
             row.field = self.nv
             
@@ -78,7 +79,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
             
         
         # moments
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
@@ -91,7 +92,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - 1. * self.hv)
              
@@ -102,7 +103,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j] * self.hv)
             
@@ -113,20 +114,20 @@ cdef class PETScArakawaJ1(PETScSolverBase):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
             
         
         # Vlasov Equation
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
 #             col.index = (i,)
                 
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 row.field = j
                 
                 # Dirichlet boundary conditions
@@ -191,6 +192,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
 
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def function(self, Vec Y):
         cdef npy.uint64_t i, j
         cdef npy.uint64_t ix, iy
@@ -212,7 +214,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1d + self.h1h) + 0.5 * (self.h2p + self.h2h)
         
         
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
@@ -227,7 +229,7 @@ cdef class PETScArakawaJ1(PETScSolverBase):
             
             
             # Vlasov equation
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = self.fp[ix,j]

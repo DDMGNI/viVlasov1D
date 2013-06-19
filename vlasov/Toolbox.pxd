@@ -111,7 +111,6 @@ cdef class Toolbox(object):
     cpdef compute_energy_density(self, Vec F, Vec E)
     cpdef compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A)
 
-
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n)
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u)
     cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e)

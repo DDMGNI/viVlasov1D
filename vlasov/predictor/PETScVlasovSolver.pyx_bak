@@ -86,6 +86,7 @@ cdef class PETScVlasovSolver(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def matrix_mult(self, Vec F, Vec Y):
         cdef np.int64_t i, j
         cdef np.int64_t ix, jx
@@ -108,11 +109,11 @@ cdef class PETScVlasovSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getVecArray(self.localH1h)[...]
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
             
                 if j == 0 or j == self.nv-1:
                     # Dirichlet Boundary Conditions
@@ -127,6 +128,7 @@ cdef class PETScVlasovSolver(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formRHS(self, Vec B):
         cdef np.int64_t i, j, ix, jx
         cdef np.int64_t xs, xe
@@ -141,11 +143,11 @@ cdef class PETScVlasovSolver(object):
         cdef np.ndarray[np.float64_t, ndim=2] fh  = self.da1.getVecArray(self.localFh )[...]
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 
                 if j == 0 or j == self.nv-1:
                     # Dirichlet boundary conditions

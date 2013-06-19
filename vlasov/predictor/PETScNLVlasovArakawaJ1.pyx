@@ -22,6 +22,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     '''
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formJacobian(self, Mat A):
         cdef npy.int64_t i, j, ix
         cdef npy.int64_t xe, xs
@@ -56,12 +57,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         # Vlasov Equation
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
                 
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 row.field = j
                 
                 # Dirichlet boundary conditions
@@ -101,6 +102,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def jacobian(self, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
@@ -120,12 +122,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
             # Vlasov equation
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = f[ix,j]
@@ -157,6 +159,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def function(self, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
@@ -179,12 +182,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                                                 + 0.5 * (self.h2p + self.h2h)
         
         
-        for i in npy.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
             # Vlasov equation
-            for j in npy.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]

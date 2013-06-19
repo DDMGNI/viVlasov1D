@@ -141,7 +141,7 @@ class Potential(object):
         
         E = 0.0
         
-        for ix in np.arange(0, nx):
+        for ix in range(0, nx):
             ixp = (ix+1) % nx
             
             E += pow(tphi[ixp] - tphi[ix], 2)

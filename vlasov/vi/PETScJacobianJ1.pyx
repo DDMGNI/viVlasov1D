@@ -131,7 +131,7 @@ cdef class PETScJacobian(object):
         phisum = self.Pp.sum()
         phiave = phisum / self.nx
         
-        for j in np.arange(0, self.nv):
+        for j in range(0, self.nv):
             h1[xs:xe, j] = p[xs:xe] - phiave
         
         
@@ -142,6 +142,7 @@ cdef class PETScJacobian(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs
@@ -202,7 +203,7 @@ cdef class PETScJacobian(object):
         
         
         # Poisson equation
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             row.index = (i,)
             row.field = self.nv
             
@@ -231,7 +232,7 @@ cdef class PETScJacobian(object):
         
         
         # moments
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
@@ -244,7 +245,7 @@ cdef class PETScJacobian(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - 1. * self.hv)
              
@@ -255,7 +256,7 @@ cdef class PETScJacobian(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j] * self.hv)
             
@@ -266,14 +267,14 @@ cdef class PETScJacobian(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
         
         
         
         # Vlasov Equation
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
@@ -286,7 +287,7 @@ cdef class PETScJacobian(object):
                 coll2_fac = - 4.0 *  0.5 * self.nu * 0.25 * self.hv2_inv
             
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 row.field = j
                 
                 # Dirichlet boundary conditions

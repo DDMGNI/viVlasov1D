@@ -54,6 +54,7 @@ cdef class PETScPoissonSolver(object):
     
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef np.int64_t i, ix, iy
         cdef np.int64_t xe, xs
@@ -66,7 +67,7 @@ cdef class PETScPoissonSolver(object):
         cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
@@ -74,6 +75,7 @@ cdef class PETScPoissonSolver(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formRHS(self, Vec N, Vec B):
         cdef np.int64_t i, ix, iy
         cdef np.int64_t xs, xe
@@ -86,7 +88,7 @@ cdef class PETScPoissonSolver(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             

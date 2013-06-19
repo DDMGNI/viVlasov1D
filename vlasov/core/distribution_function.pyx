@@ -273,10 +273,10 @@ class DistributionFunction(object):
         else:
             f = f0
             
-        for ix in np.arange(0, nx):
+        for ix in range(0, nx):
             ixp = (ix+1) % nx
             
-            for iv in np.arange(0, nv-1):
+            for iv in range(0, nv-1):
                 N += (f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
             
         
@@ -307,10 +307,10 @@ class DistributionFunction(object):
         L2 = 0.0
         
         if f0 == None:
-            for ix in np.arange(0, nx):
+            for ix in range(0, nx):
                 ixp = (ix+1) % nx
                 
-                for iv in np.arange(0, nv-1):
+                for iv in range(0, nv-1):
 #                    L1 += abs(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
 #                    L2 += pow(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1], 2)
 
@@ -388,10 +388,10 @@ class DistributionFunction(object):
 
         S = 0.0
         
-        for ix in np.arange(0, nx):
+        for ix in range(0, nx):
             ixp = (ix+1) % nx
             
-            for iv in np.arange(0, nv-1):
+            for iv in range(0, nv-1):
                 S += 0.25 * ( f[ix,  iv  ]
                             + f[ixp, iv  ]
                             + f[ixp, iv+1]

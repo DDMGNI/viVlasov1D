@@ -145,6 +145,7 @@ cdef class PETScMatrix(object):
         
     
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formMat(self, Mat A):
         cdef np.int64_t i, j, ix
         cdef np.int64_t xe, xs
@@ -183,7 +184,7 @@ cdef class PETScMatrix(object):
         
         
         # Poisson equation
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             row.index = (i,)
             row.field = self.nv
             
@@ -232,7 +233,7 @@ cdef class PETScMatrix(object):
                     
             
         # moments
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
@@ -245,7 +246,7 @@ cdef class PETScMatrix(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - 1. * self.hv)
              
@@ -256,7 +257,7 @@ cdef class PETScMatrix(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j] * self.hv)
             
@@ -267,7 +268,7 @@ cdef class PETScMatrix(object):
             
             A.setValueStencil(row, col, 1.)
             
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 col.field = j
                 A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
                 
@@ -287,13 +288,13 @@ cdef class PETScMatrix(object):
                 
             
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             
             row.index = (i,)
                 
             # Vlasov equation
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 row.field = j
                 
                 # Dirichlet boundary conditions
@@ -364,6 +365,7 @@ cdef class PETScMatrix(object):
         
         
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def formRHS(self, Vec B):
         cdef np.int64_t i, j, ix, iy, xs, xe
         
@@ -399,7 +401,7 @@ cdef class PETScMatrix(object):
         cdef np.float64_t nmean = self.Nh.sum() / self.nx
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
@@ -416,7 +418,7 @@ cdef class PETScMatrix(object):
             
             
             # Vlasov equation
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet boundary conditions
                     b[iy, j] = 0.0
@@ -458,7 +460,7 @@ cdef class PETScMatrix(object):
         
         a[...][:] = 1. / ( e[...] - u[...]**2)
         
-        for j in np.arange(0, self.nv):
+        for j in range(0, self.nv):
             h1[xs:xe, j] = p[xs:xe]
         
         
@@ -466,6 +468,7 @@ cdef class PETScMatrix(object):
         
         
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def matrix_mult(self, Vec Y):
         cdef np.uint64_t i, j
         cdef np.uint64_t ix, iy
@@ -539,7 +542,7 @@ cdef class PETScMatrix(object):
         cdef np.ndarray[np.float64_t, ndim=2] hh    = h0 + h1h + h2h
         
         
-        for i in np.arange(xs, xe):
+        for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
             
@@ -556,7 +559,7 @@ cdef class PETScMatrix(object):
             
             
             # Vlasov Equation
-            for j in np.arange(0, self.nv):
+            for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix, j]

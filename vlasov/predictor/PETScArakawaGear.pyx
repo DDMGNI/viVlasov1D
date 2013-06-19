@@ -112,8 +112,8 @@ cdef class PETScArakawaGear(object):
         
         (xs, xe), = self.da1.getRanges()
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -152,8 +152,8 @@ cdef class PETScArakawaGear(object):
         
         (xs, xe), = self.da1.getRanges()
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
@@ -197,8 +197,8 @@ cdef class PETScArakawaGear(object):
         
         (xs, xe), = self.da1.getRanges()
         
-        for i in np.arange(xs, xe):
-            for j in np.arange(0, self.nv):
+        for i in range(xs, xe):
+            for j in range(0, self.nv):
                 ix = i-xs+2
                 iy = i-xs
                 
