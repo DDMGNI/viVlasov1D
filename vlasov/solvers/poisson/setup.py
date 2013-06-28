@@ -48,6 +48,20 @@ LIBRARY_DIRS += ['/opt/local/lib']
 
 
 ext_modules = [
+        Extension("PETScPoissonSolver",
+                  sources=["PETScPoissonSolver.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScPoissonSolver4",
+                  sources=["PETScPoissonSolver4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 )
               ]
                 
 setup(

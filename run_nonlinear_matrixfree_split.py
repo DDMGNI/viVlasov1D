@@ -8,9 +8,9 @@ import argparse, time
 
 from petsc4py import PETSc
 
-# from vlasov.predictor.PETScNLVlasovArakawaJ1     import PETScVlasovSolver
-# from vlasov.predictor.PETScNLVlasovArakawaJ2     import PETScVlasovSolver
-from vlasov.predictor.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
+# from vlasov.solver.vlasov.PETScNLVlasovArakawaJ1     import PETScVlasovSolver
+# from vlasov.solver.vlasov.PETScNLVlasovArakawaJ2     import PETScVlasovSolver
+from vlasov.solver.vlasov.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
 
 from run_base_split import petscVP1Dbasesplit
 

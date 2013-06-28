@@ -16,10 +16,11 @@ from vlasov.core.config  import Config
 from vlasov.VIDA    import VIDA
 from vlasov.Toolbox import Toolbox
 
-from vlasov.predictor.PETScArakawaRK4        import PETScArakawaRK4
-from vlasov.predictor.PETScArakawaGear       import PETScArakawaGear
-from vlasov.predictor.PETScArakawaSymplectic import PETScArakawaSymplectic
-from vlasov.predictor.PETScPoissonSolver     import PETScPoissonSolver
+from vlasov.explicit.PETScArakawaRK4        import PETScArakawaRK4
+from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
+from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
+
+from vlasov.solvers.poisson.PETScPoissonSolver  import PETScPoissonSolver
 
 
 class petscVP1Dbasesplit():
@@ -64,6 +65,9 @@ class petscVP1Dbasesplit():
         
         if PETSc.COMM_WORLD.getRank() == 0:
             self.time.setValue(0, 0.0)
+        
+        
+        self.solver_package = self.cfg['solver']['lu_package']
         
         self.nInitial  = self.cfg['solver']['initial_iter']          # number of iterations for initial guess
         self.coll_freq = self.cfg['solver']['coll_freq']             # collision frequency
@@ -209,6 +213,8 @@ class petscVP1Dbasesplit():
         
         
         # initialise nullspace basis vectors
+        # the Poisson equation has a null space of all constant vectors
+        # that needs to be removed to avoid jumpy potentials
         self.pn.set(1.)
         self.pn.normalize()
         

@@ -18,12 +18,6 @@ from vlasov.Toolbox import Toolbox
 from vlasov.core.config  import Config
 from vlasov.data.maxwell import maxwellian
 
-from vlasov.predictor.PETScArakawaRK4        import PETScArakawaRK4
-from vlasov.predictor.PETScArakawaGear       import PETScArakawaGear
-from vlasov.predictor.PETScArakawaSymplectic import PETScArakawaSymplectic
-from vlasov.predictor.PETScPoissonMatrixJ4   import PETScPoissonMatrix
-from vlasov.predictor.PETScPoissonMatrixFD4  import PETScPoissonMatrixFD
-
 from run_base_split import petscVP1Dbasesplit
 
 
@@ -59,7 +53,9 @@ class petscVP1Dbasefull(petscVP1Dbasesplit):
         self.b  = self.da2.createGlobalVec()
         
         
-        # initialise nullspace basis vectors
+        # initialise nullspace basis vector for full solution
+        # the Poisson equation has a null space of all constant vectors
+        # that needs to be removed to avoid jumpy potentials
         self.xn.set(0.)
         x_nvec_arr = self.da2.getGlobalArray(self.xn)
         p_nvec_arr = self.dax.getGlobalArray(self.pn)

@@ -4,8 +4,9 @@ all:
 	python setup.py build_ext --inplace
 	
 	$(MAKE) -C core
+	$(MAKE) -C explicit
 	$(MAKE) -C predictor
-	$(MAKE) -C vi
+	$(MAKE) -C solvers
 	
 
 clean:
@@ -14,6 +15,7 @@ clean:
 	rm -fR build
 	
 	$(MAKE) clean -C core
+	$(MAKE) clean -C explicit
 	$(MAKE) clean -C predictor
-	$(MAKE) clean -C vi
+	$(MAKE) clean -C solvers
 	

@@ -9,21 +9,12 @@ import sys, time
 import numpy as np
 
 from petsc4py import PETSc
-from run_base import petscVP1Dbase
 
+from run_base_full import petscVP1Dbasefull
 
-# from vlasov.vi.PETScNLArakawaJ1            import PETScSolver
-# from vlasov.vi.PETScNLArakawaJ2            import PETScSolver
-from vlasov.vi.PETScNLArakawaJ4            import PETScSolver
-
-# from vlasov.predictor.PETScPoissonMatrixJ1     import PETScPoissonMatrix
-# from vlasov.predictor.PETScPoissonMatrixJ2     import PETScPoissonMatrix
-from vlasov.predictor.PETScPoissonMatrixJ4     import PETScPoissonMatrix
-
-
-# solver_package = 'superlu_dist'
-solver_package = 'mumps'
-# solver_package = 'pastix'
+# from vlasov.solver.full.PETScNLArakawaJ1            import PETScSolver
+# from vlasov.solver.full.PETScNLArakawaJ2            import PETScSolver
+from vlasov.solver.full.PETScNLArakawaJ4            import PETScSolver
 
 
 class petscVP1Dlu(petscVP1Dbase):
@@ -120,7 +111,7 @@ class petscVP1Dlu(petscVP1Dbase):
 #         self.poisson_ksp.getPC().setType('none')
 # #         self.poisson_ksp.setType('preonly')
 # #         self.poisson_ksp.getPC().setType('lu')
-# #         self.poisson_ksp.getPC().setFactorSolverPackage(solver_package)
+# #         self.poisson_ksp.getPC().setFactorSolverPackage(self.solver_package)
 
 
         # copy external potential
@@ -147,10 +138,10 @@ class petscVP1Dlu(petscVP1Dbase):
 #         self.snes_linear.setFromOptions()
 # #         self.snes_linear.getKSP().setType('gmres')
 # #         self.snes_linear.getKSP().getPC().setType('bjacobi')
-# #         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
+# #         self.snes_linear.getKSP().getPC().setFactorSolverPackage(self.solver_package)
 #         self.snes_linear.getKSP().setType('preonly')
 #         self.snes_linear.getKSP().getPC().setType('lu')
-#         self.snes_linear.getKSP().getPC().setFactorSolverPackage(solver_package)
+#         self.snes_linear.getKSP().getPC().setFactorSolverPackage(self.solver_package)
 
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
@@ -162,7 +153,7 @@ class petscVP1Dlu(petscVP1Dbase):
 #         self.snes.getKSP().getPC().setType('bjacobi')
         self.snes.getKSP().setType('preonly')
         self.snes.getKSP().getPC().setType('lu')
-        self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
+        self.snes.getKSP().getPC().setFactorSolverPackage(self.solver_package)
         
 #        self.snes_nsp = PETSc.NullSpace().create(vectors=(self.x_nvec,))
 #        self.snes.getKSP().setNullSpace(self.snes_nsp)
