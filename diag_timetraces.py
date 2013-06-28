@@ -17,13 +17,24 @@ from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
 from vlasov.plot import PlotEnergy
 
 
-class replay(object):
+class timetraces(object):
     '''
+    Plots timetraces of the errors of the total particle number, momentum, energy, entropy,
+    the L1, L2, L3, L4, L6, L8 norms as well as the distribution function at the final timestep.
+    
+    The script is invoked with
+    
+        ``python diag_timetraces.py -f <findex> -l <lindex> -v <vmax> -h <hdf5_file>``
+    
+    -f <findex>     is the index of the first timestep to plot (*default*: 0)
+    -l <lindex>     is the index of the last timestep to plot (*default*: nt)
+    -v <vmax>       limits the v range to plot in the contour plot of the distribution function
+    -h <hdf5_file>  specifies the data file to read
     
     '''
 
 
-    def __init__(self, hdf5_file, first=-1, last=-1, vMax=0., linear=False):
+    def __init__(self, hdf5_file, first=-1, last=-1, vMax=0.):
         '''
         Constructor
         '''
@@ -79,20 +90,17 @@ class replay(object):
     
 
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
     
-    parser.add_argument('hdf5_file', metavar='<run.hdf5>', type=str,
-                        help='Run HDF5 File')
-    parser.add_argument('-pi', metavar='i', type=int, default=1,
-                        help='plot pi\'th frame')    
-    parser.add_argument('-fi', metavar='i', type=int, default=-1,
+    parser.add_argument('-h', metavar='<run.hdf5>', type=str,
+                        help='HDF5 data file')
+    parser.add_argument('-f', metavar='<findex>', type=int, default=-1,
                         help='first time index')
-    parser.add_argument('-li', metavar='i', type=int, default=-1,
+    parser.add_argument('-l', metavar='<lindex>', type=int, default=-1,
                         help='last time index')
-    parser.add_argument('-v', metavar='f', type=float, default=0.0,
-                        help='limit velocity domain to +/-v')
-    parser.add_argument('-linear', metavar='b', type=bool, default=False,
-                        help='use linear diagnostics')
+    parser.add_argument('-v', metavar='<vmax>', type=float, default=0.0,
+                        help='limit velocity domain to +/-vmax')
     
     args = parser.parse_args()
     
@@ -100,7 +108,7 @@ if __name__ == '__main__':
     print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = replay(args.hdf5_file, args.fi, args.li, args.v, args.linear)
+    pyvp = timetraces(args.h, args.fi, args.li, args.v)
     pyvp.run(args.pi)
     
     print

@@ -20,6 +20,9 @@ from vlasov.plot import PlotSpecies
 
 class replay(object):
     '''
+    Interactive replay plotting the distribution function, the Hamiltonian,
+    density, potential and timetraces of kinetic and potential energy 
+    as well as the errors in the particle number, energy, entropy and L2 norm.
     
     '''
 

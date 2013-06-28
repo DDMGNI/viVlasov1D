@@ -76,6 +76,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                             ((i-1,), j  , - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
                                           - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1),
                             ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1),
+                            
                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
                                           - coll1_fac * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
@@ -86,6 +87,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
                                           + coll1_fac * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
+                            
                             ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1),
                             ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1),

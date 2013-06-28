@@ -19,11 +19,11 @@ from vlasov.core import Grid, Potential
 
 class potential(object):
     '''
-    
+    Plots the time evolution of the potential energy.
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=1, fmax=0):
+    def __init__(self, hdf5_file, nPlot=1, nmax=0):
         '''
         Constructor
         '''
@@ -56,12 +56,12 @@ class potential(object):
                 EMax.append(self.energy[it])
         
         # fit maxima
-        if fmax == 0:
-            fmax = len(tMax)
+        if nmax == 0:
+            nmax = len(tMax)
         else:
-            fmax += 1
+            nmax += 1
         
-        fit = np.polyfit(tMax[1:fmax], np.log(EMax[1:fmax]), 1)
+        fit = np.polyfit(tMax[1:nmax], np.log(EMax[1:nmax]), 1)
         fit_fn = np.poly1d(fit)
         
         print("Fit Parameter (m,b):", fit)
@@ -97,18 +97,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
     
     parser.add_argument('hdf5_file', metavar='<run.hdf5>', type=str,
-                        help='Run HDF5 File')
+                        help='HDF5 data file')
     parser.add_argument('-np', metavar='i', type=int, default=1,
                         help='plot every i\'th frame')
-    parser.add_argument('-fmax', metavar='i', type=int, default=1,
+    parser.add_argument('-nmax', metavar='i', type=int, default=1,
                         help='fit only until i\'th maximum')
     
     args = parser.parse_args()
     
     print
-    print("Plot Field Decay for run with " + args.hdf5_file)
+    print("Plot field energy decay for run with " + args.hdf5_file)
     print
     
-    pot = potential(args.hdf5_file, args.np, args.fmax)
+    pot = potential(args.hdf5_file, args.np, args.nmax)
     
     

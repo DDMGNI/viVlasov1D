@@ -1,3 +1,11 @@
+"""
+Bump-on-Tail Instability
+
+   Initial distribution function:
+   
+   :math:`f(x,v) = 1 + A \, \cos{( k_{x} \, x) } \cdot ...`
+   with :math:`A = 0.03, k = 0.3`
+"""
 
 import numpy as np
 

@@ -26,7 +26,8 @@ cdef class PETScSolverBase(object):
                  npy.ndarray[npy.float64_t, ndim=1] v,
                  npy.uint64_t nx, npy.uint64_t nv,
                  npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
-                 npy.float64_t charge, npy.float64_t coll_freq=0.):
+                 npy.float64_t charge, npy.float64_t coll_freq=0.,
+                 regularisation=0.):
         '''
         Constructor
         '''
@@ -59,6 +60,9 @@ cdef class PETScSolverBase(object):
         
         # collision frequency
         self.nu = coll_freq
+        
+        # regularisation parameter
+        self.regularisation = regularisation
         
         # velocity grid
         self.v = v.copy()
@@ -132,7 +136,7 @@ cdef class PETScSolverBase(object):
         self.localEc  = dax.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
         
         
     

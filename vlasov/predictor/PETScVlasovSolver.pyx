@@ -19,14 +19,15 @@ cdef class PETScVlasovSolverBase(object):
     The PETScSolver class is the base class for all Solver objects
     containing functions to set up the Jacobian matrix, the function
     that constitutes the RHS of the system and possibly a matrix-free
-    implementation of the Jacobian.  
+    implementation of the Jacobian.
     '''
     
-    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA dax, Vec H0,
                  npy.ndarray[npy.float64_t, ndim=1] v,
                  npy.uint64_t nx, npy.uint64_t nv,
                  npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
-                 npy.float64_t charge, npy.float64_t coll_freq=0.):
+                 npy.float64_t charge, npy.float64_t coll_freq=0.,
+                 regularisation=0.):
         '''
         Constructor
         '''
@@ -34,7 +35,6 @@ cdef class PETScVlasovSolverBase(object):
         # distributed array
         self.dax = dax
         self.da1 = da1
-        self.da2 = da2
         
         # grid
         self.nx = nx
@@ -59,6 +59,9 @@ cdef class PETScVlasovSolverBase(object):
         
         # collision frequency
         self.nu = coll_freq
+        
+        # regularisation parameter
+        self.regularisation = regularisation
         
         # velocity grid
         self.v = v.copy()
@@ -113,61 +116,38 @@ cdef class PETScVlasovSolverBase(object):
         self.localFd  = da1.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
         
         
     
-    cpdef update_history(self, Vec X):
-        (xs, xe), = self.da2.getRanges()
-        
-        x = self.da2.getVecArray(X)
-        f = self.da1.getVecArray(self.Fh)
-        p = self.dax.getVecArray(self.Ph)
-        n = self.dax.getVecArray(self.Nh)
-        u = self.dax.getVecArray(self.Uh)
-        e = self.dax.getVecArray(self.Eh)
-        
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+    cpdef update_history(self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E):
+        F.copy(self.Fh)
+        P.copy(self.Ph)
+        N.copy(self.Nh)
+        U.copy(self.Uh)
+        E.copy(self.Eh)
         
         self.toolbox.compute_collision_factor(self.Nh, self.Uh, self.Eh, self.Ah)
         self.toolbox.potential_to_hamiltonian(self.Ph, self.H1h)
+        self.toolbox.potential_to_hamiltonian(Pext,    self.H2h)
         
     
-    cpdef update_previous(self, Vec X):
-        (xs, xe), = self.da2.getRanges()
-        
-        x = self.da2.getVecArray(X)
-        f = self.da1.getVecArray(self.Fp)
-        p = self.dax.getVecArray(self.Pp)
-        n = self.dax.getVecArray(self.Np)
-        u = self.dax.getVecArray(self.Up)
-        e = self.dax.getVecArray(self.Ep)
-        
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+    cpdef update_previous(self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E):
+        F.copy(self.Fp)
+        P.copy(self.Pp)
+        N.copy(self.Np)
+        U.copy(self.Up)
+        E.copy(self.Ep)
         
         self.toolbox.compute_collision_factor(self.Np, self.Up, self.Ep, self.Ap)
         self.toolbox.potential_to_hamiltonian(self.Pp, self.H1p)
+        self.toolbox.potential_to_hamiltonian(Pext,    self.H2p)
         
         
     
     cpdef update_delta(self, Vec F):
-        (xs, xe), = self.da2.getRanges()
-        
         F.copy(self.Fd)
         
-        
-    
-    cpdef update_external(self, Vec Pext):
-        self.H2p.copy(self.H2h)
-        self.toolbox.potential_to_hamiltonian(Pext, self.H2p)
         
     
     cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
@@ -176,6 +156,11 @@ cdef class PETScVlasovSolverBase(object):
         
     
     cpdef mult(self, Mat mat, Vec X, Vec Y):
+        self.update_delta(X)
+        self.jacobian(Y)
+        
+    
+    cpdef jacobian_mult(self, Vec X, Vec Y):
         self.update_delta(X)
         self.jacobian(Y)
         
@@ -210,5 +195,50 @@ cdef class PETScVlasovSolverBase(object):
         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
+        
+        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
+
+
+    cdef get_data_arrays_jacobian(self):
+        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        
+#         self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
+#         self.pp  = self.dax.getLocalArray(self.Pp,  self.localPp)
+#         self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
+#         self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
+#         self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
+#         self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
+        
+#         self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
+#         self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
+#         self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
+#         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
+#         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
+#         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
+        
+        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
+
+
+    cdef get_data_arrays_function(self):
+        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+        self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
+        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
+        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        
+#         self.pp  = self.dax.getLocalArray(self.Pp,  self.localPp)
+#         self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
+#         self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
+#         self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
+#         self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
+        
+        self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
+#         self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
+#         self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
+#         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
+#         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
+#         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
         
         self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)

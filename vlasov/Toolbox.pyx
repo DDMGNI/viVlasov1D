@@ -17,7 +17,7 @@ cdef class Toolbox(object):
     
     '''
     
-    def __cinit__(self, VIDA da1, VIDA da2, VIDA dax, 
+    def __cinit__(self, VIDA da1, VIDA dax, 
                   np.ndarray[np.float64_t, ndim=1] v,
                   np.uint64_t  nx, np.uint64_t  nv,
                   np.float64_t ht, np.float64_t hx, np.float64_t hv):
@@ -28,7 +28,6 @@ cdef class Toolbox(object):
         # distributed arrays
         self.dax = dax
         self.da1 = da1
-        self.da2 = da2
         
         # grid
         self.nx = nx
@@ -429,7 +428,7 @@ cdef class Toolbox(object):
         e = self.dax.getGlobalArray(E)
         a = self.dax.getGlobalArray(A)
         
-        a[:] = n**2 / (n*e - u**2)
+        self.compute_collision_factor_array(n, u, e, a)
     
     
     @cython.boundscheck(False)
@@ -442,11 +441,14 @@ cdef class Toolbox(object):
         
         for i in range(0, xe-xs):
             n[i] = 0.
-            
-            for j in range(0, (self.nv-1)/2):
-                n[i] += f[i,j] + f[i, self.nv-1-j]
-
-            n[i] += f[i, (self.nv-1)/2]
+             
+#             for j in range(0, (self.nv-1)/2):
+#                 n[i] += f[i,j] + f[i, self.nv-1-j]
+# 
+#             n[i] += f[i, (self.nv-1)/2]
+        
+            for j in range(0, self.nv):
+                n[i] += f[i,j]
                 
             n[i] *= self.hv
     
@@ -464,11 +466,14 @@ cdef class Toolbox(object):
         for i in range(0, xe-xs):
             u[i] = 0.
             
-            for j in range(0, (self.nv-1)/2):
-                u[i] += v[j] * f[i,j] + v[self.nv-1-j] * f[i, self.nv-1-j]
-
-            u[i] += v[(self.nv-1)/2] * f[i, (self.nv-1)/2]
+#             for j in range(0, (self.nv-1)/2):
+#                 u[i] += v[j] * f[i,j] + v[self.nv-1-j] * f[i, self.nv-1-j]
+# 
+#             u[i] += v[(self.nv-1)/2] * f[i, (self.nv-1)/2]
                 
+            for j in range(0, self.nv):
+                u[i] += v[j] * f[i,j]
+            
             u[i] *= self.hv
     
 
@@ -485,21 +490,38 @@ cdef class Toolbox(object):
         for i in range(0, xe-xs):
             e[i] = 0.
             
-            for j in range(0, (self.nv-1)/2):
-                e[i] += v[j]**2 * f[i,j] + v[self.nv-1-j]**2 * f[i, self.nv-1-j]
-
-            e[i] += v[(self.nv-1)/2]**2 * f[i, (self.nv-1)/2]
+#             for j in range(0, (self.nv-1)/2):
+#                 e[i] += v[j]**2 * f[i,j] + v[self.nv-1-j]**2 * f[i, self.nv-1-j]
+# 
+#             e[i] += v[(self.nv-1)/2]**2 * f[i, (self.nv-1)/2]
                 
+            for j in range(0, self.nv):
+                e[i] += v[j]**2 * f[i,j]
+            
             e[i] *= self.hv
     
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef compute_collision_factor_array(self, np.ndarray[np.float64_t, ndim=1] n,
+                                              np.ndarray[np.float64_t, ndim=1] u,
+                                              np.ndarray[np.float64_t, ndim=1] e,
+                                              np.ndarray[np.float64_t, ndim=1] a):
+        cdef np.uint64_t i
+        cdef np.uint64_t xs, xe
+        
+        (xs, xe), = self.dax.getRanges()
+        
+        for i in range(0, xe-xs):
+            a[i] = n[i]**2 / (n[i] * e[i] - u[i]**2)
 
-    def initialise_kinetic_hamiltonian(self, np.ndarray[np.float64_t, ndim=2] h_arr,
-                                             np.float64_t mass):
+
+    def initialise_kinetic_hamiltonian(self, Vec H, np.float64_t mass):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe
          
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
+        cdef np.ndarray[np.float64_t, ndim=2] h_arr = self.da1.getGlobalArray(H)
+        cdef np.ndarray[np.float64_t, ndim=1] v     = self.v
         
         (xs, xe), = self.da1.getRanges()
  

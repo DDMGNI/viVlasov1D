@@ -34,7 +34,6 @@ cdef class Toolbox(object):
     
     cdef VIDA dax
     cdef VIDA da1
-    cdef VIDA da2
     
     
     
@@ -114,6 +113,10 @@ cdef class Toolbox(object):
     cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n)
     cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u)
     cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e)
+    cdef compute_collision_factor_array(self, np.ndarray[np.float64_t, ndim=1] n,
+                                              np.ndarray[np.float64_t, ndim=1] u,
+                                              np.ndarray[np.float64_t, ndim=1] e,
+                                              np.ndarray[np.float64_t, ndim=1] a)
 
 #     cdef maxwellian(self, np.float64_t temperature, np.float64_t velocity, np.float64_t vOffset)
 #     cdef boltzmannian(self, np.float64_t temperature, np.float64_t energy)

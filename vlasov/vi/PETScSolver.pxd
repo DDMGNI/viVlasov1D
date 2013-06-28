@@ -33,6 +33,7 @@ cdef class PETScSolverBase(object):
     
     cdef npy.float64_t charge
     cdef npy.float64_t nu
+    cdef npy.float64_t regularisation
     
     cdef npy.ndarray v
     

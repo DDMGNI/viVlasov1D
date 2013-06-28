@@ -63,7 +63,7 @@ cdef class PETScVlasovMatrix(object):
         self.localH1  = da1.createLocalVec()
 
         # create toolbox object
-        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
         
     
     

@@ -264,7 +264,9 @@ cdef class PETScSolver(PETScSolverBase):
                     ### TODO ###
                     y[iy, j] = self.toolbox.time_derivative(self.fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J4(self.fd, h_ave,      ix, j) \
-                             + 0.5 * self.toolbox.arakawa_J4(f_ave,   self.h1d,   ix, j) #\
+                             + 0.5 * self.toolbox.arakawa_J4(f_ave,   self.h1d,   ix, j) \
+                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * self.fd[ix, j] - self.fd[ix+1, j] - self.fd[ix-1, j] ) \
+                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * self.fd[ix, j] - self.fd[ix, j+1] - self.fd[ix, j-1] ) #\
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fd, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fd, self.np, self.up, self.ep, self.ap, ix, j)
             
@@ -366,4 +368,6 @@ cdef class PETScSolver(PETScSolverBase):
                     
                     
                     y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
-                             + result_J4 * self.hx_inv * self.hv_inv
+                             + result_J4 * self.hx_inv * self.hv_inv \
+                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fp[ix, j] - fp[ix+1, j] - fp[ix-1, j] ) \
+                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fp[ix, j] - fp[ix, j+1] - fp[ix, j-1] )

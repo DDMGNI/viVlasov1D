@@ -33,13 +33,13 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef npy.float64_t charge
     cdef npy.float64_t nu
+    cdef npy.float64_t regularisation
     
     cdef npy.ndarray v
     
     
     cdef VIDA dax
     cdef VIDA da1
-    cdef VIDA da2
     
     cdef Vec Fp
     cdef Vec Fh
@@ -111,15 +111,17 @@ cdef class PETScVlasovSolverBase(object):
     cdef Toolbox toolbox
     
     
-    cpdef update_history(self, Vec X)
-    cpdef update_previous(self, Vec X)
-    cpdef update_delta(self, Vec F)
-    cpdef update_external(self, Vec Pext)
+    cpdef update_history (self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E)
+    cpdef update_previous(self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E)
+    cpdef update_delta   (self, Vec F)
     
-    cpdef snes_mult(self, SNES snes, Vec X, Vec Y)
     cpdef mult(self, Mat mat, Vec X, Vec Y)
+    cpdef snes_mult(self, SNES snes, Vec X, Vec Y)
+    cpdef jacobian_mult(self, Vec X, Vec Y)
     
     cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y)
     cpdef function_mult(self, Vec X, Vec Y)
     
     cdef get_data_arrays(self)
+    cdef get_data_arrays_jacobian(self)
+    cdef get_data_arrays_function(self)

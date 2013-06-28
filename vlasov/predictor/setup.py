@@ -79,13 +79,13 @@ ext_modules = [
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
                
-#         Extension("PETScNLVlasovArakawaJ4kinetic",
-#                   sources=["PETScNLVlasovArakawaJ4kinetic.pyx"],
-#                   include_dirs=INCLUDE_DIRS + [os.curdir],
-#                   libraries=LIBRARIES,
-#                   library_dirs=LIBRARY_DIRS,
-#                   runtime_library_dirs=LIBRARY_DIRS
-#                  ),
+        Extension("PETScNLVlasovArakawaJ4kinetic",
+                  sources=["PETScNLVlasovArakawaJ4kinetic.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
 #         Extension("PETScNLVlasovArakawaJ4potential",
 #                   sources=["PETScNLVlasovArakawaJ4potential.pyx"],
 #                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -173,6 +173,14 @@ ext_modules = [
                  ),
         Extension("PETScVlasovSolver",
                   sources=["PETScVlasovSolver.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+               
+        Extension("PETScSmootherJ1",
+                  sources=["PETScSmootherJ1.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,

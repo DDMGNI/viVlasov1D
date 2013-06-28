@@ -18,7 +18,9 @@ from vlasov.plot import PlotMovie
 
 class movie(object):
     '''
-    
+    Creates a movie from HDF5 showing the distribution function
+    and timetraces of the errors in the particle number, energy,
+    entropy and L2 norm.
     '''
 
 

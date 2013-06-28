@@ -123,6 +123,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t result_J1, result_J2, result_J4
         
         self.get_data_arrays()
+#         self.get_data_arrays_jacobian()
         
         (xs, xe), = self.da1.getRanges()
         
@@ -194,6 +195,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t result_J1, result_J2, result_J4
         
         self.get_data_arrays()
+#         self.get_data_arrays_function()
         
         (xs, xe), = self.da1.getRanges()
         

@@ -20,7 +20,7 @@ cdef class PETScArakawaGear(object):
     '''
     
     
-    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
+    def __init__(self, VIDA da1, VIDA dax, Vec H0,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t nx, np.uint64_t nv,
                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
@@ -77,7 +77,7 @@ cdef class PETScArakawaGear(object):
         self.localFh4  = da1.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, da2, dax, v, nx, nv, ht, hx, hv)
+        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
     
     
     def update_history(self, Vec F, Vec H1):

@@ -20,10 +20,7 @@ from vlasov.VIDA    cimport VIDA
 cdef class PETScPoissonSolver(object):
 
     cdef np.uint64_t  nx
-    cdef np.uint64_t  nv
-    
     cdef np.float64_t hx
-    cdef np.float64_t hv
     
     cdef np.float64_t hx2
     cdef np.float64_t hx2_inv

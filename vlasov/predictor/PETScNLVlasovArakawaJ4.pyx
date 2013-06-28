@@ -31,7 +31,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.get_data_arrays()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (self.fd + self.fh)
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
@@ -57,12 +56,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         # Vlasov Equation
-#         for j in range(0, self.nv):
-#             row.field = j
-#             for i in range(xs, xe):
-#                 ix = i-xs+2
-#                 row.index = (i,)
-
         for i in range(xs, xe):
             ix = i-xs+2
             
@@ -83,7 +76,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                           - (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
                                           - (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
                             ((i-1,), j  , - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1),
+                                          - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
+                                          - self.ht * self.regularisation * self.hx2_inv),
                             ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           - (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) * arak_fac_J2 \
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
@@ -91,19 +85,23 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
                                           - coll1_fac * ( self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll2_fac),
+                                          + coll2_fac \
+                                          - self.ht * self.regularisation * self.hv2_inv),
                             ((i,  ), j  , + time_fac \
-                                          - 2. * coll2_fac),
+                                          - 2. * coll2_fac \
+                                          + 2. * self.ht * self.regularisation * (self.hx2_inv + self.hv2_inv)),
                             ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
                                           + coll1_fac * ( self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll2_fac),
+                                          + coll2_fac \
+                                          - self.ht * self.regularisation * self.hv2_inv),
                             ((i,  ), j+2, - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J2),
                             ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
                                           + (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
                                           + (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
                             ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1),
+                                          + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1 \
+                                          - self.ht * self.regularisation * self.hx2_inv),
                             ((i+1,), j+1, + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) * arak_fac_J2 \
                                           + (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
@@ -140,11 +138,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-#         for j in range(0, self.nv):
-#             for i in range(xs, xe):
-#                 ix = i-xs+2
-#                 iy = i-xs
-
         for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
@@ -197,7 +190,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
          
          
                     y[iy, j] = fd[ix, j] * self.ht_inv \
-                             + 0.5 * result_J4 * self.hx_inv * self.hv_inv
+                             + 0.5 * result_J4 * self.hx_inv * self.hv_inv \
+                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fd[ix, j] - fd[ix+1, j] - fd[ix-1, j] ) \
+                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fd[ix, j] - fd[ix, j+1] - fd[ix, j-1] )
     
     
     
@@ -225,11 +220,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                                                 + 0.5 * (self.h2p + self.h2h)
         
         
-#         for j in range(0, self.nv):
-#             for i in range(xs, xe):
-#                 ix = i-xs+2
-#                 iy = i-xs
-
         for i in range(xs, xe):
             ix = i-xs+2
             iy = i-xs
@@ -282,4 +272,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     
                     
                     y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
-                             + result_J4 * self.hx_inv * self.hv_inv
+                             + result_J4 * self.hx_inv * self.hv_inv \
+                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fp[ix, j] - fp[ix+1, j] - fp[ix-1, j] ) \
+                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fp[ix, j] - fp[ix, j+1] - fp[ix, j-1] )

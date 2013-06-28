@@ -20,9 +20,8 @@ cdef class PETScPoissonSolver(object):
     
     '''
     
-    def __init__(self, VIDA da1, VIDA dax, 
-                 np.uint64_t nx, np.uint64_t nv,
-                 np.float64_t hx, np.float64_t hv,
+    def __init__(self, VIDA dax, 
+                 np.uint64_t nx, np.float64_t hx,
                  np.float64_t charge):
         '''
         Constructor
@@ -33,10 +32,7 @@ cdef class PETScPoissonSolver(object):
         
         # grid
         self.nx = nx
-        self.nv = nv
-        
         self.hx = hx
-        self.hv = hv
         
         self.hx2     = hx**2
         self.hx2_inv = 1. / self.hx2 
@@ -55,23 +51,35 @@ cdef class PETScPoissonSolver(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def matrix_mult(self, Vec X, Vec Y):
-        cdef np.int64_t i, ix, iy
+    def formMat(self, Mat A):
+        cdef np.int64_t i, j
         cdef np.int64_t xe, xs
         
-        cdef np.float64_t phisum
+        A.zeroEntries()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
         
         (xs, xe), = self.dax.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
-        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
         
-        
+        # Laplace operator
         for i in range(xs, xe):
-            ix = i-xs+2
-            iy = i-xs
+            row.index = (i,)
+            row.field = 0
+            col.field = 0
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv
+            for index, value in [
+                    ((i-1,), -1. * self.hx2_inv),
+                    ((i,  ), +2. * self.hx2_inv),
+                    ((i+1,), -1. * self.hx2_inv),
+                ]:
+                
+                col.index = index
+                A.setValueStencil(row, col, value)
+            
+        
+        A.assemble()
         
     
     @cython.boundscheck(False)
@@ -94,3 +102,45 @@ cdef class PETScPoissonSolver(object):
             
             b[iy] = - ( n[ix] - nmean) * self.charge
         
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def matrix_mult(self, Vec X, Vec Y):
+        cdef np.int64_t i, ix, iy
+        cdef np.int64_t xe, xs
+        
+        (xs, xe), = self.dax.getRanges()
+        
+        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
+        
+        
+        for i in range(xs, xe):
+            ix = i-xs+2
+            iy = i-xs
+            
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv
+        
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def function_mult(self, Vec X, Vec N, Vec Y):
+        cdef np.int64_t i, ix, iy
+        cdef np.int64_t xe, xs
+        
+        cdef np.float64_t nmean = N.sum() / self.nx
+        (xs, xe), = self.dax.getRanges()
+        
+        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
+        
+        
+        for i in range(xs, xe):
+            ix = i-xs+2
+            iy = i-xs
+            
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv \
+                  + ( n[ix] - nmean) * self.charge            
+        
+    

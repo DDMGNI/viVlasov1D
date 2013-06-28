@@ -1,3 +1,9 @@
+"""
+Nonlinear Landau Damping
+
+   Initial density: :math:`n(x) = 1 + A \, \cos{( k_{x} \, ( x - L_{x}/2)) }`
+   with :math:`A = 0.5, k = 0.5`
+"""
 
 import numpy as np
 
