@@ -8,8 +8,8 @@ cimport numpy as npy
 
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
-from vlasov.VIDA    cimport VIDA
-from vlasov.Toolbox cimport Toolbox
+from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.toolbox.Toolbox cimport Toolbox
 
 
 cdef class PETScVlasovSolverBase(object):

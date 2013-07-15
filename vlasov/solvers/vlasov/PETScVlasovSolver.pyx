@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py import PETSc
 
-from vlasov.Toolbox import Toolbox
+from vlasov.toolbox.Toolbox import Toolbox
 
 
 cdef class PETScVlasovSolverBase(object):

@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.Toolbox import Toolbox
+from vlasov.toolbox.Arakawa import Arakawa
 
 
 cdef class PETScArakawaGear(object):
@@ -77,7 +77,7 @@ cdef class PETScArakawaGear(object):
         self.localFh4  = da1.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
+        self.arakawa = Arakawa(da1, dax, v, nx, nv, ht, hx, hv)
     
     
     def update_history(self, Vec F, Vec H1):
@@ -126,8 +126,8 @@ cdef class PETScArakawaGear(object):
                     y[iy, j] = 2./3. * (
                                          + 2.  * fh1[ix,j]
                                          - 0.5 * fh2[ix,j]
-                                         - 2.  * self.ht * self.toolbox.arakawa_J4(fh1, hh1, ix, j)
-                                         + 1.  * self.ht * self.toolbox.arakawa_J4(fh2, hh2, ix, j)
+                                         - 2.  * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 1.  * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
                                        )
     
     
@@ -167,9 +167,9 @@ cdef class PETScArakawaGear(object):
                                          + 3.   * fh1[ix,j]
                                          - 1.5  * fh2[ix,j]
                                          + 1./3.* fh3[ix,j]
-                                         - 3.   * self.ht * self.toolbox.arakawa_J4(fh1, hh1, ix, j)
-                                         + 3.   * self.ht * self.toolbox.arakawa_J4(fh2, hh2, ix, j)
-                                         - 1.   * self.ht * self.toolbox.arakawa_J4(fh3, hh3, ix, j)
+                                         - 3.   * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 3.   * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 1.   * self.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
                                        )
 
 
@@ -213,8 +213,8 @@ cdef class PETScArakawaGear(object):
                                          - 3.   * fh2[ix,j]
                                          + 4./3.* fh3[ix,j]
                                          - 0.25 * fh4[ix,j]
-                                         - 4.   * self.ht * self.toolbox.arakawa_J4(fh1, hh1, ix, j)
-                                         + 6.   * self.ht * self.toolbox.arakawa_J4(fh2, hh2, ix, j)
-                                         - 4.   * self.ht * self.toolbox.arakawa_J4(fh3, hh3, ix, j)
-                                         + 1.   * self.ht * self.toolbox.arakawa_J4(fh4, hh4, ix, j)
+                                         - 4.   * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 6.   * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 4.   * self.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
+                                         + 1.   * self.ht * self.arakawa.arakawa_J4(fh4, hh4, ix, j)
                                        )

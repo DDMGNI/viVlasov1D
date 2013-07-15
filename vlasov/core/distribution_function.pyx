@@ -9,8 +9,8 @@ cimport numpy as np
 
 from libc.math cimport abs, log, pow
 
-from vlasov.data.boltzmann import boltzmannian_grid
-from vlasov.data.maxwell   import maxwellian_grid
+from vlasov.toolbox.boltzmann import boltzmannian_grid
+from vlasov.toolbox.maxwell   import maxwellian_grid
 
 
 class DistributionFunction(object):

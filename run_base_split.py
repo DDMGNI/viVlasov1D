@@ -13,14 +13,15 @@ from petsc4py import PETSc
 
 from vlasov.core.config  import Config
 
-from vlasov.VIDA    import VIDA
-from vlasov.Toolbox import Toolbox
+from vlasov.toolbox.VIDA    import VIDA
+# from vlasov.toolbox.Arakawa import Arakawa
+from vlasov.toolbox.Toolbox import Toolbox
 
 from vlasov.explicit.PETScArakawaRK4        import PETScArakawaRK4
 from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
 from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
-from vlasov.solvers.poisson.PETScPoissonSolver  import PETScPoissonSolver
+from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
 
 
 class petscVP1Dbasesplit():
@@ -222,6 +223,7 @@ class petscVP1Dbasesplit():
         
         
         # create Toolbox
+#         self.arakawa = Arakawa(self.da1, self.dax, self.vGrid, self.nx, self.nv, self.ht, self.hx, self.hv)
         self.toolbox = Toolbox(self.da1, self.dax, self.vGrid, self.nx, self.nv, self.ht, self.hx, self.hv)
         
         

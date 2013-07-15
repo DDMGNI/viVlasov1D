@@ -9,8 +9,8 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.VIDA    cimport VIDA
-from vlasov.Toolbox cimport Toolbox
+from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.toolbox.Arakawa cimport Arakawa
 
 
 cdef class PETScArakawaRK4(object):
@@ -41,4 +41,4 @@ cdef class PETScArakawaRK4(object):
     cdef Vec localH0
     cdef Vec localH1
     
-    cdef Toolbox toolbox
+    cdef Arakawa arakawa

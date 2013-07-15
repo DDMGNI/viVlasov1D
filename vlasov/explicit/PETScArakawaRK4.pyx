@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.Toolbox import Toolbox
+from vlasov.toolbox.Arakawa import Arakawa
 
 
 cdef class PETScArakawaRK4(object):
@@ -61,7 +61,7 @@ cdef class PETScArakawaRK4(object):
         self.localH1 = da1.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
+        self.arakawa = Arakawa(da1, dax, v, nx, nv, ht, hx, hv)
         
      
     def rk4_J1(self, Vec X, Vec H1):
@@ -80,19 +80,19 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getLocalArray(X,       self.localX )
         
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.toolbox.arakawa_J1_timestep(x, tx1, h0, h1)
+        self.arakawa.arakawa_J1_timestep(x, tx1, h0, h1)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.toolbox.arakawa_J1_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.arakawa.arakawa_J1_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.toolbox.arakawa_J1_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.arakawa.arakawa_J1_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.toolbox.arakawa_J1_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.arakawa.arakawa_J1_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)
@@ -119,19 +119,19 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getLocalArray(X,       self.localX )
         
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.toolbox.arakawa_J2_timestep(x, tx1, h0, h1)
+        self.arakawa.arakawa_J2_timestep(x, tx1, h0, h1)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.toolbox.arakawa_J2_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.arakawa.arakawa_J2_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.toolbox.arakawa_J2_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.arakawa.arakawa_J2_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.toolbox.arakawa_J2_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.arakawa.arakawa_J2_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)
@@ -158,19 +158,19 @@ cdef class PETScArakawaRK4(object):
         x   = self.da1.getLocalArray(X,       self.localX )
         
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.toolbox.arakawa_J4_timestep(x, tx1, h0, h1)
+        self.arakawa.arakawa_J4_timestep(x, tx1, h0, h1)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.toolbox.arakawa_J4_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
+        self.arakawa.arakawa_J4_timestep(x + 0.5 * self.ht * tx1, tx2, h0, h1)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.toolbox.arakawa_J4_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
+        self.arakawa.arakawa_J4_timestep(x + 0.5 * self.ht * tx2, tx3, h0, h1)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.toolbox.arakawa_J4_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
+        self.arakawa.arakawa_J4_timestep(x + 1.0 * self.ht * tx3, tx4, h0, h1)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)

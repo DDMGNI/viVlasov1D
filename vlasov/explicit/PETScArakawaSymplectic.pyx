@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.Toolbox import Toolbox
+from vlasov.toolbox.Arakawa import Arakawa
 
 
 cdef class PETScArakawaSymplectic(object):
@@ -53,7 +53,7 @@ cdef class PETScArakawaSymplectic(object):
         self.localH = da1.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
+        self.arakawa = Arakawa(da1, dax, v, nx, nv, ht, hx, hv)
         
     
     
@@ -67,7 +67,7 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getLocalArray(X,       self.localX)
         y  = self.da1.getGlobalArray(self.Y)
         
-        self.toolbox.arakawa_J4_timestep_h(x, y, h0)
+        self.arakawa.arakawa_J4_timestep_h(x, y, h0)
         
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
@@ -85,7 +85,7 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getLocalArray(X,  self.localX)
         
         y  = self.da1.getGlobalArray(self.Y)
-        self.toolbox.arakawa_J4_timestep_h(x, y, h1)
+        self.arakawa.arakawa_J4_timestep_h(x, y, h1)
         
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
