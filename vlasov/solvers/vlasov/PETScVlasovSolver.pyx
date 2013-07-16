@@ -26,7 +26,10 @@ cdef class PETScVlasovSolverBase(object):
                  npy.ndarray[npy.float64_t, ndim=1] v,
                  npy.uint64_t nx, npy.uint64_t nv,
                  npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
-                 npy.float64_t charge, npy.float64_t coll_freq=0.,
+                 npy.float64_t charge,
+                 npy.float64_t coll_freq=0.,
+                 npy.float64_t coll_diff=1.,
+                 npy.float64_t coll_drag=1.,
                  regularisation=0.):
         '''
         Constructor
@@ -59,6 +62,9 @@ cdef class PETScVlasovSolverBase(object):
         
         # collision frequency
         self.nu = coll_freq
+        
+        self.coll_diff = coll_diff
+        self.coll_drag = coll_drag
         
         # regularisation parameter
         self.regularisation = regularisation

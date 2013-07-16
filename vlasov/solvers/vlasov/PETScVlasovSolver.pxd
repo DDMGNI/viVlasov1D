@@ -33,6 +33,8 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef npy.float64_t charge
     cdef npy.float64_t nu
+    cdef npy.float64_t coll_diff
+    cdef npy.float64_t coll_drag
     cdef npy.float64_t regularisation
     
     cdef npy.ndarray v

@@ -36,18 +36,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                                                 + 0.5 * (self.h2p + self.h2h)
         
         
-#         cdef npy.float64_t time_fac    = 0.
-#         cdef npy.float64_t arak_fac_J1 = 0.
-#         cdef npy.float64_t arak_fac_J2 = 0.
-#         cdef npy.float64_t coll1_fac   = 0.
-#         cdef npy.float64_t coll2_fac   = 0.
+#         cdef npy.float64_t time_fac      = 0.
+#         cdef npy.float64_t arak_fac_J1   = 0.
+#         cdef npy.float64_t arak_fac_J2   = 0.
+#         cdef npy.float64_t coll_drag_fac = 0.
+#         cdef npy.float64_t coll_diff_fac = 0.
         
-        cdef npy.float64_t time_fac    = 1.0  / self.ht
-        cdef npy.float64_t arak_fac_J1 = + 1.0 / (12. * self.hx * self.hv)
-        cdef npy.float64_t arak_fac_J2 = - 0.5 / (24. * self.hx * self.hv)
+        cdef npy.float64_t time_fac      = 1.0  / self.ht
+        cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.hx * self.hv)
+        cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.hx * self.hv)
         
-        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.hv
-        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.hv2_inv
+        cdef npy.float64_t coll_drag_fac = - 0.5 * self.coll_drag * self.nu * self.hv_inv * 0.5
+        cdef npy.float64_t coll_diff_fac = - 0.5 * self.coll_diff * self.nu * self.hv2_inv
         
         
         A.zeroEntries()
@@ -79,14 +79,14 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                             
                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                          - coll1_fac * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll2_fac),
+                                          - coll_drag_fac * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                                          + coll_diff_fac),
                             ((i,  ), j  , + time_fac
-                                          - 2. * coll2_fac),
+                                          - 2. * coll_diff_fac),
                             ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
-                                          + coll1_fac * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll2_fac),
+                                          + coll_drag_fac * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                                          + coll_diff_fac),
                             
                             ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1),
                             ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
@@ -113,6 +113,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
         cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t coll_drag, coll_diff
         
         self.get_data_arrays()
         
@@ -120,9 +121,14 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] f     = self.fd
+        cdef npy.ndarray[npy.float64_t, ndim=2] fd    = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
+        
+        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] u     = self.up
+        cdef npy.ndarray[npy.float64_t, ndim=1] a     = self.ap
+        
         
         for i in range(xs, xe):
             ix = i-xs+2
@@ -132,31 +138,34 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = f[ix,j]
+                    y[iy, j] = fd[ix,j]
                     
                 else:
-                    ### TODO ###
-                    ### collision operator not complete ###
-                    ### TODO ###
+                    # Arakawa's J1
+                    jpp_J1 = (fd[ix+1, j  ] - fd[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
+                           - (fd[ix,   j+1] - fd[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
                     
-                    jpp_J1 = (f[ix+1, j  ] - f[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
-                           - (f[ix,   j+1] - f[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
+                    jpc_J1 = fd[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                           - fd[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
+                           - fd[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
+                           + fd[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
                     
-                    jpc_J1 = f[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - f[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - f[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + f[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
-                    
-                    jcp_J1 = f[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
-                           - f[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
-                           - f[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
-                           + f[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
+                    jcp_J1 = fd[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
+                           - fd[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
+                           - fd[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
+                           + fd[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
          
+                    # collision operator
+                    coll_drag = ( (v[j+1] - u[ix]) * fd[ix, j+1] - (v[j-1] - u[ix]) * fd[ix, j-1] ) * a[ix]
+                    coll_diff = ( fd[ix, j+1] - 2. * fd[ix, j] + fd[ix, j-1] )
+                    
          
-                    y[iy, j] = f[ix, j] * self.ht_inv \
-                             + 0.5 * result_J1 * self.hx_inv * self.hv_inv
+                    y[iy, j] = fd[ix, j] * self.ht_inv \
+                             + 0.5 * result_J1 * self.hx_inv * self.hv_inv \
+                             - 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
+                             - 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv
     
     
     
@@ -170,6 +179,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
         cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t coll_drag, coll_diff
         
         self.get_data_arrays()
         
@@ -183,6 +193,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
+        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] up    = self.up
+        cdef npy.ndarray[npy.float64_t, ndim=1] ap    = self.ap
+        cdef npy.ndarray[npy.float64_t, ndim=1] uh    = self.uh
+        cdef npy.ndarray[npy.float64_t, ndim=1] ah    = self.ah
+        
         
         for i in range(xs, xe):
             ix = i-xs+2
@@ -195,10 +211,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    ### TODO ###
-                    ### collision operator not complete ###
-                    ### TODO ###
-                    
+                    # Arakawa's J1
                     jpp_J1 = (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
                            - (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
                     
@@ -214,6 +227,14 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     
+                    # collision operator
+                    coll_drag = ( (v[j+1] - up[ix]) * fp[ix, j+1] - (v[j-1] - up[ix]) * fp[ix, j-1] ) * ap[ix] \
+                              + ( (v[j+1] - uh[ix]) * fh[ix, j+1] - (v[j-1] - uh[ix]) * fh[ix, j-1] ) * ah[ix]
+                    coll_diff = ( fp[ix, j+1] - 2. * fp[ix, j] + fp[ix, j-1] ) \
+                              + ( fh[ix, j+1] - 2. * fh[ix, j] + fh[ix, j-1] )
+                    
                     
                     y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
-                             + result_J1 * self.hx_inv * self.hv_inv
+                             + result_J1 * self.hx_inv * self.hv_inv \
+                             - 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
+                             - 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv
