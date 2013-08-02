@@ -53,6 +53,9 @@ class Hamiltonian(object):
         self.Ewoa_pot   = 0.0         # current potential energy
         self.Ewoa_error = 0.0         # error in total energy (E-E0)/E0
         
+        self.Ewoa_kin0  = 0.0         # initial kinetic energy
+        self.Ewoa_pot0  = 0.0         # initial potential energy
+        
         self.EJ1_0      = 0.0         # initial total energy
         self.EJ2_0      = 0.0         # initial total energy
         self.EJ4_0      = 0.0         # initial total energy
@@ -378,6 +381,9 @@ class Hamiltonian(object):
             self.EJ1_0  = self.EJ1
             self.EJ2_0  = self.EJ2
             self.EJ4_0  = self.EJ4
+            
+            self.Ewoa_0 = self.Ewoa
             self.Ewoa_0 = self.Ewoa
         
-            self.P0    = self.P
+            self.Ewoa_kin0 = self.Ewoa_kin
+            self.Ewoa_pot0 = self.Ewoa_pot
