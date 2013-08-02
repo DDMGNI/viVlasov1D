@@ -19,7 +19,7 @@ class Potential(object):
 
 
     def __init__(self, grid, nhist=1, potential=None, potential_file=None, potential_module=None,
-                 poisson_const=1.0, hdf5_in=None,  hdf5_out=None, replay=False):
+                 charge=1.0, hdf5_in=None,  hdf5_out=None, replay=False):
         '''
         Constructor
         '''
@@ -38,8 +38,8 @@ class Potential(object):
         self.E_error = 0.0
         self.Efield = 0.0
         
-#        self.poisson = Poisson(grid, poisson_const)
-        self.poisson_const = poisson_const
+#        self.poisson = Poisson(grid, charge)
+        self.charge = charge
         
         if hdf5_in != None and replay:
             self.phi = None
