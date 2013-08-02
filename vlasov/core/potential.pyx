@@ -23,23 +23,20 @@ class Potential(object):
         Constructor
         '''
         
-        assert grid not None
-        assert hdf5 not None
+#         assert grid not None
+#         assert hdf5 not None
         
         
         self.average_diagnostics = False
         
         
         self.grid  = grid
-        self.nhist = nhist
-        self.f     = None
         
         self.hdf5_phi = None 
         
         self.E0 = 0.0
         self.E  = 0.0
         self.E_error = 0.0
-        self.Efield = 0.0
         
         self.charge = charge
         
