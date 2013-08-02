@@ -387,3 +387,5 @@ class Hamiltonian(object):
         
             self.Ewoa_kin0 = self.Ewoa_kin
             self.Ewoa_pot0 = self.Ewoa_pot
+
+            self.P0 = self.P
