@@ -24,12 +24,12 @@ class timetraces(object):
     
     The script is invoked with
     
-        ``python diag_timetraces.py -f <findex> -l <lindex> -v <vmax> -h <hdf5_file>``
+        ``python diag_timetraces.py -f <findex> -l <lindex> -v <vmax> -i <hdf5_file>``
     
     -f <findex>     is the index of the first timestep to plot (*default*: 0)
     -l <lindex>     is the index of the last timestep to plot (*default*: nt)
     -v <vmax>       limits the v range to plot in the contour plot of the distribution function
-    -h <hdf5_file>  specifies the data file to read
+    -i <hdf5_file>  specifies the data file to read
     
     '''
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
     
-    parser.add_argument('-h', metavar='<run.hdf5>', type=str,
+    parser.add_argument('-i', metavar='<run.hdf5>', type=str,
                         help='HDF5 data file')
     parser.add_argument('-f', metavar='<findex>', type=int, default=-1,
                         help='first time index')
@@ -104,11 +104,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     print
-    print("Replay run with " + args.hdf5_file)
+    print("Replay run with " + args.i)
     print
     
-    pyvp = timetraces(args.h, args.fi, args.li, args.v)
-    pyvp.run(args.pi)
+    pyvp = timetraces(args.i, args.f, args.l, args.v)
+    pyvp.run(args.l)
     
     print
     print("Replay finished.")
