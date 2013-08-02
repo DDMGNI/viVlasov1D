@@ -149,9 +149,15 @@ class PlotEnergy(object):
         
         self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
-        self.axes ["P" ].set_title('Total Momentum $P (t)$', fontsize=24)
         self.axes ["E0"].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
-        self.axes ["P0"].set_title('Total Momentum $P (t)$', fontsize=24)
+        
+        if self.hamiltonian.P0 == 0:
+            self.axes ["P" ].set_title('Total Momentum $P (t)$', fontsize=24)
+            self.axes ["P0"].set_title('Total Momentum $P (t)$', fontsize=24)
+        else:
+            self.axes ["P" ].set_title('Total Momentum Error $P (t)$', fontsize=24)
+            self.axes ["P0"].set_title('Total Momentum Error $\Delta P (t)$', fontsize=24)
+            
         self.axes ["N0"].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["L1"].set_title('$L_{1}$ Integral Norm Error $\Delta L_{1} (t)$', fontsize=24)
         self.axes ["L2"].set_title('$L_{2}$ Integral Norm Error $\Delta L_{2} (t)$', fontsize=24)
@@ -169,9 +175,15 @@ class PlotEnergy(object):
         
         self.axes ["N" ].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["E" ].set_ylabel('$(E - E_0) / E_0$', fontsize=22)
-        self.axes ["P" ].set_ylabel('$P$', fontsize=22)
         self.axes ["E0"].set_ylabel('$(E - E_0) / E_0$', fontsize=22)
-        self.axes ["P0"].set_ylabel('$P$', fontsize=22)
+        
+        if self.hamiltonian.P0 == 0:
+            self.axes ["P" ].set_ylabel('$P$', fontsize=22)
+            self.axes ["P0"].set_ylabel('$P$', fontsize=22)
+        else:
+            self.axes ["P" ].set_ylabel('$(P - P_0) / P_0$', fontsize=22)
+            self.axes ["P0"].set_ylabel('$(P - P_0) / P_0$', fontsize=22)
+
         self.axes ["N0"].set_ylabel('$(N - N_0) / N_0$', fontsize=22)
         self.axes ["L1"].set_ylabel('$(L_1 - L_{1,0}) / L_{1,0}$', fontsize=22)
         self.axes ["L2"].set_ylabel('$(L_2 - L_{2,0}) / L_{2,0}$', fontsize=22)
@@ -391,13 +403,21 @@ class PlotEnergy(object):
         
     
     def add_timepoint(self):
-        E0 = self.hamiltonian.Ewoa_0
-        E  = self.hamiltonian.Ewoa
+#         E0 = self.hamiltonian.Ewoa_0
+#         E  = self.hamiltonian.Ewoa
+        
+        E  = self.hamiltonian.Ewoa_kin  + self.hamiltonian.Ewoa_pot  + self.potential.E
+        E0 = self.hamiltonian.Ewoa_kin0 + self.hamiltonian.Ewoa_pot0 + self.potential.E0
         
         E_error   = (E - E0) / E0
         
         self.energy   [self.iTime] = E_error
-        self.momentum [self.iTime] = self.hamiltonian.P
+        
+        if self.hamiltonian.P0 == 0:
+            self.momentum[self.iTime] = self.hamiltonian.P
+        else:
+            self.momentum[self.iTime] = self.hamiltonian.P_error
+        
         self.partnum  [self.iTime] = self.distribution.N_error
         self.entropy  [self.iTime] = self.distribution.S_error
         self.L1       [self.iTime] = self.distribution.L1_error

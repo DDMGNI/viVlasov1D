@@ -336,8 +336,8 @@ class PlotSpecies(object):
 #        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
 #         self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
         
-        E0 = self.hamiltonian.Ewoa_0
-        E  = self.hamiltonian.Ewoa
+#         E0 = self.hamiltonian.Ewoa_0
+#         E  = self.hamiltonian.Ewoa
         
 #         E0 = self.hamiltonian.EJ1_0
 #         E  = self.hamiltonian.EJ1
@@ -351,13 +351,13 @@ class PlotSpecies(object):
 #         E0 = self.hamiltonian.EJ1_0 + self.hamiltonian.EJ2_0
 #         E  = self.hamiltonian.EJ1   + self.hamiltonian.EJ2
         
-#         E  = self.ekin[self.iTime] + self.epot[self.iTime]
-#         E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
-#         E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 * 0.5
+#         E  = self.hamiltonian.EJ1_kin  + self.hamiltonian.EJ1_pot  + self.potential.E
+#         E0 = self.hamiltonian.EJ1_kin0 + self.hamiltonian.EJ1_pot0 + self.potential.E0
+        
+        E  = self.hamiltonian.Ewoa_kin  + self.hamiltonian.Ewoa_pot  + self.potential.E
+        E0 = self.hamiltonian.Ewoa_kin0 + self.hamiltonian.Ewoa_pot0 + self.potential.E0
         
         self.energy [self.iTime] = (E - E0) / E0
-#        self.energy_f[self.iTime] = E_f_error
-#        self.energy_p[self.iTime] = E_p_error
         self.partnum  [self.iTime] = self.distribution.N_error
 #        self.partnum  [self.iTime] = self.distribution.L1_error
         self.enstrophy[self.iTime] = self.distribution.L2_error

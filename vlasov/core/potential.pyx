@@ -146,8 +146,9 @@ class Potential(object):
             
             E += pow(tphi[ixp] - tphi[ix], 2)
         
-        self.E = 0.5 * E / self.grid.hx               # / hx**2 for the square of the derivative
-                                                      # * hx**1 for the integration
+        self.E = 0.5 * self.charge * E / self.grid.hx
+        # / hx**2 for the square of the derivative
+        # * hx**1 for the integration
         
     
     def set_hdf5_file(self, hdf5):
