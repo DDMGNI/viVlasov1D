@@ -3,10 +3,10 @@
 #
 #$ -l h_rt=24:00:00
 #
-#$ -pe impi_hydra 16 
+#$ -pe impi_hydra 16
 #
-#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_200x401_dt1E-1_nu0_gmres.out
-#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/landau02_200x401_dt1E-1_nu0_gmres.err
+#$ -o /pfs/scratch/mkraus/petscVlasovPoisson1D/bump_on_tail_200x401_dt1E-1_nu0_gmres.out
+#$ -e /pfs/scratch/mkraus/petscVlasovPoisson1D/bump_on_tail_200x401_dt1E-1_nu0_gmres.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -17,7 +17,7 @@
 #
 
 
-RUNID=landau02_200x401_dt1E-1_nu0_gmres
+RUNID=bump_on_tail_200x401_dt1E-1_nu0_gmres
 
 
 module purge
@@ -25,6 +25,7 @@ module purge
 export MODULEPATH=/afs/@cell/common/usr/modules/@sys/modulefiles/compilers:${MODULEPATH}
 export MODULEPATH=/afs/@cell/common/usr/modules/@sys/modulefiles/libs:${MODULEPATH}
 export MODULEPATH=/afs/ipp/common/usr/modules/@sys/modulefiles/TOK:${MODULEPATH}
+
 
 module load hdf5-serial/1.8.9
 module load netcdf-serial/4.2.1.1
@@ -47,5 +48,6 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics/2011.0.013/12.1/compiler/lib/
 #export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split.py runs_itm/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split.py -c runs_itm/$RUNID.cfg
+#mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split_pc_exp.py runs_itm/$RUNID.cfg
 
