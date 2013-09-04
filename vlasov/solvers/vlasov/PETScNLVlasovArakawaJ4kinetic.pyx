@@ -51,7 +51,7 @@ cdef class PETScVlasovSolverKinetic(PETScVlasovSolverBase):
         
         # Vlasov Equation
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             
             row.index = (i,)
                 
@@ -59,7 +59,7 @@ cdef class PETScVlasovSolverKinetic(PETScVlasovSolverBase):
                 row.field = j
                 
                 # Dirichlet boundary conditions
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
@@ -123,12 +123,12 @@ cdef class PETScVlasovSolverKinetic(PETScVlasovSolverBase):
         
 
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = f[ix,j]
                     
@@ -194,12 +194,12 @@ cdef class PETScVlasovSolverKinetic(PETScVlasovSolverBase):
         
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]
                     

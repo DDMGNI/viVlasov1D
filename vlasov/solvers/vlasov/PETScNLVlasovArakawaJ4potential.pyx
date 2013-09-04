@@ -52,7 +52,7 @@ cdef class PETScVlasovSolverPotential(PETScVlasovSolverBase):
         
         # Vlasov Equation
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             
             row.index = (i,)
                 
@@ -60,7 +60,7 @@ cdef class PETScVlasovSolverPotential(PETScVlasovSolverBase):
                 row.field = j
                 
                 # Dirichlet boundary conditions
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
@@ -123,12 +123,12 @@ cdef class PETScVlasovSolverPotential(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = 0.5 * (self.h1p + self.h1h)
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = f[ix,j]
                     
@@ -194,12 +194,12 @@ cdef class PETScVlasovSolverPotential(PETScVlasovSolverBase):
         
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]
                     

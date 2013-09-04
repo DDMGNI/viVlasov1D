@@ -126,7 +126,7 @@ class petscVP1Dbasesplit():
                                        sizes=[self.nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
-                                       stencil_width=2,
+                                       stencil_width=3,
                                        stencil_type='box')
         
         # create VIDA for x grid
@@ -134,7 +134,7 @@ class petscVP1Dbasesplit():
                                        sizes=[self.nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
-                                       stencil_width=2,
+                                       stencil_width=3,
                                        stencil_type='box')
         
         # create VIDA for y grid
@@ -389,7 +389,7 @@ class petscVP1Dbasesplit():
 #                         f_arr[i,j] = n0_arr[i] * maxwellian(T0_arr[i], self.vGrid[j])
         
         
-        # normalise f to fit density and copy f to x
+        # normalise f
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Normalise distribution function.")
         nave = self.f.sum() * self.hv / self.nx

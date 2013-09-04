@@ -97,7 +97,7 @@ cdef class PETScPoissonSolver(object):
         (xs, xe), = self.dax.getRanges()
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
             b[iy] = - ( n[ix] - nmean) * self.charge
@@ -116,7 +116,7 @@ cdef class PETScPoissonSolver(object):
         
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
             y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv
@@ -137,7 +137,7 @@ cdef class PETScPoissonSolver(object):
         
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
             y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv \

@@ -138,10 +138,10 @@ cdef class Arakawa(object):
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
-                ix = i-xs+2
+                ix = i-xs+self.da1.getStencilWidth()
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
@@ -168,10 +168,10 @@ cdef class Arakawa(object):
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
-                ix = i-xs+2
+                ix = i-xs+self.da1.getStencilWidth()
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
@@ -202,10 +202,10 @@ cdef class Arakawa(object):
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
-                ix = i-xs+2
+                ix = i-xs+self.da1.getStencilWidth()
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     
@@ -265,10 +265,10 @@ cdef class Arakawa(object):
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
-                ix = i-xs+2
+                ix = i-xs+self.da1.getStencilWidth()
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet boundary conditions
                     y[iy, j] = 0.0
                     

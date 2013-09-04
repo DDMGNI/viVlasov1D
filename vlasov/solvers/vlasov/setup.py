@@ -85,7 +85,14 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
-               
+        Extension("PETScNLVlasovArakawaJ6",
+                  sources=["PETScNLVlasovArakawaJ6.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        
         Extension("PETScNLVlasovArakawaJ4kinetic",
                   sources=["PETScNLVlasovArakawaJ4kinetic.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -99,11 +106,35 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        
+        Extension("PETScNLVlasovSimpson",
+                  sources=["PETScNLVlasovSimpson.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
                  )
+        
+#         Extension("PETScNLVlasovUpwind1st",
+#                   sources=["PETScNLVlasovUpwind1st.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS
+#                  ),
+#         Extension("PETScNLVlasovUpwind1stkinetic",
+#                   sources=["PETScNLVlasovUpwind1stkinetic.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS
+#                  )
+
               ]
                 
 setup(
-    name = 'PETSc Vlasov-Poisson Explicit Predictor',
+    name = 'PETSc Vlasov Solver',
     cmdclass = {'build_ext': build_ext},
     ext_modules = ext_modules
 )

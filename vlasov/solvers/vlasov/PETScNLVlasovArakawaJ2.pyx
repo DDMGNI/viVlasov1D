@@ -42,8 +42,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 #         cdef npy.float64_t coll2_fac   = 0.
         
         cdef npy.float64_t time_fac    = 1.0  / self.ht
-        cdef npy.float64_t arak_fac_J1 = + 1.0 / (12. * self.hx * self.hv)
-        cdef npy.float64_t arak_fac_J2 = - 0.5 / (24. * self.hx * self.hv)
+        cdef npy.float64_t arak_fac_J2 = 0.5 / (24. * self.hx * self.hv)
         
         cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.hv
         cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.hv2_inv
@@ -57,7 +56,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         # Vlasov Equation
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             
             row.index = (i,)
                 
@@ -65,11 +64,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                 row.field = j
                 
                 # Dirichlet boundary conditions
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
-                    
                     for index, field, value in [
                             ((i-2,), j  , - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
                             ((i-1,), j-1, - (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
@@ -122,12 +120,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                                                 + 0.5 * (self.h2p + self.h2h)
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fd[ix,j]
                     
@@ -189,12 +187,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         for i in range(xs, xe):
-            ix = i-xs+2
+            ix = i-xs+self.da1.getStencilWidth()
             iy = i-xs
             
             # Vlasov equation
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
                     y[iy, j] = fp[ix,j]
                     

@@ -207,7 +207,7 @@ cdef class Toolbox(object):
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     f_arr[i,j] = 0.0
                 else:
                     f_arr[i,j] = init_function(xGrid[i], vGrid[j]) 
@@ -228,7 +228,7 @@ cdef class Toolbox(object):
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
                     f_arr[i,j] = 0.0
                 else:
                     f_arr[i,j] = n_arr[i] * fac * exp( - 0.5 * v[j]**2 / T_arr[i] ) 
