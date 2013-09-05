@@ -11,9 +11,17 @@ from petsc4py import PETSc
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ6       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ6       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovSimpson         import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind2nd       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind3rd       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovUpwind4th       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovUpwind5th       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovUpwind6th       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovUpwind7th       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind8th       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind9th       import PETScVlasovSolver
 
 from run_base_split import petscVP1Dbasesplit
 
