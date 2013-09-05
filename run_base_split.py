@@ -126,7 +126,7 @@ class petscVP1Dbasesplit():
                                        sizes=[self.nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
-                                       stencil_width=3,
+                                       stencil_width=2,
                                        stencil_type='box')
         
         # create VIDA for x grid
@@ -134,7 +134,7 @@ class petscVP1Dbasesplit():
                                        sizes=[self.nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
-                                       stencil_width=3,
+                                       stencil_width=2,
                                        stencil_type='box')
         
         # create VIDA for y grid

@@ -114,22 +114,78 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
-                 )
+                 ),
         
-#         Extension("PETScNLVlasovUpwind1st",
-#                   sources=["PETScNLVlasovUpwind1st.pyx"],
-#                   include_dirs=INCLUDE_DIRS + [os.curdir],
-#                   libraries=LIBRARIES,
-#                   library_dirs=LIBRARY_DIRS,
-#                   runtime_library_dirs=LIBRARY_DIRS
-#                  ),
-#         Extension("PETScNLVlasovUpwind1stkinetic",
-#                   sources=["PETScNLVlasovUpwind1stkinetic.pyx"],
-#                   include_dirs=INCLUDE_DIRS + [os.curdir],
-#                   libraries=LIBRARIES,
-#                   library_dirs=LIBRARY_DIRS,
-#                   runtime_library_dirs=LIBRARY_DIRS
-#                  )
+        Extension("PETScNLVlasovUpwind1st",
+                  sources=["PETScNLVlasovUpwind1st.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind1stkinetic",
+                  sources=["PETScNLVlasovUpwind1stkinetic.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind2nd",
+                  sources=["PETScNLVlasovUpwind2nd.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind3rd",
+                  sources=["PETScNLVlasovUpwind3rd.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind4th",
+                  sources=["PETScNLVlasovUpwind4th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind5th",
+                  sources=["PETScNLVlasovUpwind5th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind6th",
+                  sources=["PETScNLVlasovUpwind6th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind7th",
+                  sources=["PETScNLVlasovUpwind7th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind8th",
+                  sources=["PETScNLVlasovUpwind8th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovUpwind9th",
+                  sources=["PETScNLVlasovUpwind9th.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 )
 
               ]
                 
