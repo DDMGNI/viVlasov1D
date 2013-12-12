@@ -16,20 +16,30 @@ class PlotReplay(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential,nTime=0,  iStart=0, nPlot=1):
+    def __init__(self, grid, distribution, hamiltonian, potential,nTime=0,  iStart=0, nPlot=1, vMax=0.0):
         '''
         Constructor
         '''
+        
+        # number of contour levels
+        self.nconts = 20
+        
+        # colour map
+        self.cmap = cm.jet
+#         self.cmap = cm.hsv
+#         self.cmap = cm.brg
+#         self.cmap = cm.RdYlGn
         
         if nTime > 0 and nTime < grid.nt:
             self.nTime = nTime
         else:
             self.nTime = grid.nt
-            
+        
         self.nTime -= iStart
         self.iTime  = iStart
         self.iStart = iStart
         self.nPlot  = nPlot
+        self.vMax   = vMax
         
         self.grid         = grid
         self.distribution = distribution
@@ -37,9 +47,10 @@ class PlotReplay(object):
         self.potential    = potential
         
         self.partnum   = np.zeros_like(grid.tGrid)
+        self.momentum  = np.zeros_like(grid.tGrid)
+        self.energy    = np.zeros_like(grid.tGrid)
         self.enstrophy = np.zeros_like(grid.tGrid)
         self.entropy   = np.zeros_like(grid.tGrid)
-        self.energy    = np.zeros_like(grid.tGrid)
         self.energy_f  = np.zeros_like(grid.tGrid)
         self.energy_p  = np.zeros_like(grid.tGrid)
         self.ekin      = np.zeros_like(grid.tGrid)
@@ -82,30 +93,30 @@ class PlotReplay(object):
         
         
         # create subplots
-        gs = gridspec.GridSpec(4, 5)
+        gs = gridspec.GridSpec(4, 4)
         
         self.axes["f"] = plt.subplot(gs[0:2,0:2])
         self.axes["n"] = plt.subplot(gs[0:2,2])
         self.axes["h"] = plt.subplot(gs[2:4,0:2])
         self.axes["p"] = plt.subplot(gs[2:4,2])
-        self.axes["T"] = plt.subplot(gs[0:2,3])
-        self.axes["V"] = plt.subplot(gs[2:4,3])
-        self.axes["N"] = plt.subplot(gs[0,4])
-        self.axes["L"] = plt.subplot(gs[1,4])
-        self.axes["S"] = plt.subplot(gs[2,4])
-        self.axes["E"] = plt.subplot(gs[3,4])
+#         self.axes["T"] = plt.subplot(gs[0:2,3])
+#         self.axes["V"] = plt.subplot(gs[2:4,3])
+        self.axes["N"] = plt.subplot(gs[0,3])
+        self.axes["P"] = plt.subplot(gs[1,3])
+        self.axes["E"] = plt.subplot(gs[2,3])
+        self.axes["L"] = plt.subplot(gs[3,3])
         
         
         # distribution function (filled contour)
         self.axes["f"] = plt.subplot(gs[0:2,0:2])
         self.axes ["f"].set_title('$f (x,v)$')
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
+        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, self.nconts, cmap=self.cmap, norm=self.fnorm)
         self.cbars["f"] = plt.colorbar(self.conts["f"], orientation='vertical')
         
         # Hamilton function (filled contour)
         self.axes["h"] = plt.subplot(gs[2:4,0:2])
         self.axes["h"].set_title('$H (x,v)$')
-        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  10, norm=self.hnorm)
+        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  self.nconts, norm=self.hnorm)
         self.cbars["h"] = plt.colorbar(self.conts["h"], orientation='vertical')
 
         # density profile
@@ -125,49 +136,52 @@ class PlotReplay(object):
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
 
-        # kinetic energy (time trace)
-        self.lines["T"], = self.axes["T"].plot(self.grid.tGrid[tStart:tEnd], self.ekin[tStart:tEnd])
-        self.axes ["T"].set_title('$E_{kin} (t)$')
-        self.axes ["T"].set_xlim((xStart,xEnd)) 
-#        self.axes ["T"].yaxis.set_major_formatter(majorFormatter)
-        
-        # potential energy (time trace)
-        self.lines["V"], = self.axes["V"].plot(self.grid.tGrid[tStart:tEnd], self.epot[tStart:tEnd])
-        self.axes ["V"].set_title('$E_{pot} (t)$')
-        self.axes ["V"].set_xlim((xStart,xEnd)) 
-#        self.axes ["V"].yaxis.set_major_formatter(majorFormatter)
+#         # kinetic energy (time trace)
+#         self.lines["T"], = self.axes["T"].plot(self.grid.tGrid[tStart:tEnd], self.ekin[tStart:tEnd])
+#         self.axes ["T"].set_title('$E_{kin} (t)$')
+#         self.axes ["T"].set_xlim((xStart,xEnd)) 
+# #        self.axes ["T"].yaxis.set_major_formatter(majorFormatter)
+#         
+#         # potential energy (time trace)
+#         self.lines["V"], = self.axes["V"].plot(self.grid.tGrid[tStart:tEnd], self.epot[tStart:tEnd])
+#         self.axes ["V"].set_title('$E_{pot} (t)$')
+#         self.axes ["V"].set_xlim((xStart,xEnd)) 
+# #        self.axes ["V"].yaxis.set_major_formatter(majorFormatter)
         
         
         self.lines["N"], = self.axes["N"].plot(self.grid.tGrid[tStart:tEnd], self.partnum  [tStart:tEnd])
-        self.lines["L"], = self.axes["L"].plot(self.grid.tGrid[tStart:tEnd], self.enstrophy[tStart:tEnd])
-        self.lines["S"], = self.axes["S"].plot(self.grid.tGrid[tStart:tEnd], self.entropy  [tStart:tEnd])
+        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum [tStart:tEnd])
         self.lines["E"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy   [tStart:tEnd])
+        self.lines["L"], = self.axes["L"].plot(self.grid.tGrid[tStart:tEnd], self.enstrophy[tStart:tEnd])
 #        self.lines["E_f"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy_f [tStart:tEnd])
 #        self.lines["E_p"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy_p [tStart:tEnd])
         
         self.axes ["N"].set_title('$\Delta N (t)$')
-        self.axes ["L"].set_title('$\Delta L_{2} (t)$')
-        self.axes ["S"].set_title('$\Delta S (t)$')
+        if np.abs(self.hamiltonian.P0) < 1E-3: 
+            self.axes ["P"].set_title('$P (t)$')
+        else:
+            self.axes ["P"].set_title('$\Delta P (t)$')
         self.axes ["E"].set_title('$\Delta E (t)$')
+        self.axes ["L"].set_title('$\Delta L_{2} (t)$')
 
         self.axes ["N"].set_xlim((xStart,xEnd)) 
-        self.axes ["L"].set_xlim((xStart,xEnd)) 
-        self.axes ["S"].set_xlim((xStart,xEnd)) 
+        self.axes ["P"].set_xlim((xStart,xEnd)) 
         self.axes ["E"].set_xlim((xStart,xEnd)) 
+        self.axes ["L"].set_xlim((xStart,xEnd)) 
         
         self.axes ["N"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["L"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["P"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["E"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["L"].yaxis.set_major_formatter(majorFormatter)
         
         
         # switch off some ticks
         plt.setp(self.axes["f"].get_xticklabels(), visible=False)
         plt.setp(self.axes["n"].get_xticklabels(), visible=False)
-        plt.setp(self.axes["T"].get_xticklabels(), visible=False)
+#         plt.setp(self.axes["T"].get_xticklabels(), visible=False)
         plt.setp(self.axes["N"].get_xticklabels(), visible=False)
-        plt.setp(self.axes["L"].get_xticklabels(), visible=False)
-        plt.setp(self.axes["S"].get_xticklabels(), visible=False)
+        plt.setp(self.axes["P"].get_xticklabels(), visible=False)
+        plt.setp(self.axes["E"].get_xticklabels(), visible=False)
         
         
         self.update()
@@ -183,12 +197,16 @@ class PlotReplay(object):
         extent = self.axes["N"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
         self.figure.savefig(filename, dpi=70, bbox_inches=extent)
 
-        filename = str('L2_%06d' % self.iTime) + '.png'
-        extent = self.axes["L"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        filename = str('P_%06d' % self.iTime) + '.png'
+        extent = self.axes["P"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
         self.figure.savefig(filename, dpi=70, bbox_inches=extent)
 
         filename = str('E_%06d' % self.iTime) + '.png'
         extent = self.axes["E"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.figure.savefig(filename, dpi=70, bbox_inches=extent)
+
+        filename = str('L2_%06d' % self.iTime) + '.png'
+        extent = self.axes["L"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
         self.figure.savefig(filename, dpi=70, bbox_inches=extent)
 
 
@@ -207,8 +225,10 @@ class PlotReplay(object):
         self.hmin = min(self.hmin, self.hamiltonian.h.min() )
         self.hmax = max(self.hmax, self.hamiltonian.h.max() )
 
-
-        self.fnorm = colors.Normalize(vmin=self.fmin + 0.1 * self.fmax, vmax=1.1*self.fmax)
+        
+        df = self.fmax - self.fmin
+        
+        self.fnorm = colors.Normalize(vmin=self.fmin + 0.05 * df, vmax=self.fmax + 0.05*df)
         self.hnorm = colors.Normalize(vmin=self.hmin, vmax=self.hmax)
         
         self.density_min   =-1.0
@@ -235,8 +255,8 @@ class PlotReplay(object):
         
 #        self.fnorm = colors.Normalize(vmin=self.fmin, vmax=self.fmax)
         
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
-        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  10, norm=self.hnorm)
+        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, self.nconts, cmap=self.cmap, norm=self.fnorm)
+        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  self.nconts, norm=self.hnorm)
         
         
         self.n  [0:-1] = self.distribution.density
@@ -253,19 +273,23 @@ class PlotReplay(object):
         self.axes ["p"].autoscale_view()
         
         
+        if self.vMax > 0.0:
+            self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
+            
+        
         tStart, tEnd, xStart, xEnd = self.get_timerange()
         
-        self.lines["T"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["T"].set_ydata(self.ekin[tStart:tEnd])
-        self.axes ["T"].relim()
-        self.axes ["T"].autoscale_view()
-        self.axes ["T"].set_xlim((xStart,xEnd)) 
-        
-        self.lines["V"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["V"].set_ydata(self.epot[tStart:tEnd])
-        self.axes ["V"].relim()
-        self.axes ["V"].autoscale_view()
-        self.axes ["V"].set_xlim((xStart,xEnd)) 
+#         self.lines["T"].set_xdata(self.grid.tGrid[tStart:tEnd])
+#         self.lines["T"].set_ydata(self.ekin[tStart:tEnd])
+#         self.axes ["T"].relim()
+#         self.axes ["T"].autoscale_view()
+#         self.axes ["T"].set_xlim((xStart,xEnd)) 
+#         
+#         self.lines["V"].set_xdata(self.grid.tGrid[tStart:tEnd])
+#         self.lines["V"].set_ydata(self.epot[tStart:tEnd])
+#         self.axes ["V"].relim()
+#         self.axes ["V"].autoscale_view()
+#         self.axes ["V"].set_xlim((xStart,xEnd)) 
         
         self.lines["N"].set_xdata(self.grid.tGrid[tStart:tEnd])
         self.lines["N"].set_ydata(self.partnum[tStart:tEnd])
@@ -273,23 +297,23 @@ class PlotReplay(object):
         self.axes ["N"].autoscale_view()
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["L"].set_ydata(self.enstrophy[tStart:tEnd])
-        self.axes ["L"].relim()
-        self.axes ["L"].autoscale_view()
-        self.axes ["L"].set_xlim((xStart,xEnd)) 
-        
-        self.lines["S"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["S"].set_ydata(self.entropy[tStart:tEnd])
-        self.axes ["S"].relim()
-        self.axes ["S"].autoscale_view()
-        self.axes ["S"].set_xlim((xStart,xEnd)) 
+        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["P"].set_ydata(self.momentum[tStart:tEnd])
+        self.axes ["P"].relim()
+        self.axes ["P"].autoscale_view()
+        self.axes ["P"].set_xlim((xStart,xEnd)) 
         
         self.lines["E"].set_xdata(self.grid.tGrid[tStart:tEnd])
         self.lines["E"].set_ydata(self.energy[tStart:tEnd])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
+        
+        self.lines["L"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L"].set_ydata(self.enstrophy[tStart:tEnd])
+        self.axes ["L"].relim()
+        self.axes ["L"].autoscale_view()
+        self.axes ["L"].set_xlim((xStart,xEnd)) 
         
         
         plt.draw()
@@ -304,6 +328,11 @@ class PlotReplay(object):
         
         E0 = self.hamiltonian.E0
         E  = self.hamiltonian.E
+        
+        if np.abs(self.hamiltonian.P0) < 1E-3: 
+            self.momentum[self.iTime] = self.hamiltonian.P
+        else:
+            self.momentum[self.iTime] = self.hamiltonian.P_error
         
         self.energy [self.iTime] = (E - E0) / E0
         self.partnum  [self.iTime] = self.distribution.N_error

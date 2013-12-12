@@ -27,7 +27,7 @@ class replay(object):
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=1, iStart=0):
+    def __init__(self, hdf5_file, nPlot=1, iStart=0, vMax=0.0):
         '''
         Constructor
         '''
@@ -54,7 +54,7 @@ class replay(object):
         self.hamiltonian.read_from_hdf5(iStart)
         
         self.plot = PlotReplay(self.grid, self.distribution, self.hamiltonian, self.potential,
-                               self.grid.nt, iStart, nPlot)
+                               self.grid.nt, iStart, nPlot, vMax)
         
 #         self.plot.save_plots()
         
@@ -117,14 +117,6 @@ class replay(object):
         for itime in range(self.iStart+1, self.grid.nt+1):
             self.update(itime, final=(itime == self.grid.nt))
         
-    
-    def movie(self, outfile, fps=1):
-        self.plot.nPlot = 1
-        
-        ani = animation.FuncAnimation(self.plot.figure, self.update, np.arange(1, self.grid.nt+1), 
-                                      init_func=self.init, repeat=False, blit=True)
-        ani.save(outfile, fps=fps)
-    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
@@ -135,8 +127,8 @@ if __name__ == '__main__':
                         help='plot every i\'th frame')    
     parser.add_argument('-ns', metavar='i', type=int, default=0,
                         help='start at frame i')    
-    parser.add_argument('-o', metavar='<run.mp4>', type=str, default=None,
-                        help='output video file')    
+    parser.add_argument('-v', metavar='f', type=float, default=0.0,
+                        help='limit velocity domain to +/-v')
     
     args = parser.parse_args()
     
@@ -144,16 +136,13 @@ if __name__ == '__main__':
     print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = replay(args.hdf5_file, args.np, args.ns)
+    pyvp = replay(args.hdf5_file, args.np, args.ns, vMax=args.v)
     
     print
     input('Hit any key to start replay.')
     print
     
-    if args.o != None:
-        pyvp.movie(args.o, args.np, args.ns)
-    else:
-        pyvp.run()
+    pyvp.run()
     
     print
     print("Replay finished.")
