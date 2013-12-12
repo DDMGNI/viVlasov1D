@@ -15,7 +15,7 @@ import h5py
 
 
 from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
-from vlasov.plot import PlotReplay
+from vlasov.plot import PlotNoether
 
 
 class replay(object):
@@ -53,10 +53,8 @@ class replay(object):
         self.distribution.read_from_hdf5(iStart)
         self.hamiltonian.read_from_hdf5(iStart)
         
-        self.plot = PlotReplay(self.grid, self.distribution, self.hamiltonian, self.potential,
-                               self.grid.nt, iStart, nPlot)
-        
-#         self.plot.save_plots()
+        self.plot = PlotNoether(self.grid, self.distribution, self.hamiltonian, self.potential,
+                                self.grid.nt, iStart, nPlot)
         
     
     def __del__(self):

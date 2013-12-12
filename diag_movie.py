@@ -37,7 +37,7 @@ class movie(object):
         self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
         self.potential    = Potential           (self.grid, self.hdf5, charge=-1.)
         self.hamiltonian  = Hamiltonian         (self.grid, hdf5=self.hdf5)
-        self.distribution = DistributionFunction(self.grid, hdf5_in=self.hdf5, replay=True)
+        self.distribution = DistributionFunction(self.grid, hdf5=self.hdf5)
         
         self.potential.read_from_hdf5(iStart)
         self.distribution.read_from_hdf5(iStart)

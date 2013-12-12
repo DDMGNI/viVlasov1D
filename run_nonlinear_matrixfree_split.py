@@ -8,20 +8,37 @@ import argparse, time
 
 from petsc4py import PETSc
 
+# from vlasov.solvers.vlasov.PETScNLVlasov4by4            import PETScVlasovSolver
+
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1e2     import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1e3     import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1e4     import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1e5     import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2       import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4e2     import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ6       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovSimpson         import PETScVlasovSolver
+
+# from vlasov.solvers.vlasov.PETScNLVlasovTriangle1       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovTriangle2       import PETScVlasovSolver
+
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind2nd       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind3rd       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovUpwind4th       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovUpwind5th       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovUpwind6th       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovUpwind7th       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind4th       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind4ath       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind5th       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind6ath       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind7th       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind8th       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind9th       import PETScVlasovSolver
+
+# from vlasov.solvers.vlasov.PETScVlasovArakawaJ4       import PETScVlasovSolver
+
+# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
+from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
 from run_base_split import petscVP1Dbasesplit
 
@@ -76,14 +93,18 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         
         
         
+        del self.poisson_ksp
+        del self.poisson_solver
+            
+        self.poisson_solver = PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
+        self.poisson_solver.formMat(self.poisson_A)
+        
         self.poisson_mf = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], 
                                                    context=self.poisson_solver,
                                                    comm=PETSc.COMM_WORLD)
         self.poisson_mf.setUp()
            
            
-        del self.poisson_ksp
-            
         OptDB.setValue('ksp_rtol', 1E-13)
             
         self.poisson_ksp = PETSc.KSP().create()
@@ -105,7 +126,6 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     
     
     def run(self):
-
         for itime in range(1, self.nt+1):
             current_time = self.ht*itime
             
@@ -151,7 +171,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
                 phisum = self.p.sum()
 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("  Nonlinear Solver: %5i GMRES  iterations, funcnorm = %24.16E" % (self.snes.getLinearSolveIterations(), pred_norm) )
+                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(), pred_norm) )
                     print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum))
                 
                 if pred_norm > prev_norm or pred_norm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:

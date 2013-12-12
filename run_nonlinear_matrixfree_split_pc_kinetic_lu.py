@@ -8,10 +8,16 @@ import argparse, time
 
 from petsc4py import PETSc
 
-# from vlasov.solver.vlasov.PETScNLVlasovArakawaJ1          import PETScVlasovSolver
-# from vlasov.solver.vlasov.PETScNLVlasovArakawaJ2          import PETScVlasovSolver
-from vlasov.solver.vlasov.PETScNLVlasovArakawaJ4          import PETScVlasovSolver
-from vlasov.solver.vlasov.PETScNLVlasovArakawaJ4kinetic   import PETScVlasovSolverKinetic
+# from vlasov.solvers.vlasov.PETScNLVlasov4by4            import PETScVlasovSolver
+
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1     import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2     import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4kinetic   import PETScVlasovSolverKinetic
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st     import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovUpwind1stkinetic   import PETScVlasovSolverKinetic
+
+from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
 from run_base_split import petscVP1Dbasesplit
 
@@ -72,15 +78,6 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.vlasov_solver_kinetic.formJacobian(self.J)
         
 
-#         # create nonlinear predictor
-#         self.snes_kinetic = PETSc.SNES().create()
-#         self.snes_kinetic.setType('ksponly')
-#         self.snes_kinetic.setFunction(self.vlasov_solver.function_snes_mult, self.fb)
-#         self.snes_kinetic.setJacobian(self.updateVlasovJacobian, self.Jmf_kinetic)
-#         self.snes_kinetic.setFromOptions()
-#         self.snes_kinetic.getKSP().setType('gmres')
-#         self.snes_kinetic.getKSP().getPC().setType('none')
-        
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setType('ksponly')
@@ -88,11 +85,15 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.snes.setJacobian(self.updateVlasovJacobian, self.Jmf, self.J)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
-#         self.snes.getKSP().getPC().setType('none')
         self.snes.getKSP().getPC().setType('lu')
         self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
         
         
+        del self.poisson_ksp
+        del self.poisson_solver
+            
+        self.poisson_solver = PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
+        self.poisson_solver.formMat(self.poisson_A)
         
         self.poisson_mf = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], 
                                                    context=self.poisson_solver,
@@ -100,8 +101,6 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.poisson_mf.setUp()
            
            
-        del self.poisson_ksp
-            
         OptDB.setValue('ksp_rtol', 1E-13)
             
         self.poisson_ksp = PETSc.KSP().create()
@@ -144,14 +143,14 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             while True:
                 i+=1
                 
-                if i == 1:
-                    self.snes.getKSP().setTolerances(rtol=1E-5)
-                if i == 2:
-                    self.snes.getKSP().setTolerances(rtol=1E-4)
-                if i == 3:
-                    self.snes.getKSP().setTolerances(rtol=1E-3)
-                if i == 4:
-                    self.snes.getKSP().setTolerances(rtol=1E-3)
+#                 if i == 1:
+#                     self.snes.getKSP().setTolerances(rtol=1E-5)
+#                 if i == 2:
+#                     self.snes.getKSP().setTolerances(rtol=1E-4)
+#                 if i == 3:
+#                     self.snes.getKSP().setTolerances(rtol=1E-3)
+#                 if i == 4:
+#                     self.snes.getKSP().setTolerances(rtol=1E-3)
                 
                 
                 self.f.copy(self.fh)

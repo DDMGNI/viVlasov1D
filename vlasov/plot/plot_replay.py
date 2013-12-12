@@ -11,7 +11,7 @@ from matplotlib import cm, colors, gridspec
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, ScalarFormatter
 
 
-class PlotSpecies(object):
+class PlotReplay(object):
     '''
     classdocs
     '''
@@ -286,11 +286,7 @@ class PlotSpecies(object):
         self.axes ["S"].set_xlim((xStart,xEnd)) 
         
         self.lines["E"].set_xdata(self.grid.tGrid[tStart:tEnd])
-#        self.lines["E_f"].set_xdata(self.grid.tGrid[tStart:tEnd])
-#        self.lines["E_p"].set_xdata(self.grid.tGrid[tStart:tEnd])
         self.lines["E"].set_ydata(self.energy[tStart:tEnd])
-#        self.lines["E_f"].set_ydata(self.energy_f[tStart:tEnd])
-#        self.lines["E_p"].set_ydata(self.energy_p[tStart:tEnd])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
@@ -303,63 +299,14 @@ class PlotSpecies(object):
     
     
     def add_timepoint(self):
-#        print("  Ekin = %24.16E" % (self.hamiltonian.Ekin))
-#        print("  Epot = %24.16E" % (self.hamiltonian.Epot))
-#        print("  Etot = %24.16E" % (self.hamiltonian.E))
+#         E  = self.hamiltonian.E_kin  + self.hamiltonian.E_pot  + self.potential.E
+#         E0 = self.hamiltonian.E_kin0 + self.hamiltonian.E_pot0 + self.potential.E0
         
-#         E0 = self.hamiltonian.E0
-#         E  = self.hamiltonian.E
-        
-#         E0 = self.hamiltonian.Ekin0 + self.potential.poisson_const * self.potential.E0
-#         E  = self.hamiltonian.Ekin  + self.potential.poisson_const * self.potential.E
-        
-#        E0 = self.hamiltonian.Ekin0 + self.hamiltonian.Epot0 + self.potential.E0
-#        E  = self.hamiltonian.Ekin  + self.hamiltonian.Epot  + self.potential.E
-        
-#        if E0 != 0.0:
-#            E_error = (E-E0)/E0
-#        else:
-#            E_error = 0.0
-        
-        self.ekin   [self.iTime] = self.hamiltonian.Ewoa_kin
-        self.epot   [self.iTime] = self.hamiltonian.Ewoa_pot * 0.5
-        
-#         self.ekin   [self.iTime] = self.hamiltonian.EJ1_kin
-#         self.epot   [self.iTime] = self.hamiltonian.EJ1_pot * 0.5
-        
-#         self.ekin   [self.iTime] = self.hamiltonian.EJ2_kin
-#         self.epot   [self.iTime] = self.hamiltonian.EJ2_pot * 0.5
-        
-#         self.ekin   [self.iTime] = self.hamiltonian.EJ4_kin
-#         self.epot   [self.iTime] = self.hamiltonian.EJ4_pot * 0.5
-        
-#        self.epot   [self.iTime] = self.hamiltonian.Epot + self.potential.E
-#         self.epot   [self.iTime] = self.potential.poisson_const * self.potential.E
-        
-#         E0 = self.hamiltonian.Ewoa_0
-#         E  = self.hamiltonian.Ewoa
-        
-#         E0 = self.hamiltonian.EJ1_0
-#         E  = self.hamiltonian.EJ1
-        
-#         E0 = self.hamiltonian.EJ2_0
-#         E  = self.hamiltonian.EJ2
-        
-#         E0 = self.hamiltonian.EJ4_0
-#         E  = self.hamiltonian.EJ4
-        
-#         E0 = self.hamiltonian.EJ1_0 + self.hamiltonian.EJ2_0
-#         E  = self.hamiltonian.EJ1   + self.hamiltonian.EJ2
-        
-#         E  = self.hamiltonian.EJ1_kin  + self.hamiltonian.EJ1_pot  + self.potential.E
-#         E0 = self.hamiltonian.EJ1_kin0 + self.hamiltonian.EJ1_pot0 + self.potential.E0
-        
-        E  = self.hamiltonian.Ewoa_kin  + self.hamiltonian.Ewoa_pot  + self.potential.E
-        E0 = self.hamiltonian.Ewoa_kin0 + self.hamiltonian.Ewoa_pot0 + self.potential.E0
+        E0 = self.hamiltonian.E0
+        E  = self.hamiltonian.E
         
         self.energy [self.iTime] = (E - E0) / E0
         self.partnum  [self.iTime] = self.distribution.N_error
-#        self.partnum  [self.iTime] = self.distribution.L1_error
         self.enstrophy[self.iTime] = self.distribution.L2_error
         self.entropy  [self.iTime] = self.distribution.S_error
         

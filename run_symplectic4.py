@@ -12,7 +12,7 @@ from petsc4py import PETSc
 
 from run_base_split import petscVP1Dbasesplit
 
-from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
+from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
 
 class petscVP1Drk4(petscVP1Dbasesplit):
@@ -23,13 +23,24 @@ class petscVP1Drk4(petscVP1Dbasesplit):
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
-        self.arakawa_rk = PETScArakawaRungeKutta(self.da1, self.dax,
-                                                 self.h0, self.vGrid,
-                                                 self.nx, self.nv, self.ht, self.hx, self.hv)
+        self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht, self.hx, self.hv)
         
         
     def run(self):
         
+        fac2 = 2.**(1./3.)
+         
+        c1 = 0.5 / ( 2. - fac2 )
+        c2 = c1  * ( 1. - fac2 )
+        c3 = c2
+        c4 = c1
+         
+        d1 = 1. / ( 2. - fac2 )
+        d2 = - d1 * fac2
+        d3 = d1
+         
         for itime in range(1, self.nt+1):
             current_time = self.ht*itime
             
@@ -39,8 +50,21 @@ class petscVP1Drk4(petscVP1Dbasesplit):
                 self.time.setValue(0, current_time)
             
             # solve
-            self.arakawa_rk.rk4_J4(self.f, self.h1)
+            self.arakawa_symplectic.kinetic(self.f, c1)
             self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d1)
+             
+            self.arakawa_symplectic.kinetic(self.f, c2)
+            self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d2)
+             
+            self.arakawa_symplectic.kinetic(self.f, c3)
+            self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, d3)
+             
+            self.arakawa_symplectic.kinetic(self.f, c4)
+            self.calculate_moments(output=False)
+                        
             
             # save to hdf5
             self.save_to_hdf5(itime)

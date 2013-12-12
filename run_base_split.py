@@ -17,11 +17,12 @@ from vlasov.toolbox.VIDA    import VIDA
 # from vlasov.toolbox.Arakawa import Arakawa
 from vlasov.toolbox.Toolbox import Toolbox
 
-from vlasov.explicit.PETScArakawaRK4        import PETScArakawaRK4
+from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
 from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
 from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
-from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
+# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
+from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
 
 class petscVP1Dbasesplit():
@@ -161,7 +162,7 @@ class petscVP1Dbasesplit():
 
         scatter.begin(coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         scatter.end  (coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-                  
+        
         self.xGrid = xVec.getValues(range(0, self.nx)).copy()
         
         scatter.destroy()
@@ -237,9 +238,9 @@ class petscVP1Dbasesplit():
             print("Instantiating Initial Guess Objects.")
             
         # create Arakawa RK4 solver object
-        self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.dax,
-                                           self.h0, self.vGrid,
-                                           self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
+        self.arakawa_rk4 = PETScArakawaRungeKutta(self.da1, self.dax,
+                                                  self.h0, self.vGrid,
+                                                  self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
         
         self.arakawa_gear = PETScArakawaGear(self.da1, self.dax,
                                              self.h0, self.vGrid,
@@ -428,9 +429,9 @@ class petscVP1Dbasesplit():
         
         
         # update gear solution history
-        gear_arakawa_rk4 = PETScArakawaRK4(self.da1, self.dax,
-                                           self.h0, self.vGrid,
-                                           self.nx, self.nv, - self.ht / float(self.nInitial), self.hx, self.hv)
+        gear_arakawa_rk4 = PETScArakawaRungeKutta(self.da1, self.dax,
+                                                  self.h0, self.vGrid,
+                                                  self.nx, self.nv, - self.ht / float(self.nInitial), self.hx, self.hv)
         
         f_gear = []
         h_gear = []
@@ -579,7 +580,7 @@ class petscVP1Dbasesplit():
         prev_norm = self.calculate_residual()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Previous Step:                             funcnorm = %24.16E" % (prev_norm))
+            print("  Previous Step:                             residual = %24.16E" % (prev_norm))
         
         # calculate initial guess
         self.initial_guess_method()
@@ -614,7 +615,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  RK4 Initial Guess:                         funcnorm = %24.16E" % (ignorm))
+            print("  RK4 Initial Guess:                         residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     
@@ -638,7 +639,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Gear Initial Guess:                        funcnorm = %24.16E" % (ignorm))
+            print("  Gear Initial Guess:                        residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
         
@@ -662,7 +663,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("  Symplectic Initial Guess:                  residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     
@@ -706,7 +707,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("  Symplectic Initial Guess:                  residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     

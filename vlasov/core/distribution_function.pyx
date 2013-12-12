@@ -19,22 +19,14 @@ class DistributionFunction(object):
     '''
 
 
-    def __init__(self, grid, mass=1.0, nhist=1, 
-                 distribution=None, distribution_file=None, distribution_module=None,
-                 density=None,      density_file=None,      density_module=None, 
-                 temperature=None,  temperature_file=None,  temperature_module=None,
-                 hamiltonian=None,  hdf5_in=None,  hdf5_out=None, replay=False):
+    def __init__(self, grid, mass=1.0, hdf5=None):
         '''
         Constructor
         
         Temperature and density may be scalar for constant profiles or ndarray[nx].
         '''
         
-        self.average_diagnostics = True
-        
-        
         self.grid  = grid
-        self.nhist = nhist
         self.mass  = mass
         
         self.hdf5_f = None
@@ -55,6 +47,26 @@ class DistributionFunction(object):
         self.L2_0 = 0.0         # initial L2 norm
         self.L2_error = 0.0     # error in L2 norm
         
+        self.L3   = 0.0         # current L3 norm
+        self.L3_0 = 0.0         # initial L3 norm
+        self.L3_error = 0.0     # error in L3 norm
+        
+        self.L4   = 0.0         # current L4 norm
+        self.L4_0 = 0.0         # initial L4 norm
+        self.L4_error = 0.0     # error in L4 norm
+        
+        self.L5   = 0.0         # current L5 norm
+        self.L5_0 = 0.0         # initial L5 norm
+        self.L5_error = 0.0     # error in L5 norm
+        
+        self.L6   = 0.0         # current L6 norm
+        self.L6_0 = 0.0         # initial L6 norm
+        self.L6_error = 0.0     # error in L6 norm
+        
+        self.L8   = 0.0         # current L8 norm
+        self.L8_0 = 0.0         # initial L8 norm
+        self.L8_error = 0.0     # error in L8 norm
+        
         self.Lmin   = 0.0       # current Lmin norm
         self.Lmin_0 = 0.0       # initial Lmin norm
         self.Lmin_error = 0.0   # error in Lmin norm
@@ -72,160 +84,23 @@ class DistributionFunction(object):
         self.density     = np.zeros(self.grid.nx)
         
         
-        if hdf5_in != None and replay:
-            self.f = None
-            
-            self.set_hdf5_file(hdf5_in)
-            
-            self.f0   = hdf5_in['f'][0,:,:]
-            self.fMin = hdf5_in['f'][:,:,:].min()
-            self.fMax = hdf5_in['f'][:,:,:].max()
-            
-            self.update_integrals(self.f0)
-            self.read_from_hdf5(0)
-            
-        else:
-            if hdf5_out != None:
-                # create HDF5 fields
-                self.hdf5_f = hdf5_out.create_dataset('f', (self.grid.nt+1, self.grid.nx, self.grid.nv), '=f8')
-                self.hdf5_n = hdf5_out.create_dataset('n', (self.grid.nt+1, self.grid.nx), '=f8')
-            
-            # create data arrays
-            self.f       = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )
-            self.f0      = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )
-            self.history = np.zeros( (self.grid.nx, self.grid.nv, self.nhist), dtype=np.float64 )
-            
-            
-            if hdf5_in != None:
-#                nt = len(hdf5_in['grid']['t'][:]) - 1
-                nt = len(hdf5_in['t'][:]) - 1
-                
-                self.f[:,:]  = hdf5_in['f'][nt,:,:]
-                
-                for ih in range(0, self.nhist):
-                    self.history[:,:,ih] = hdf5_in['f'][nt-ih,:,:]
-                
-                f0 = hdf5_in['f'][0,:,:]
-                n0 = hdf5_in['n'][0,:]
-                
-                self.f0[:,:] = f0
-                
-                self.update_integrals(f0)
-                self.update_integrals()
-
-                if self.hdf5_f != None and self.hdf5_n != None:
-                    self.hdf5_f[0,:,:] = f0
-                    self.hdf5_n[0,:]   = n0
-                
-            else:
-                if distribution_module != None:
-                    init_data = __import__("runs." + distribution_module, globals(), locals(), ['distribution'], 0)
-                    self.f[:] = init_data.distribution(grid)
-                elif distribution_file != None:
-                    self.f[:] = np.loadtxt(distribution_file)
-                elif distribution != None and distribution != 0.0:
-                    self.f[:] = distribution
-                else:
-                    if density_module != None:
-                        init_data = __import__("runs." + density_module, globals(), locals(), ['density'], 0)
-                        tdensity = init_data.density(grid)
-                    elif density_file != None:
-                        tdensity = np.loadtxt(density_file)
-                    elif density != None:
-                        tdensity = np.empty(self.grid.nx)
-                        tdensity[:] = density
-                    else:
-                        print("ERROR: Neither distribution function nor density specified.")
-                        exit()
-                    
-                    if temperature_module != None:
-                        init_data = __import__("runs." + temperature_module, globals(), locals(), ['temperature'], 0)
-                        self.temperature[:] = init_data.temperature(grid)
-                    elif temperature_file != None:
-                        self.temperature[:] = np.loadtxt(temperature_file)
-                    elif temperature != None:
-                        self.temperature[:] = temperature
-                    else:
-                        print("ERROR: No temperature specified.")
-                        exit()
-                
-                    self.set_initial_state(tdensity, hamiltonian)
-            
-                self.f0[:] = self.f.copy()
-                self.copy_initial_data()
-                self.update_integrals()
+        self.f = None
         
-    
-    def zero_out_small_values(self, threshold=1.0E-6):
-        self.f[self.f < threshold] = 0.0
+        self.set_hdf5_file(hdf5)
         
-        self.copy_initial_data()
-        self.update_integrals()
+        self.f0   = hdf5['f'][0,:,:]
+        self.fMin = hdf5['f'][:,:,:].min()
+        self.fMax = hdf5['f'][:,:,:].max()
         
-    
-    def set_initial_state(self, density, hamiltonian=None):
-        if hamiltonian == None:
-            self.initialise_maxwellian()
-        else:
-            self.initialise_boltzmann(hamiltonian.h)
-        
-        if self.grid.is_dirichlet():
-            self.f[:, 0] = 0.
-            self.f[:,-1] = 0.
-        
-        self.normalise()
-        
-        for ix in range(0, self.grid.nx):
-            self.f[ix,:] *= density[ix]
-        
-    
-    def normalise(self):
-        for ix in range(0, self.grid.nx):
-            self.f[ix,:] /= self.f[ix].sum() * self.grid.hv 
-        
-    
-    def initialise_maxwellian(self):
-        assert self.temperature.min() > 0.0
-        self.f[:,:] = maxwellian_grid(self.grid, self.temperature)
-        
-    
-    def initialise_boltzmann(self, h):
-        assert self.temperature.min() > 0.0
-        self.f[:,:] = boltzmannian_grid(self.grid, self.temperature, h)
-        
-    
-    def copy_initial_data(self):
-        for ih in range(0, self.nhist):
-            self.history[:,:,ih] = self.f[:,:]
+        self.fmin  = self.hdf5_f[0,:,:].min()
+        self.fmax  = self.hdf5_f[0,:,:].max()
+        self.fmax0 = self.fmax
+        self.fmax_error = 0.
         
         self.update_integrals(self.f0)
-        
+        self.read_from_hdf5(0)
+            
     
-    def update(self):
-        self.update_history()
-        self.update_integrals()
-        
-    
-    def update_distribution(self, distribution):
-        assert distribution != None
-        
-        if distribution.ndim == 1:
-            assert self.f.shape[0] * self.f.shape[1] == distribution.shape[0]
-            self.f[:,:] = distribution.reshape((self.grid.nx, self.grid.nv))
-        elif distribution.ndim == 2:
-            assert self.f.shape == distribution.shape
-            self.f[:,:] = distribution
-        else:
-            pass 
-        
-    
-    def update_history(self):
-        new_ind = range(1, self.nhist)     # e.g. [1,2,3,4]
-        old_ind = range(0, self.nhist-1)   # e.g. [0,1,2,3]
-        
-        self.history[:,:,new_ind] = self.history[:,:,old_ind]
-        self.history[:,:,0      ] = self.f[:,:]
-        
     
     def update_integrals(self, f0=None):
         self.calculate_density(f0)
@@ -246,13 +121,7 @@ class DistributionFunction(object):
         else:
             f = f0
         
-#        self.density[:] = f.sum(axis=1) * self.grid.hv
-        
-        for i in range(0, self.grid.nx):
-            im = (i - 1 + self.grid.nx) % self.grid.nx
-            ip = (i + 1) % self.grid.nx
-            
-            self.density[i] = 0.25 * ( f[im].sum() + 2. * f[i].sum() + f[ip].sum() ) * self.grid.hv
+        self.density[:] = f.sum(axis=1) * self.grid.hv
         
             
     
@@ -298,30 +167,39 @@ class DistributionFunction(object):
         cdef np.uint64_t nv = self.grid.nv
         
         cdef np.uint64_t ix, ixp, iv
-        cdef np.float64_t L1
-        cdef np.float64_t L2
+        cdef np.float64_t L1, L2, L3, L4, L5, L6, L8
         
         cdef np.ndarray[np.float64_t, ndim=2] f = self.f
         
         L1 = 0.0
         L2 = 0.0
+        L3 = 0.0
+        L4 = 0.0
+        L5 = 0.0
+        L6 = 0.0
+        L8 = 0.0
+        
         
         if f0 == None:
             for ix in range(0, nx):
                 ixp = (ix+1) % nx
                 
                 for iv in range(0, nv-1):
-#                    L1 += abs(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1])
-#                    L2 += pow(f[ix,iv] + f[ixp,iv] + f[ixp,iv+1] + f[ix,iv+1], 2)
-
                     L1 += abs(f[ix,iv])
                     L2 += pow(f[ix,iv], 2)
+                    L3 += pow(f[ix,iv], 3)
+                    L4 += pow(f[ix,iv], 4)
+                    L5 += pow(f[ix,iv], 5)
+                    L6 += pow(f[ix,iv], 6)
+                    L8 += pow(f[ix,iv], 8)
             
-#            self.L1 = 0.25 * (self.grid.hx * self.grid.hv) * L1
-#            self.L2 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
-
-            self.L1 =       (self.grid.hx * self.grid.hv) * L1
-            self.L2 = 0.5 * (self.grid.hx * self.grid.hv) * L2
+            self.L1 = (self.grid.hx * self.grid.hv) * L1
+            self.L2 = (self.grid.hx * self.grid.hv) * L2
+            self.L3 = (self.grid.hx * self.grid.hv) * L3
+            self.L4 = (self.grid.hx * self.grid.hv) * L4
+            self.L5 = (self.grid.hx * self.grid.hv) * L5
+            self.L6 = (self.grid.hx * self.grid.hv) * L6
+            self.L8 = (self.grid.hx * self.grid.hv) * L8
             
             self.Lmin = f.min() * self.grid.hx * self.grid.hv
             self.Lmax = f.max() * self.grid.hx * self.grid.hv
@@ -331,17 +209,21 @@ class DistributionFunction(object):
                 ixp = (ix+1) % nx
                 
                 for iv in range(0, self.grid.nv-1):
-#                    L1 += abs(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1])
-#                    L2 += pow(f0[ix,iv] + f0[ixp,iv] + f0[ixp,iv+1] + f0[ix,iv+1], 2)
-
                     L1 += abs(f0[ix,iv])
                     L2 += pow(f0[ix,iv], 2)
+                    L3 += pow(f0[ix,iv], 3)
+                    L4 += pow(f0[ix,iv], 4)
+                    L5 += pow(f0[ix,iv], 5)
+                    L6 += pow(f0[ix,iv], 6)
+                    L8 += pow(f0[ix,iv], 8)
             
-#            self.L1_0 = 0.25 * (self.grid.hx * self.grid.hv) * L1
-#            self.L2_0 = 0.25**2 * 0.5 * (self.grid.hx * self.grid.hv) * L2
-
-            self.L1_0 =       (self.grid.hx * self.grid.hv) * L1
-            self.L2_0 = 0.5 * (self.grid.hx * self.grid.hv) * L2
+            self.L1_0 = (self.grid.hx * self.grid.hv) * L1
+            self.L2_0 = (self.grid.hx * self.grid.hv) * L2
+            self.L3_0 = (self.grid.hx * self.grid.hv) * L3
+            self.L4_0 = (self.grid.hx * self.grid.hv) * L4
+            self.L5_0 = (self.grid.hx * self.grid.hv) * L5
+            self.L6_0 = (self.grid.hx * self.grid.hv) * L6
+            self.L8_0 = (self.grid.hx * self.grid.hv) * L8
             
             self.Lmin_0 = f0.min() * self.grid.hx * self.grid.hv
             self.Lmax_0 = f0.max() * self.grid.hx * self.grid.hv
@@ -357,6 +239,31 @@ class DistributionFunction(object):
             self.L2_error = (self.L2 - self.L2_0) / self.L2_0
         else:
             self.L2_error = 0.0
+        
+        if self.L3_0 != 0.0:
+            self.L3_error = (self.L3 - self.L3_0) / self.L3_0
+        else:
+            self.L3_error = 0.0
+        
+        if self.L4_0 != 0.0:
+            self.L4_error = (self.L4 - self.L4_0) / self.L4_0
+        else:
+            self.L4_error = 0.0
+        
+        if self.L5_0 != 0.0:
+            self.L5_error = (self.L5 - self.L5_0) / self.L5_0
+        else:
+            self.L5_error = 0.0
+        
+        if self.L6_0 != 0.0:
+            self.L6_error = (self.L6 - self.L6_0) / self.L6_0
+        else:
+            self.L6_error = 0.0
+        
+        if self.L8_0 != 0.0:
+            self.L8_error = (self.L8 - self.L8_0) / self.L8_0
+        else:
+            self.L8_error = 0.0
         
         if self.Lmin_0 != 0.0:
             self.Lmin_error = (self.Lmin - self.Lmin_0) / self.Lmin_0
@@ -392,16 +299,8 @@ class DistributionFunction(object):
             ixp = (ix+1) % nx
             
             for iv in range(0, nv-1):
-                S += 0.25 * ( f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                 ) * ( log( ( f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                            ) * 0.25 ) )
-        
+                S += f[ix,  iv  ] * log( f[ix,iv] )
+                
         self.S = - self.grid.hx * self.grid.hv * S
         
         if f0 != None:
@@ -419,16 +318,16 @@ class DistributionFunction(object):
         self.hdf5_f = hdf5['f']
         
         
-    def save_to_hdf5(self, iTime):
-        if self.hdf5_f == None or self.hdf5_n == None:
-            return
-        
-        self.hdf5_f[iTime,:,:] = self.f
-        self.hdf5_n[iTime,:]   = self.density
-        
-    
     def read_from_hdf5(self, iTime):
         self.f = self.hdf5_f[iTime,:,:]
+        
+        self.fmin = self.hdf5_f[iTime,:,:].min()
+        self.fmax = self.hdf5_f[iTime,:,:].max()
+        
+        if self.fmax0 > 0:
+            self.fmax_error = (self.fmax - self.fmax0) / self.fmax0
+        else:
+            self.fmax_error = 0.
         
         self.update_integrals()
         
