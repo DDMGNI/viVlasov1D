@@ -58,111 +58,61 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     y[iy, j] = fd[ix,j]
                     
                 else:
-                    bracket = \
-                             + 1  * fd[ix+2, j  ] * h_ave[ix+2, j+2] \
-                             - 1  * fd[ix,   j+2] * h_ave[ix+2, j+2] \
-                             - 1  * fd[ix+2, j  ] * h_ave[ix+2, j-2] \
-                             + 1  * fd[ix,   j-2] * h_ave[ix+2, j-2] \
-                             - 1  * fd[ix+2, j+2] * h_ave[ix+2, j  ] \
-                             + 1  * fd[ix+2, j-2] * h_ave[ix+2, j  ] \
-                             - 1  * fd[ix,   j+2] * h_ave[ix+2, j  ] \
-                             + 1  * fd[ix,   j-2] * h_ave[ix+2, j  ] \
-                             - 1  * fd[ix-2, j  ] * h_ave[ix-2, j+2] \
-                             + 1  * fd[ix,   j+2] * h_ave[ix-2, j+2] \
-                             + 1  * fd[ix-2, j  ] * h_ave[ix-2, j-2] \
-                             - 1  * fd[ix,   j-2] * h_ave[ix-2, j-2] \
-                             + 1  * fd[ix-2, j+2] * h_ave[ix-2, j  ] \
-                             - 1  * fd[ix-2, j-2] * h_ave[ix-2, j  ] \
-                             + 1  * fd[ix,   j+2] * h_ave[ix-2, j  ] \
-                             - 1  * fd[ix,   j-2] * h_ave[ix-2, j  ] \
-                             + 1  * fd[ix+2, j+2] * h_ave[ix,   j+2] \
-                             + 1  * fd[ix+2, j  ] * h_ave[ix,   j+2] \
-                             - 1  * fd[ix-2, j+2] * h_ave[ix,   j+2] \
-                             - 1  * fd[ix-2, j  ] * h_ave[ix,   j+2] \
-                             - 1  * fd[ix+2, j-2] * h_ave[ix,   j-2] \
-                             - 1  * fd[ix+2, j  ] * h_ave[ix,   j-2] \
-                             + 1  * fd[ix-2, j-2] * h_ave[ix,   j-2] \
-                             + 1  * fd[ix-2, j  ] * h_ave[ix,   j-2]
+                    bracket = 1. * ( \
+                                     + (fd[ix,   j+2] - fd[ix,   j-2]) * (h_ave[ix-2, j  ] - h_ave[ix+2, j  ]) \
+                                     + (fd[ix+2, j  ] - fd[ix-2, j  ]) * (h_ave[ix,   j+2] - h_ave[ix,   j-2]) \
+                                     + fd[ix,   j+2] * (h_ave[ix-2, j+2] - h_ave[ix+2, j+2]) \
+                                     + fd[ix,   j-2] * (h_ave[ix+2, j-2] - h_ave[ix-2, j-2]) \
+                                     + fd[ix+2, j  ] * (h_ave[ix+2, j+2] - h_ave[ix+2, j-2]) \
+                                     + fd[ix-2, j  ] * (h_ave[ix-2, j-2] - h_ave[ix-2, j+2]) \
+                                     + fd[ix+2, j+2] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
+                                     + fd[ix+2, j-2] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) \
+                                     + fd[ix-2, j+2] * (h_ave[ix-2, j  ] - h_ave[ix,   j+2]) \
+                                     + fd[ix-2, j-2] * (h_ave[ix,   j-2] - h_ave[ix-2, j  ]) \
+                                    )
                     
-                    bracket += \
-                             - 6  * fd[ix+2, j  ] * h_ave[ix+2, j+1] \
-                             + 6  * fd[ix,   j+1] * h_ave[ix+2, j+1] \
-                             + 6  * fd[ix+2, j  ] * h_ave[ix+2, j-1] \
-                             - 6  * fd[ix,   j-1] * h_ave[ix+2, j-1] \
-                             + 6  * fd[ix+2, j+1] * h_ave[ix+2, j  ] \
-                             - 6  * fd[ix+2, j-1] * h_ave[ix+2, j  ] \
-                             + 6  * fd[ix,   j+1] * h_ave[ix+2, j  ] \
-                             - 6  * fd[ix,   j-1] * h_ave[ix+2, j  ] \
-                             - 6  * fd[ix+1, j  ] * h_ave[ix+1, j+2] \
-                             + 6  * fd[ix,   j+2] * h_ave[ix+1, j+2] \
-                             + 6  * fd[ix+1, j  ] * h_ave[ix+1, j-2] \
-                             - 6  * fd[ix,   j-2] * h_ave[ix+1, j-2] \
-                             + 6  * fd[ix+1, j+2] * h_ave[ix+1, j  ] \
-                             - 6  * fd[ix+1, j-2] * h_ave[ix+1, j  ] \
-                             + 6  * fd[ix,   j+2] * h_ave[ix+1, j  ] \
-                             - 6  * fd[ix,   j-2] * h_ave[ix+1, j  ] \
-                             + 6  * fd[ix-1, j  ] * h_ave[ix-1, j+2] \
-                             - 6  * fd[ix,   j+2] * h_ave[ix-1, j+2] \
-                             - 6  * fd[ix-1, j  ] * h_ave[ix-1, j-2] \
-                             + 6  * fd[ix,   j-2] * h_ave[ix-1, j-2] \
-                             - 6  * fd[ix-1, j+2] * h_ave[ix-1, j  ] \
-                             + 6  * fd[ix-1, j-2] * h_ave[ix-1, j  ] \
-                             - 6  * fd[ix,   j+2] * h_ave[ix-1, j  ] \
-                             + 6  * fd[ix,   j-2] * h_ave[ix-1, j  ] \
-                             + 6  * fd[ix-2, j  ] * h_ave[ix-2, j+1] \
-                             - 6  * fd[ix,   j+1] * h_ave[ix-2, j+1] \
-                             - 6  * fd[ix-2, j  ] * h_ave[ix-2, j-1] \
-                             + 6  * fd[ix,   j-1] * h_ave[ix-2, j-1] \
-                             - 6  * fd[ix-2, j+1] * h_ave[ix-2, j  ] \
-                             + 6  * fd[ix-2, j-1] * h_ave[ix-2, j  ] \
-                             - 6  * fd[ix,   j+1] * h_ave[ix-2, j  ] \
-                             + 6  * fd[ix,   j-1] * h_ave[ix-2, j  ] \
-                             - 6  * fd[ix+1, j+2] * h_ave[ix,   j+2] \
-                             - 6  * fd[ix+1, j  ] * h_ave[ix,   j+2] \
-                             + 6  * fd[ix-1, j+2] * h_ave[ix,   j+2] \
-                             + 6  * fd[ix-1, j  ] * h_ave[ix,   j+2] \
-                             - 6  * fd[ix+2, j+1] * h_ave[ix,   j+1] \
-                             - 6  * fd[ix+2, j  ] * h_ave[ix,   j+1] \
-                             + 6  * fd[ix-2, j+1] * h_ave[ix,   j+1] \
-                             + 6  * fd[ix-2, j  ] * h_ave[ix,   j+1] \
-                             + 6  * fd[ix+2, j-1] * h_ave[ix,   j-1] \
-                             + 6  * fd[ix+2, j  ] * h_ave[ix,   j-1] \
-                             - 6  * fd[ix-2, j-1] * h_ave[ix,   j-1] \
-                             - 6  * fd[ix-2, j  ] * h_ave[ix,   j-1] \
-                             + 6  * fd[ix+1, j-2] * h_ave[ix,   j-2] \
-                             + 6  * fd[ix+1, j  ] * h_ave[ix,   j-2] \
-                             - 6  * fd[ix-1, j-2] * h_ave[ix,   j-2] \
-                             - 6  * fd[ix-1, j  ] * h_ave[ix,   j-2]
+                    bracket += 8. * ( \
+                                      + (fd[ix,   j+2] - fd[ix,   j-2]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) \
+                                      + (fd[ix+1, j  ] - fd[ix-1, j  ]) * (h_ave[ix,   j-2] - h_ave[ix,   j+2]) \
+                                      + fd[ix,   j+2] * (h_ave[ix+1, j+2] - h_ave[ix-1, j+2]) \
+                                      + fd[ix,   j-2] * (h_ave[ix-1, j-2] - h_ave[ix+1, j-2]) \
+                                      + fd[ix+1, j  ] * (h_ave[ix+1, j-2] - h_ave[ix+1, j+2]) \
+                                      + fd[ix-1, j  ] * (h_ave[ix-1, j+2] - h_ave[ix-1, j-2]) \
+                                      + fd[ix+1, j+2] * (h_ave[ix+1, j  ] - h_ave[ix,   j+2]) \
+                                      + fd[ix+1, j-2] * (h_ave[ix,   j-2] - h_ave[ix+1, j  ]) \
+                                      + fd[ix-1, j-2] * (h_ave[ix-1, j  ] - h_ave[ix,   j-2]) \
+                                      + fd[ix-1, j+2] * (h_ave[ix,   j+2] - h_ave[ix-1, j  ]) \
+                                    )
                     
-                    bracket += \
-                             + 36 * fd[ix+1, j  ] * h_ave[ix+1, j+1] \
-                             - 36 * fd[ix,   j+1] * h_ave[ix+1, j+1] \
-                             - 36 * fd[ix+1, j  ] * h_ave[ix+1, j-1] \
-                             + 36 * fd[ix,   j-1] * h_ave[ix+1, j-1] \
-                             - 36 * fd[ix+1, j+1] * h_ave[ix+1, j  ] \
-                             + 36 * fd[ix+1, j-1] * h_ave[ix+1, j  ] \
-                             - 36 * fd[ix,   j+1] * h_ave[ix+1, j  ] \
-                             + 36 * fd[ix,   j-1] * h_ave[ix+1, j  ] \
-                             - 36 * fd[ix-1, j  ] * h_ave[ix-1, j+1] \
-                             + 36 * fd[ix,   j+1] * h_ave[ix-1, j+1] \
-                             + 36 * fd[ix-1, j  ] * h_ave[ix-1, j-1] \
-                             - 36 * fd[ix,   j-1] * h_ave[ix-1, j-1] \
-                             + 36 * fd[ix-1, j+1] * h_ave[ix-1, j  ] \
-                             - 36 * fd[ix-1, j-1] * h_ave[ix-1, j  ] \
-                             + 36 * fd[ix,   j+1] * h_ave[ix-1, j  ] \
-                             - 36 * fd[ix,   j-1] * h_ave[ix-1, j  ] \
-                             + 36 * fd[ix+1, j+1] * h_ave[ix,   j+1] \
-                             + 36 * fd[ix+1, j  ] * h_ave[ix,   j+1] \
-                             - 36 * fd[ix-1, j+1] * h_ave[ix,   j+1] \
-                             - 36 * fd[ix-1, j  ] * h_ave[ix,   j+1] \
-                             - 36 * fd[ix+1, j-1] * h_ave[ix,   j-1] \
-                             - 36 * fd[ix+1, j  ] * h_ave[ix,   j-1] \
-                             + 36 * fd[ix-1, j-1] * h_ave[ix,   j-1] \
-                             + 36 * fd[ix-1, j  ] * h_ave[ix,   j-1]
+                    bracket += 8. * ( \
+                                      + (fd[ix,   j+1] - fd[ix,   j-1]) * (h_ave[ix+2, j  ] - h_ave[ix-2, j  ]) \
+                                      + (fd[ix+2, j  ] - fd[ix-2, j  ]) * (h_ave[ix,   j-1] - h_ave[ix,   j+1]) \
+                                      + fd[ix,   j+1] * (h_ave[ix+2, j+1] - h_ave[ix-2, j+1]) \
+                                      + fd[ix,   j-1] * (h_ave[ix-2, j-1] - h_ave[ix+2, j-1]) \
+                                      + fd[ix+2, j  ] * (h_ave[ix+2, j-1] - h_ave[ix+2, j+1]) \
+                                      + fd[ix-2, j  ] * (h_ave[ix-2, j+1] - h_ave[ix-2, j-1]) \
+                                      + fd[ix+2, j+1] * (h_ave[ix+2, j  ] - h_ave[ix,   j+1]) \
+                                      + fd[ix+2, j-1] * (h_ave[ix,   j-1] - h_ave[ix+2, j  ]) \
+                                      + fd[ix-2, j+1] * (h_ave[ix,   j+1] - h_ave[ix-2, j  ]) \
+                                      + fd[ix-2, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-1]) \
+                                    )
+                    
+                    bracket += 64.* ( \
+                                      + (fd[ix,   j+1] - fd[ix,   j-1]) * (h_ave[ix-1, j  ] - h_ave[ix+1, j  ]) \
+                                      + (fd[ix+1, j  ] - fd[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
+                                      + fd[ix,   j+1] * (h_ave[ix-1, j+1] - h_ave[ix+1, j+1]) \
+                                      + fd[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) \
+                                      + fd[ix-1, j  ] * (h_ave[ix-1, j-1] - h_ave[ix-1, j+1]) \
+                                      + fd[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                                      + fd[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
+                                      + fd[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) \
+                                      + fd[ix-1, j-1] * (h_ave[ix,   j-1] - h_ave[ix-1, j  ]) \
+                                      + fd[ix-1, j+1] * (h_ave[ix-1, j  ] - h_ave[ix,   j+1]) \
+                                     )
+                    
+                    bracket /= 432.
                     
                     
-                    bracket /= 108.
-         
                     # collision operator
                     coll_drag = ( (v[j+1] - u[ix]) * fd[ix, j+1] - (v[j-1] - u[ix]) * fd[ix, j-1] ) * a[ix]
                     coll_diff = ( fd[ix, j+1] - 2. * fd[ix, j] + fd[ix, j-1] )
@@ -216,110 +166,60 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     y[iy, j] = fp[ix,j]
                     
                 else:
-                    bracket = \
-                             + 1  * f_ave[ix+2, j  ] * h_ave[ix+2, j+2] \
-                             - 1  * f_ave[ix,   j+2] * h_ave[ix+2, j+2] \
-                             - 1  * f_ave[ix+2, j  ] * h_ave[ix+2, j-2] \
-                             + 1  * f_ave[ix,   j-2] * h_ave[ix+2, j-2] \
-                             - 1  * f_ave[ix+2, j+2] * h_ave[ix+2, j  ] \
-                             + 1  * f_ave[ix+2, j-2] * h_ave[ix+2, j  ] \
-                             - 1  * f_ave[ix,   j+2] * h_ave[ix+2, j  ] \
-                             + 1  * f_ave[ix,   j-2] * h_ave[ix+2, j  ] \
-                             - 1  * f_ave[ix-2, j  ] * h_ave[ix-2, j+2] \
-                             + 1  * f_ave[ix,   j+2] * h_ave[ix-2, j+2] \
-                             + 1  * f_ave[ix-2, j  ] * h_ave[ix-2, j-2] \
-                             - 1  * f_ave[ix,   j-2] * h_ave[ix-2, j-2] \
-                             + 1  * f_ave[ix-2, j+2] * h_ave[ix-2, j  ] \
-                             - 1  * f_ave[ix-2, j-2] * h_ave[ix-2, j  ] \
-                             + 1  * f_ave[ix,   j+2] * h_ave[ix-2, j  ] \
-                             - 1  * f_ave[ix,   j-2] * h_ave[ix-2, j  ] \
-                             + 1  * f_ave[ix+2, j+2] * h_ave[ix,   j+2] \
-                             + 1  * f_ave[ix+2, j  ] * h_ave[ix,   j+2] \
-                             - 1  * f_ave[ix-2, j+2] * h_ave[ix,   j+2] \
-                             - 1  * f_ave[ix-2, j  ] * h_ave[ix,   j+2] \
-                             - 1  * f_ave[ix+2, j-2] * h_ave[ix,   j-2] \
-                             - 1  * f_ave[ix+2, j  ] * h_ave[ix,   j-2] \
-                             + 1  * f_ave[ix-2, j-2] * h_ave[ix,   j-2] \
-                             + 1  * f_ave[ix-2, j  ] * h_ave[ix,   j-2]
+                    bracket = 1. * ( \
+                                     + (f_ave[ix,   j+2] - f_ave[ix,   j-2]) * (h_ave[ix-2, j  ] - h_ave[ix+2, j  ]) \
+                                     + (f_ave[ix+2, j  ] - f_ave[ix-2, j  ]) * (h_ave[ix,   j+2] - h_ave[ix,   j-2]) \
+                                     + f_ave[ix,   j+2] * (h_ave[ix-2, j+2] - h_ave[ix+2, j+2]) \
+                                     + f_ave[ix,   j-2] * (h_ave[ix+2, j-2] - h_ave[ix-2, j-2]) \
+                                     + f_ave[ix+2, j  ] * (h_ave[ix+2, j+2] - h_ave[ix+2, j-2]) \
+                                     + f_ave[ix-2, j  ] * (h_ave[ix-2, j-2] - h_ave[ix-2, j+2]) \
+                                     + f_ave[ix+2, j+2] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
+                                     + f_ave[ix+2, j-2] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) \
+                                     + f_ave[ix-2, j+2] * (h_ave[ix-2, j  ] - h_ave[ix,   j+2]) \
+                                     + f_ave[ix-2, j-2] * (h_ave[ix,   j-2] - h_ave[ix-2, j  ]) \
+                                    )
                     
-                    bracket += \
-                             - 6  * f_ave[ix+2, j  ] * h_ave[ix+2, j+1] \
-                             + 6  * f_ave[ix,   j+1] * h_ave[ix+2, j+1] \
-                             + 6  * f_ave[ix+2, j  ] * h_ave[ix+2, j-1] \
-                             - 6  * f_ave[ix,   j-1] * h_ave[ix+2, j-1] \
-                             + 6  * f_ave[ix+2, j+1] * h_ave[ix+2, j  ] \
-                             - 6  * f_ave[ix+2, j-1] * h_ave[ix+2, j  ] \
-                             + 6  * f_ave[ix,   j+1] * h_ave[ix+2, j  ] \
-                             - 6  * f_ave[ix,   j-1] * h_ave[ix+2, j  ] \
-                             - 6  * f_ave[ix+1, j  ] * h_ave[ix+1, j+2] \
-                             + 6  * f_ave[ix,   j+2] * h_ave[ix+1, j+2] \
-                             + 6  * f_ave[ix+1, j  ] * h_ave[ix+1, j-2] \
-                             - 6  * f_ave[ix,   j-2] * h_ave[ix+1, j-2] \
-                             + 6  * f_ave[ix+1, j+2] * h_ave[ix+1, j  ] \
-                             - 6  * f_ave[ix+1, j-2] * h_ave[ix+1, j  ] \
-                             + 6  * f_ave[ix,   j+2] * h_ave[ix+1, j  ] \
-                             - 6  * f_ave[ix,   j-2] * h_ave[ix+1, j  ] \
-                             + 6  * f_ave[ix-1, j  ] * h_ave[ix-1, j+2] \
-                             - 6  * f_ave[ix,   j+2] * h_ave[ix-1, j+2] \
-                             - 6  * f_ave[ix-1, j  ] * h_ave[ix-1, j-2] \
-                             + 6  * f_ave[ix,   j-2] * h_ave[ix-1, j-2] \
-                             - 6  * f_ave[ix-1, j+2] * h_ave[ix-1, j  ] \
-                             + 6  * f_ave[ix-1, j-2] * h_ave[ix-1, j  ] \
-                             - 6  * f_ave[ix,   j+2] * h_ave[ix-1, j  ] \
-                             + 6  * f_ave[ix,   j-2] * h_ave[ix-1, j  ] \
-                             + 6  * f_ave[ix-2, j  ] * h_ave[ix-2, j+1] \
-                             - 6  * f_ave[ix,   j+1] * h_ave[ix-2, j+1] \
-                             - 6  * f_ave[ix-2, j  ] * h_ave[ix-2, j-1] \
-                             + 6  * f_ave[ix,   j-1] * h_ave[ix-2, j-1] \
-                             - 6  * f_ave[ix-2, j+1] * h_ave[ix-2, j  ] \
-                             + 6  * f_ave[ix-2, j-1] * h_ave[ix-2, j  ] \
-                             - 6  * f_ave[ix,   j+1] * h_ave[ix-2, j  ] \
-                             + 6  * f_ave[ix,   j-1] * h_ave[ix-2, j  ] \
-                             - 6  * f_ave[ix+1, j+2] * h_ave[ix,   j+2] \
-                             - 6  * f_ave[ix+1, j  ] * h_ave[ix,   j+2] \
-                             + 6  * f_ave[ix-1, j+2] * h_ave[ix,   j+2] \
-                             + 6  * f_ave[ix-1, j  ] * h_ave[ix,   j+2] \
-                             - 6  * f_ave[ix+2, j+1] * h_ave[ix,   j+1] \
-                             - 6  * f_ave[ix+2, j  ] * h_ave[ix,   j+1] \
-                             + 6  * f_ave[ix-2, j+1] * h_ave[ix,   j+1] \
-                             + 6  * f_ave[ix-2, j  ] * h_ave[ix,   j+1] \
-                             + 6  * f_ave[ix+2, j-1] * h_ave[ix,   j-1] \
-                             + 6  * f_ave[ix+2, j  ] * h_ave[ix,   j-1] \
-                             - 6  * f_ave[ix-2, j-1] * h_ave[ix,   j-1] \
-                             - 6  * f_ave[ix-2, j  ] * h_ave[ix,   j-1] \
-                             + 6  * f_ave[ix+1, j-2] * h_ave[ix,   j-2] \
-                             + 6  * f_ave[ix+1, j  ] * h_ave[ix,   j-2] \
-                             - 6  * f_ave[ix-1, j-2] * h_ave[ix,   j-2] \
-                             - 6  * f_ave[ix-1, j  ] * h_ave[ix,   j-2]
+                    bracket += 8. * ( \
+                                      + (f_ave[ix,   j+2] - f_ave[ix,   j-2]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) \
+                                      + (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j-2] - h_ave[ix,   j+2]) \
+                                      + f_ave[ix,   j+2] * (h_ave[ix+1, j+2] - h_ave[ix-1, j+2]) \
+                                      + f_ave[ix,   j-2] * (h_ave[ix-1, j-2] - h_ave[ix+1, j-2]) \
+                                      + f_ave[ix+1, j  ] * (h_ave[ix+1, j-2] - h_ave[ix+1, j+2]) \
+                                      + f_ave[ix-1, j  ] * (h_ave[ix-1, j+2] - h_ave[ix-1, j-2]) \
+                                      + f_ave[ix+1, j+2] * (h_ave[ix+1, j  ] - h_ave[ix,   j+2]) \
+                                      + f_ave[ix+1, j-2] * (h_ave[ix,   j-2] - h_ave[ix+1, j  ]) \
+                                      + f_ave[ix-1, j-2] * (h_ave[ix-1, j  ] - h_ave[ix,   j-2]) \
+                                      + f_ave[ix-1, j+2] * (h_ave[ix,   j+2] - h_ave[ix-1, j  ]) \
+                                    )
                     
-                    bracket += \
-                             + 36 * f_ave[ix+1, j  ] * h_ave[ix+1, j+1] \
-                             - 36 * f_ave[ix,   j+1] * h_ave[ix+1, j+1] \
-                             - 36 * f_ave[ix+1, j  ] * h_ave[ix+1, j-1] \
-                             + 36 * f_ave[ix,   j-1] * h_ave[ix+1, j-1] \
-                             - 36 * f_ave[ix+1, j+1] * h_ave[ix+1, j  ] \
-                             + 36 * f_ave[ix+1, j-1] * h_ave[ix+1, j  ] \
-                             - 36 * f_ave[ix,   j+1] * h_ave[ix+1, j  ] \
-                             + 36 * f_ave[ix,   j-1] * h_ave[ix+1, j  ] \
-                             - 36 * f_ave[ix-1, j  ] * h_ave[ix-1, j+1] \
-                             + 36 * f_ave[ix,   j+1] * h_ave[ix-1, j+1] \
-                             + 36 * f_ave[ix-1, j  ] * h_ave[ix-1, j-1] \
-                             - 36 * f_ave[ix,   j-1] * h_ave[ix-1, j-1] \
-                             + 36 * f_ave[ix-1, j+1] * h_ave[ix-1, j  ] \
-                             - 36 * f_ave[ix-1, j-1] * h_ave[ix-1, j  ] \
-                             + 36 * f_ave[ix,   j+1] * h_ave[ix-1, j  ] \
-                             - 36 * f_ave[ix,   j-1] * h_ave[ix-1, j  ] \
-                             + 36 * f_ave[ix+1, j+1] * h_ave[ix,   j+1] \
-                             + 36 * f_ave[ix+1, j  ] * h_ave[ix,   j+1] \
-                             - 36 * f_ave[ix-1, j+1] * h_ave[ix,   j+1] \
-                             - 36 * f_ave[ix-1, j  ] * h_ave[ix,   j+1] \
-                             - 36 * f_ave[ix+1, j-1] * h_ave[ix,   j-1] \
-                             - 36 * f_ave[ix+1, j  ] * h_ave[ix,   j-1] \
-                             + 36 * f_ave[ix-1, j-1] * h_ave[ix,   j-1] \
-                             + 36 * f_ave[ix-1, j  ] * h_ave[ix,   j-1]
+                    bracket += 8. * ( \
+                                      + (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix+2, j  ] - h_ave[ix-2, j  ]) \
+                                      + (f_ave[ix+2, j  ] - f_ave[ix-2, j  ]) * (h_ave[ix,   j-1] - h_ave[ix,   j+1]) \
+                                      + f_ave[ix,   j+1] * (h_ave[ix+2, j+1] - h_ave[ix-2, j+1]) \
+                                      + f_ave[ix,   j-1] * (h_ave[ix-2, j-1] - h_ave[ix+2, j-1]) \
+                                      + f_ave[ix+2, j  ] * (h_ave[ix+2, j-1] - h_ave[ix+2, j+1]) \
+                                      + f_ave[ix-2, j  ] * (h_ave[ix-2, j+1] - h_ave[ix-2, j-1]) \
+                                      + f_ave[ix+2, j+1] * (h_ave[ix+2, j  ] - h_ave[ix,   j+1]) \
+                                      + f_ave[ix+2, j-1] * (h_ave[ix,   j-1] - h_ave[ix+2, j  ]) \
+                                      + f_ave[ix-2, j+1] * (h_ave[ix,   j+1] - h_ave[ix-2, j  ]) \
+                                      + f_ave[ix-2, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-1]) \
+                                    )
                     
+                    bracket += 64.* ( \
+                                      + (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix-1, j  ] - h_ave[ix+1, j  ]) \
+                                      + (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
+                                      + f_ave[ix,   j+1] * (h_ave[ix-1, j+1] - h_ave[ix+1, j+1]) \
+                                      + f_ave[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) \
+                                      + f_ave[ix-1, j  ] * (h_ave[ix-1, j-1] - h_ave[ix-1, j+1]) \
+                                      + f_ave[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
+                                      + f_ave[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
+                                      + f_ave[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) \
+                                      + f_ave[ix-1, j-1] * (h_ave[ix,   j-1] - h_ave[ix-1, j  ]) \
+                                      + f_ave[ix-1, j+1] * (h_ave[ix-1, j  ] - h_ave[ix,   j+1]) \
+                                     )
                     
-                    bracket /= 108.
+                    bracket /= 432.
+                    
                     
                     # collision operator
                     coll_drag = ( (v[j+1] - up[ix]) * fp[ix, j+1] - (v[j-1] - up[ix]) * fp[ix, j-1] ) * ap[ix] \

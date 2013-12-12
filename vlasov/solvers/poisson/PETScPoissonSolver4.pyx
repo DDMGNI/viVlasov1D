@@ -70,13 +70,12 @@ cdef class PETScPoissonSolver(object):
             col.field = 0
             
             for index, value in [
-                    ((i-2,), +  5. * self.hx2_inv / 6.),
-                    ((i-1,), - 32. * self.hx2_inv / 6.),
-                    ((i,  ), + 54. * self.hx2_inv / 6.),
-                    ((i+1,), - 32. * self.hx2_inv / 6.),
-                    ((i+2,), +  5. * self.hx2_inv / 6.),
+                    ((i-2,), +  1. * self.hx2_inv / 12.),
+                    ((i-1,), - 16. * self.hx2_inv / 12.),
+                    ((i,  ), + 30. * self.hx2_inv / 12.),
+                    ((i+1,), - 16. * self.hx2_inv / 12.),
+                    ((i+2,), +  1. * self.hx2_inv / 12.),
                 ]:
-                
                 col.index = index
                 A.setValueStencil(row, col, value)
             
@@ -121,7 +120,7 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
-            y[iy] = ( 5. * x[ix-2] - 32. * x[ix-1] + 54. * x[ix] - 32. * x[ix+1] + 5. * x[ix+2]) * self.hx2_inv / 6.
+            y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12.
         
     
     @cython.boundscheck(False)
@@ -142,7 +141,7 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
-            y[iy] = ( 5. * x[ix-2] - 32. * x[ix-1] + 54. * x[ix] - 32. * x[ix+1] + 5. * x[ix+2]) * self.hx2_inv / 6. \
+            y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12. \
                   + ( n[ix] - nmean) * self.charge            
         
     
