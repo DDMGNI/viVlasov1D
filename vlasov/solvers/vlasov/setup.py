@@ -56,14 +56,6 @@ ext_modules = [
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
                
-        Extension("PETScNLVlasov4by4",
-                  sources=["PETScNLVlasov4by4.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        
         Extension("PETScVlasovArakawaJ4",
                   sources=["PETScVlasovArakawaJ4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -79,34 +71,6 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
-        Extension("PETScNLVlasovArakawaJ1e2",
-                  sources=["PETScNLVlasovArakawaJ1e2.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovArakawaJ1e3",
-                  sources=["PETScNLVlasovArakawaJ1e3.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovArakawaJ1e4",
-                  sources=["PETScNLVlasovArakawaJ1e4.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovArakawaJ1e5",
-                  sources=["PETScNLVlasovArakawaJ1e5.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
         Extension("PETScNLVlasovArakawaJ2",
                   sources=["PETScNLVlasovArakawaJ2.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -116,20 +80,6 @@ ext_modules = [
                  ),
         Extension("PETScNLVlasovArakawaJ4",
                   sources=["PETScNLVlasovArakawaJ4.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovArakawaJ4e2",
-                  sources=["PETScNLVlasovArakawaJ4e2.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovArakawaJ6",
-                  sources=["PETScNLVlasovArakawaJ6.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
@@ -157,108 +107,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        
-        Extension("PETScNLVlasovTriangle1",
-                  sources=["PETScNLVlasovTriangle1.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovTriangle2",
-                  sources=["PETScNLVlasovTriangle2.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        
-        Extension("PETScNLVlasovUpwind1st",
-                  sources=["PETScNLVlasovUpwind1st.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind1stkinetic",
-                  sources=["PETScNLVlasovUpwind1stkinetic.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind2nd",
-                  sources=["PETScNLVlasovUpwind2nd.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind3rd",
-                  sources=["PETScNLVlasovUpwind3rd.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind4th",
-                  sources=["PETScNLVlasovUpwind4th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind4ath",
-                  sources=["PETScNLVlasovUpwind4ath.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind5th",
-                  sources=["PETScNLVlasovUpwind5th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind6th",
-                  sources=["PETScNLVlasovUpwind6th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind6ath",
-                  sources=["PETScNLVlasovUpwind6ath.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind7th",
-                  sources=["PETScNLVlasovUpwind7th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind8th",
-                  sources=["PETScNLVlasovUpwind8th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
-                 ),
-        Extension("PETScNLVlasovUpwind9th",
-                  sources=["PETScNLVlasovUpwind9th.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
                  )
-
+        
               ]
                 
 setup(
