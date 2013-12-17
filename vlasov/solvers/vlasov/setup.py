@@ -101,6 +101,14 @@ ext_modules = [
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
         
+        Extension("PETScNLVlasovArakawaJ4RK4",
+                  sources=["PETScNLVlasovArakawaJ4RK4.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        
         Extension("PETScNLVlasovSimpson",
                   sources=["PETScNLVlasovSimpson.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

@@ -41,7 +41,7 @@ class petscVP1Dbasefull(petscVP1Dbasesplit):
                                        stencil_type='box')
         
         # initialise grid
-        self.da2.setUniformCoordinates(xmin=0.0,  xmax=L)
+        self.da2.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
         
         # create solution and RHS vector
         self.x  = self.da2.createGlobalVec()

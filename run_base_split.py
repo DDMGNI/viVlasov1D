@@ -50,14 +50,14 @@ class petscVP1Dbasesplit():
         self.nsave = self.cfg['io']['nsave']             # save only every nsave'th timestep
         
         # grid setup
-        self.nx = self.cfg['grid']['nx']                 # number of points in x
-        self.nv = self.cfg['grid']['nv']                 # number of points in v
-        L       = self.cfg['grid']['L']
-        vMax    = self.cfg['grid']['vmax']
-        vMin    = -vMax
+        self.nx   = self.cfg['grid']['nx']                 # number of points in x
+        self.nv   = self.cfg['grid']['nv']                 # number of points in v
+        L         = self.cfg['grid']['L']
+        self.vMax = self.cfg['grid']['vmax']
+        self.vMin = -self.vMax
         
         self.Lx = L
-        self.Lv = vMax - vMin
+        self.Lv = self.vMax - self.vMin
         
         self.hx = self.Lx / self.nx                      # gridstep size in x
         self.hv = self.Lv / (self.nv-1)                  # gridstep size in v
@@ -146,9 +146,9 @@ class petscVP1Dbasesplit():
         
         
         # initialise grid
-        self.da1.setUniformCoordinates(xmin=0.0,  xmax=L)
-        self.dax.setUniformCoordinates(xmin=0.0,  xmax=L)
-        self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
+        self.da1.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+        self.dax.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+        self.day.setUniformCoordinates(xmin=self.vMin, xmax=self.vMax) 
         
         # get local index ranges
         (xs, xe), = self.da1.getRanges()
@@ -189,7 +189,7 @@ class petscVP1Dbasesplit():
         self.f     = self.da1.createGlobalVec()     # distribution function
         self.fh    = self.da1.createGlobalVec()     # history
         self.fb    = self.da1.createGlobalVec()     # right hand side
-        self.df     = self.da1.createGlobalVec()    # delta
+        self.df    = self.da1.createGlobalVec()    # delta
         
         # moments
         self.n     = self.dax.createGlobalVec()     # density
@@ -308,13 +308,13 @@ class petscVP1Dbasesplit():
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
             print()
-            print("Lx   =  %12.6e" % (L))
-            print("vMin = %+12.6e" % (vMin))
-            print("vMax = %+12.6e" % (vMax))
+            print("Lx   =  %12.6e" % (self.Lx))
+            print("vMin = %+12.6e" % (self.vMin))
+            print("vMax = %+12.6e" % (self.vMax))
             print()
             print("nu   = %7.1e" % (self.coll_freq))
             print()
-            print("CFL  = %e" % (self.hx / vMax))
+            print("CFL  = %e" % (self.hx / self.vMax))
             print()
             print()
         
@@ -395,6 +395,7 @@ class petscVP1Dbasesplit():
             print("Normalise distribution function.")
         nave = self.f.sum() * self.hv / self.nx
         self.f.scale(1./nave)
+        self.f.copy(self.fh)
         
         
         # calculate potential and moments
@@ -463,6 +464,7 @@ class petscVP1Dbasesplit():
         del h_gear
         
         # recover correct moments and potential
+        self.f.copy(self.fh)
         self.calculate_moments(output=False)
         
         
@@ -527,21 +529,24 @@ class petscVP1Dbasesplit():
                 print("  Poisson:                               sum(phi) = %24.16E" % (phisum))
     
     
-    def calculate_external(self, t):
+    def calculate_external(self, t, p=None):
         (xs, xe), = self.da1.getRanges()
+        if p == None:
+            p = self.p_ext
         
         if self.external != None:
-            p_ext_arr = self.dax.getVecArray(self.p_ext)
+            p_ext_arr = self.dax.getVecArray(p)
             
             for i in range(xs, xe):
                 p_ext_arr[i] = self.external(self.xGrid[i], t) 
             
             # remove average
-            phisum = self.p_ext.sum()
+            phisum = p.sum()
             phiave = phisum / self.nx
-            self.p_ext.shift(-phiave)
-    
-        self.copy_pext_to_h()
+            p.shift(-phiave)
+            
+        if p == self.p_ext:
+            self.copy_pext_to_h()
     
     
     def copy_p_to_h(self):

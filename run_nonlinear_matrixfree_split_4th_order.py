@@ -5,24 +5,17 @@ Created on Mar 23, 2012
 '''
 
 import argparse, time
+import numpy as np
 
 from petsc4py import PETSc
 
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4RK4    import PETScVlasovSolver
+from vlasov.solvers.poisson.PETScPoissonSolver4         import PETScPoissonSolver
 
-# from vlasov.solvers.vlasov.PETScNLVlasovSimpson         import PETScVlasovSolver
-
-# from vlasov.solvers.vlasov.PETScVlasovArakawaJ4       import PETScVlasovSolver
-
-# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
-from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
-
-from run_base_split import petscVP1Dbasesplit
+from run_base_split_4th_order import petscVP1DbasesplitRK4
 
 
-class petscVP1Dmatrixfree(petscVP1Dbasesplit):
+class petscVP1Dmatrixfree(petscVP1DbasesplitRK4):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -31,26 +24,31 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
+        # Runge-Kutta collocation points
+        self.c1 = 0.5 - np.sqrt(3.) / 6.
+        self.c2 = 0.5 + np.sqrt(3.) / 6.
+        
+        
         OptDB = PETSc.Options()
         
 #         OptDB.setValue('snes_ls', 'basic')
 
-#         OptDB.setValue('ksp_monitor',  '')
-#         OptDB.setValue('snes_monitor', '')
+        OptDB.setValue('ksp_monitor',  '')
+        OptDB.setValue('snes_monitor', '')
         
 #         OptDB.setValue('log_info',    '')
 #         OptDB.setValue('log_summary', '')
         
         
         # create solver objects
-        self.vlasov_solver = PETScVlasovSolver(self.da1, self.dax,
+        self.vlasov_solver = PETScVlasovSolver(self.da2, self.da1, self.dax,
                                                self.h0, self.vGrid,
                                                self.nx, self.nv, self.ht, self.hx, self.hv,
                                                self.charge, coll_freq=self.coll_freq)
         
         
         # initialise matrixfree Jacobian
-        self.Jmf = PETSc.Mat().createPython([self.f.getSizes(), self.fb.getSizes()], 
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], 
                                             context=self.vlasov_solver,
                                             comm=PETSc.COMM_WORLD)
         self.Jmf.setUp()
@@ -64,7 +62,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         # create nonlinear predictor solver
         self.snes = PETSc.SNES().create()
         self.snes.setType('ksponly')
-        self.snes.setFunction(self.vlasov_solver.function_snes_mult, self.fb)
+        self.snes.setFunction(self.vlasov_solver.function_snes_mult, self.b)
         self.snes.setJacobian(self.updateVlasovJacobian, self.Jmf)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
@@ -106,24 +104,29 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     
     def run(self):
         for itime in range(1, self.nt+1):
-            current_time = self.ht*itime
+            current_time0 = self.ht*itime
+            current_time1 = self.ht*(itime - 1 + self.c1)
+            current_time2 = self.ht*(itime - 1 + self.c2)
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 localtime = time.asctime( time.localtime(time.time()) )
-                print("\nit = %4d,   t = %10.4f,   %s" % (itime, current_time, localtime) )
+                print("\nit = %4d,   t = %10.4f  (%6.4f, %6.4f),   %s" % (itime, current_time0, current_time1, current_time2, localtime) )
                 print
-                self.time.setValue(0, current_time)
+                self.time.setValue(0, current_time0)
             
             # compute initial guess
-            self.initial_guess()
+            self.initial_guess4()
             
             # calculate external field and copy to solver
-            self.calculate_external(current_time)
-            self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
+            self.calculate_external(current_time0, self.p_ext )
+            self.calculate_external(current_time1, self.p1_ext)
+            self.calculate_external(current_time2, self.p2_ext)
+            
+            self.vlasov_solver.update_previous4(self.f1, self.f2, self.p1, self.p2, self.p1_ext, self.p2_ext, self.n, self.u, self.e)
             
             # nonlinear solve
             i = 0
-            pred_norm = self.calculate_residual()
+            pred_norm = self.calculate_residual4()
             while True:
                 i+=1
                 
@@ -137,30 +140,30 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
 #                     self.snes.getKSP().setTolerances(rtol=1E-3)
                 
                 
-                self.f.copy(self.fh)
+                self.x.copy(self.xh)
                 
-#                 self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
-                self.snes.solve(None, self.f)
+                self.snes.solve(None, self.x)
                 
-                self.calculate_moments(output=False)
-                self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
+                self.calculate_moments4(output=False)
+                self.vlasov_solver.update_previous4(self.f1, self.f2, self.p1, self.p2, self.p1_ext, self.p2_ext, self.n, self.u, self.e)
                 
                 prev_norm = pred_norm
-                pred_norm = self.calculate_residual()
+                pred_norm = self.calculate_residual4()
                 phisum = self.p.sum()
 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(), pred_norm) )
-                    print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum))
+                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(),  pred_norm) )
+                    print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum)    )
                 
                 if pred_norm > prev_norm or pred_norm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
                     if pred_norm > prev_norm:
-                        self.fh.copy(self.f)
-                        self.calculate_moments(output=False)
+                        self.xh.copy(self.x)
+                        self.calculate_moments4(output=False)
                     
                     break
             
             # update history
+            self.f.copy(self.fh)
             self.vlasov_solver.update_history(self.f, self.p, self.p_ext, self.n, self.u, self.e)
             self.arakawa_gear.update_history(self.f, self.h1)
             
