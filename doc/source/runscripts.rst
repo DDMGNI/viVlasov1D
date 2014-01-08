@@ -1,19 +1,22 @@
 Run Scripts
 ===========
 
-.. autoclass:: run_base.petscVP1Dbase
+.. autoclass:: run_base_split.petscVP1Dbasesplit
+   :members:
+
+.. autoclass:: run_base_full.petscVP1Dbasefull
    :members:
 
 Full Solvers
 ------------
 
-.. autoclass:: run_nonlinear_direct.petscVP1Dlu
+.. autoclass:: run_nonlinear_direct_full.petscVP1Dlu
    :members:
 
-.. autoclass:: run_nonlinear_gmres.petscVP1Dgmres
+.. autoclass:: run_nonlinear_gmres_full.petscVP1Dgmres
    :members:
 
-.. autoclass:: run_nonlinear_matrixfree.petscVP1Dmatrixfree
+.. autoclass:: run_nonlinear_matrixfree_full.petscVP1Dmatrixfree
    :members:
 
 Split Solvers

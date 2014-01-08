@@ -16,8 +16,8 @@ from vlasov.toolbox.Toolbox import Toolbox
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     '''
-    Implements a variational integrator with first order
-    finite-difference time-derivative and Arakawa's J4
+    Implements a variational integrator with second order
+    implicit midpoint time-derivative and Arakawa's J4
     discretisation of the Poisson brackets (J4=2J1-J2).
     '''
     

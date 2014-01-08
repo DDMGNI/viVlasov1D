@@ -13,7 +13,7 @@ from vlasov.toolbox.VIDA    cimport VIDA
 from vlasov.toolbox.Arakawa cimport Arakawa
 
 
-cdef class PETScArakawaRK4(object):
+cdef class PETScArakawaLeapfrog(object):
     
     cdef np.uint64_t  nx
     cdef np.uint64_t  nv
@@ -28,6 +28,12 @@ cdef class PETScArakawaRK4(object):
     
     cdef Vec H0
     
+    cdef Vec H1h1
+    cdef Vec H1h2
+    
+    cdef Vec Fh1
+    cdef Vec Fh2
+    
     cdef Vec X1
     cdef Vec X2
     cdef Vec X3
@@ -38,7 +44,13 @@ cdef class PETScArakawaRK4(object):
     cdef Vec localX2
     cdef Vec localX3
     cdef Vec localX4
+    
     cdef Vec localH0
-    cdef Vec localH1
+    
+    cdef Vec localH1h1
+    cdef Vec localH1h2
+
+    cdef Vec localFh1
+    cdef Vec localFh2
     
     cdef Arakawa arakawa

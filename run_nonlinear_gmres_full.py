@@ -9,15 +9,14 @@ import sys, time
 import numpy as np
 
 from petsc4py import PETSc
-from run_base import petscVP1Dbase
+from run_base_full import petscVP1Dbasefull
 
-# from vlasov.vi.PETScNLArakawaJ1            import PETScSolver
-# from vlasov.vi.PETScNLArakawaJ2            import PETScSolver
-from vlasov.vi.PETScNLArakawaJ4            import PETScSolver
+# from vlasov.solvers.full.PETScNLArakawaJ1            import PETScSolver
+# from vlasov.solvers.full.PETScNLArakawaJ2            import PETScSolver
+from vlasov.solvers.full.PETScNLArakawaJ4            import PETScSolver
 
-# from vlasov.predictor.PETScPoissonMatrixJ1     import PETScPoissonMatrix
-# from vlasov.predictor.PETScPoissonMatrixJ2     import PETScPoissonMatrix
-from vlasov.predictor.PETScPoissonMatrixJ4     import PETScPoissonMatrix
+# from vlasov.solvers.poisson.PoissonSolver2     import PETScPoissonSolver
+# from vlasov.solvers.poisson.PoissonSolver4     import PETScPoissonSolver
 
 
 # solver_package = 'superlu_dist'
@@ -25,7 +24,7 @@ solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
-class petscVP1Dgmres(petscVP1Dbase):
+class petscVP1Dgmres(petscVP1Dbasefull):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''

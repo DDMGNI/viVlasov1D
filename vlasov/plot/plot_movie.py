@@ -99,9 +99,9 @@ class PlotMovie(object):
         self.axes["f"] = plt.subplot(gs[0,0:2])
         self.axes["N"] = plt.subplot(gs[1,0])
         self.axes["E"] = plt.subplot(gs[2,0])
-        self.axes["L"] = plt.subplot(gs[1,1])
-#        self.axes["P"] = plt.subplot(gs[2,1])
-        self.axes["S"] = plt.subplot(gs[2,1])
+        self.axes["P"] = plt.subplot(gs[1,1])
+#        self.axes["S"] = plt.subplot(gs[1,1])
+        self.axes["L"] = plt.subplot(gs[2,1])
         
 #        self.axes["f"] = plt.subplot2grid((4,4), (0, 0), colspan=2, rowspan=2)
 #        self.axes["N"] = plt.subplot2grid((4,4), (2, 0), colspan=2)
@@ -139,17 +139,21 @@ class PlotMovie(object):
         self.axes ["E"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total momentum (time trace)
-#        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum[tStart:tEnd])
-#        self.axes ["P"].set_title('$\Delta P (t)$')
-#        self.axes ["P"].set_xlim((xStart,xEnd)) 
-#        self.axes ["P"].yaxis.set_major_formatter(majorFormatter)
+        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum[tStart:tEnd])
+        if self.hamiltonian.P0 < 1E-8:
+            self.axes ["P"].set_title('$P (t)$')
+        else:
+            self.axes ["P"].set_title('$\Delta P (t)$')
+        self.axes ["P"].set_xlim((xStart,xEnd)) 
+        self.axes ["P"].yaxis.set_major_formatter(majorFormatter)
+        self.axes ["P"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total entropy (time trace)
-        self.lines["S"], = self.axes["S"].plot(self.grid.tGrid[tStart:tEnd], self.entropy[tStart:tEnd])
-        self.axes ["S"].set_title('$\Delta S (t)$')
-        self.axes ["S"].set_xlim((xStart,xEnd)) 
-        self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["S"].yaxis.set_major_locator(MaxNLocator(4))
+#        self.lines["S"], = self.axes["S"].plot(self.grid.tGrid[tStart:tEnd], self.entropy[tStart:tEnd])
+#        self.axes ["S"].set_title('$\Delta S (t)$')
+#        self.axes ["S"].set_xlim((xStart,xEnd)) 
+#        self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
+#        self.axes ["S"].yaxis.set_major_locator(MaxNLocator(4))
         
         
         self.update()
@@ -168,10 +172,10 @@ class PlotMovie(object):
             self.fmax = max(self.fmax, self.distribution.f.max() )
             self.fmax *= self.cFac
 
-        self.fmin += 0.2 * (self.fmax-self.fmin)
+        deltaf = (self.fmax-self.fmin)
         
-        self.fnorm  = colors.Normalize(vmin=self.fmin, vmax=self.fmax)
-        self.crange = np.linspace(0.0, +self.fmax, 100)
+        self.fnorm  = colors.Normalize(vmin=self.fmin-0.05*deltaf, vmax=self.fmax+0.01*deltaf)
+        self.crange = np.linspace(-0.05*deltaf, self.fmax+0.01*deltaf, 100)
         
     
     def update(self, final=False):
@@ -179,7 +183,7 @@ class PlotMovie(object):
         if not (self.iTime == 1 or (self.iTime-1) % self.nPlot == 0):
             return
 
-        self.update_boundaries()
+#        self.update_boundaries()
         
         for ckey, cont in self.conts.items():
             for coll in cont.collections:
@@ -223,17 +227,17 @@ class PlotMovie(object):
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         
-#        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
-#        self.lines["P"].set_ydata(self.momentum[tStart:tEnd])
-#        self.axes ["P"].relim()
-#        self.axes ["P"].autoscale_view()
-#        self.axes ["P"].set_xlim((xStart,xEnd)) 
+        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["P"].set_ydata(self.momentum[tStart:tEnd])
+        self.axes ["P"].relim()
+        self.axes ["P"].autoscale_view()
+        self.axes ["P"].set_xlim((xStart,xEnd)) 
         
-        self.lines["S"].set_xdata(self.grid.tGrid[tStart:tEnd])
-        self.lines["S"].set_ydata(self.entropy[tStart:tEnd])
-        self.axes ["S"].relim()
-        self.axes ["S"].autoscale_view()
-        self.axes ["S"].set_xlim((xStart,xEnd)) 
+#        self.lines["S"].set_xdata(self.grid.tGrid[tStart:tEnd])
+#        self.lines["S"].set_ydata(self.entropy[tStart:tEnd])
+#        self.axes ["S"].relim()
+#        self.axes ["S"].autoscale_view()
+#        self.axes ["S"].set_xlim((xStart,xEnd)) 
         
         
         if self.write:
@@ -245,27 +249,22 @@ class PlotMovie(object):
     
     
     def add_timepoint(self):
-        E0 = self.hamiltonian.Ewoa_0
-        E  = self.hamiltonian.Ewoa
+        E0 = self.hamiltonian.E0
+        E  = self.hamiltonian.E
 
         E_error   = (E - E0) / E0
-        
-        
-#        P0 = self.hamiltonian.P0 + self.potential.E0
-#        P  = self.hamiltonian.P  + self.potential.E
-#        
-#        if P0 != 0.0:
-#            P_error = (P-P0)/P0
-#        else:
-#            P_error = 0.0
         
         
         self.partnum  [self.iTime] = self.distribution.N_error
         self.enstrophy[self.iTime] = self.distribution.L2_error
         self.entropy  [self.iTime] = self.distribution.S_error
+        
+        if self.hamiltonian.P0 < 1E-8:
+            self.momentum [self.iTime] = self.hamiltonian.P
+        else:
+            self.momentum [self.iTime] = self.hamiltonian.P_error
+        
         self.energy   [self.iTime] = E_error
-#        self.momentum [self.iTime] = P_error
-#        self.momentum [self.iTime] = self.hamiltonian.P_error
         
         self.title.set_text('t = %1.2f' % (self.grid.tGrid[self.iTime]))
         

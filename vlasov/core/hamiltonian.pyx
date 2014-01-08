@@ -33,37 +33,19 @@ class Hamiltonian(object):
         self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
         
         
-        self.EJ1        = 0.0         # current total energy
-        self.EJ1_kin    = 0.0         # current kinetic energy
-        self.EJ1_pot    = 0.0         # current potential energy
-        self.EJ1_error  = 0.0         # error in total energy (E-E0)/E0
+        self.E0      = 0.0         # initial total energy
+        self.E       = 0.0         # current total energy
+        self.E_error = 0.0         # error in total energy (E-E0)/E0
         
-        self.EJ2        = 0.0         # current total energy
-        self.EJ2_kin    = 0.0         # current kinetic energy
-        self.EJ2_pot    = 0.0         # current potential energy
-        self.EJ2_error  = 0.0         # error in total energy (E-E0)/E0
+        self.E_kin0  = 0.0         # initial kinetic energy
+        self.E_kin   = 0.0         # current kinetic energy
         
-        self.EJ4        = 0.0         # current total energy
-        self.EJ4_kin    = 0.0         # current kinetic energy
-        self.EJ4_pot    = 0.0         # current potential energy
-        self.EJ4_error  = 0.0         # error in total energy (E-E0)/E0
+        self.E_pot0  = 0.0         # initial potential energy
+        self.E_pot   = 0.0         # current potential energy
         
-        self.Ewoa       = 0.0         # current total energy
-        self.Ewoa_kin   = 0.0         # current kinetic energy
-        self.Ewoa_pot   = 0.0         # current potential energy
-        self.Ewoa_error = 0.0         # error in total energy (E-E0)/E0
-        
-        self.Ewoa_kin0  = 0.0         # initial kinetic energy
-        self.Ewoa_pot0  = 0.0         # initial potential energy
-        
-        self.EJ1_0      = 0.0         # initial total energy
-        self.EJ2_0      = 0.0         # initial total energy
-        self.EJ4_0      = 0.0         # initial total energy
-        self.Ewoa_0     = 0.0         # initial total energy
-        
-        self.P0         = 0.0         # initial total momentum
-        self.P          = 0.0         # current total momentum
-        self.P_error    = 0.0         # error in total momentum (P-P0)/P0
+        self.P0      = 0.0         # initial total momentum
+        self.P       = 0.0         # current total momentum
+        self.P_error = 0.0         # error in total momentum (P-P0)/P0
         
         self.set_hdf5_file(hdf5)
         self.read_from_hdf5(0)
@@ -96,165 +78,6 @@ class Hamiltonian(object):
         cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
         
         
-        # J1
-        Ekin = 0.0
-        Epot = 0.0
-        
-        if f != None:
-            for ix in range(0, nx):
-                ixp = (ix+1) % nx
-                
-                for iv in range(0, nv-1):
-                    
-                    Ekin += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h0[ix,  iv  ]
-                            + h0[ixp, iv  ]
-                            + h0[ixp, iv+1]
-                            + h0[ix,  iv+1]
-                            )
-                    
-                    Epot += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h1[ix,  iv  ]
-                            + h1[ixp, iv  ]
-                            + h1[ixp, iv+1]
-                            + h1[ix,  iv+1]
-                            )
-        
-                    Epot += ( 
-                            + f[ix,  iv  ]
-                            + f[ixp, iv  ]
-                            + f[ixp, iv+1]
-                            + f[ix,  iv+1]
-                          ) * ( 
-                            + h2[ix,  iv  ]
-                            + h2[ixp, iv  ]
-                            + h2[ixp, iv+1]
-                            + h2[ix,  iv+1]
-                            )
-        
-        self.EJ1_kin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
-        self.EJ1_pot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
-        
-        
-        # J2
-        Ekin = 0.0
-        Epot = 0.0
-        
-        if f != None:
-            for ix in range(0, nx):
-                ixm = (ix-1+nx) % nx
-                ixp = (ix+1+nx) % nx
-                
-                for iv in range(1, nv-1):
-                    
-                    Ekin += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * (
-                              + h0[ixm, iv  ]
-                              + h0[ixp, iv  ]
-                              + h0[ix,  iv-1]
-                              + h0[ix,  iv+1]
-                            )
-                    
-                    Epot += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * ( 
-                              + h1[ixm, iv  ]
-                              + h1[ixp, iv  ]
-                              + h1[ix,  iv-1]
-                              + h1[ix,  iv+1]
-                            )
-        
-                    Epot += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * (
-                              + h2[ixm, iv  ]
-                              + h2[ixp, iv  ]
-                              + h2[ix,  iv-1]
-                              + h2[ix,  iv+1]
-                            )
-        
-        self.EJ2_kin = Ekin * self.grid.hx * self.grid.hv * 0.25 * 0.25
-        self.EJ2_pot = Epot * self.grid.hx * self.grid.hv * 0.25 * 0.25
-        
-        
-        # J4
-        Ekin = 0.0
-        Epot = 0.0
-        
-        if f != None:
-            for ix in range(0, nx):
-                ixm = (ix-1+nx) % nx
-                ixp = (ix+1+nx) % nx
-                
-                for iv in range(1, nv-1):
-                    
-                    Ekin += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + 4. * f[ix,  iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * (
-                              + h0[ixm, iv  ]
-                              + h0[ixp, iv  ]
-                              + 4. * h0[ix,  iv  ]
-                              + h0[ix,  iv-1]
-                              + h0[ix,  iv+1]
-                            )
-                    
-                    Epot += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + 4. * f[ix,  iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * ( 
-                              + h1[ixm, iv  ]
-                              + h1[ixp, iv  ]
-                              + 4. * h1[ix,  iv  ]
-                              + h1[ix,  iv-1]
-                              + h1[ix,  iv+1]
-                            )
-        
-                    Epot += ( 
-                              + f[ixm, iv  ]
-                              + f[ixp, iv  ]
-                              + 4. * f[ix,  iv  ]
-                              + f[ix,  iv-1]
-                              + f[ix,  iv+1]
-                            ) * (
-                              + h2[ixm, iv  ]
-                              + h2[ixp, iv  ]
-                              + 4. * h2[ix,  iv  ]
-                              + h2[ix,  iv-1]
-                              + h2[ix,  iv+1]
-                            )
-        
-        self.EJ4_kin = Ekin * self.grid.hx * self.grid.hv * 0.125 * 0.125
-        self.EJ4_pot = Epot * self.grid.hx * self.grid.hv * 0.125 * 0.125
-        
-        
-        # woa
         Ekin = 0.0
         Epot = 0.0
         
@@ -266,15 +89,12 @@ class Hamiltonian(object):
                     Epot += f[ix,  iv  ] * h1[ix,  iv  ]
                     Epot += f[ix,  iv  ] * h2[ix,  iv  ]
         
-        self.Ewoa_kin = Ekin * self.grid.hx * self.grid.hv
-        self.Ewoa_pot = Epot * self.grid.hx * self.grid.hv
+        self.E_kin = Ekin * self.grid.hx * self.grid.hv
+        self.E_pot = Epot * self.grid.hx * self.grid.hv
         
         
         # total energy
-        self.EJ1  = self.EJ1_kin  + 0.5 * self.EJ1_pot
-        self.EJ2  = self.EJ2_kin  + 0.5 * self.EJ2_pot
-        self.EJ4  = self.EJ4_kin  + 0.5 * self.EJ4_pot
-        self.Ewoa = self.Ewoa_kin + 0.5 * self.Ewoa_pot
+        self.E = self.E_kin + 0.5 * self.E_pot
         
     
     def calculate_energy_error(self):
@@ -282,25 +102,10 @@ class Hamiltonian(object):
         Calculates energy error, i.e. relative difference between E and E0.
         '''
         
-        if self.EJ1_0 != 0.0:
-            self.EJ1_error = (self.EJ1 - self.EJ1_0) / self.EJ1_0
+        if self.E0 != 0.0:
+            self.E_error = (self.E - self.E0) / self.E0
         else:
-            self.EJ1_error = 0.0
-    
-        if self.EJ2_0 != 0.0:
-            self.EJ2_error = (self.EJ2 - self.EJ2_0) / self.EJ2_0
-        else:
-            self.EJ2_error = 0.0
-    
-        if self.EJ4_0 != 0.0:
-            self.EJ4_error = (self.EJ4 - self.EJ4_0) / self.EJ4_0
-        else:
-            self.EJ4_error = 0.0
-    
-        if self.Ewoa_0 != 0.0:
-            self.Ewoa_error = (self.Ewoa - self.Ewoa_0) / self.Ewoa_0
-        else:
-            self.Ewoa_error = 0.0
+            self.E_error = 0.0
     
 
     def calculate_total_momentum(self):
@@ -325,18 +130,7 @@ class Hamiltonian(object):
                     
                     self.P += f[ix, iv] * self.grid.vGrid[iv]
 
-#                    self.P += ( 
-#                            + f[ix,  iv  ]
-#                            + f[ixp, iv  ]
-#                            + f[ixp, iv+1]
-#                            + f[ix,  iv+1]
-#                          ) * ( 
-#                            + self.grid.vGrid[iv  ]
-#                            + self.grid.vGrid[iv+1]
-#                            )
-            
             self.P *= self.mass * self.grid.hx * self.grid.hv
-#            self.P *= self.mass * 0.25 * 0.5 * self.grid.hx * self.grid.hv
         
     
     def calculate_momentum_error(self):
@@ -378,14 +172,9 @@ class Hamiltonian(object):
         
 #         if iTime == 0 or iTime == 1:
         if iTime == 0:
-            self.EJ1_0  = self.EJ1
-            self.EJ2_0  = self.EJ2
-            self.EJ4_0  = self.EJ4
-            
-            self.Ewoa_0 = self.Ewoa
-            self.Ewoa_0 = self.Ewoa
-        
-            self.Ewoa_kin0 = self.Ewoa_kin
-            self.Ewoa_pot0 = self.Ewoa_pot
-
             self.P0 = self.P
+            self.E0 = self.E
+        
+            self.E_kin0 = self.E_kin
+            self.E_pot0 = self.E_pot
+

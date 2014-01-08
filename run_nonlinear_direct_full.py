@@ -12,12 +12,12 @@ from petsc4py import PETSc
 
 from run_base_full import petscVP1Dbasefull
 
-# from vlasov.solver.full.PETScNLArakawaJ1            import PETScSolver
-# from vlasov.solver.full.PETScNLArakawaJ2            import PETScSolver
-from vlasov.solver.full.PETScNLArakawaJ4            import PETScSolver
+# from vlasov.solvers.full.PETScNLArakawaJ1            import PETScSolver
+# from vlasov.solvers.full.PETScNLArakawaJ2            import PETScSolver
+from vlasov.solvers.full.PETScNLArakawaJ4            import PETScSolver
 
 
-class petscVP1Dlu(petscVP1Dbase):
+class petscVP1Dlu(petscVP1Dbasefull):
     '''
     PETSc/Python Vlasov Poisson LU Solver in 1D.
     '''

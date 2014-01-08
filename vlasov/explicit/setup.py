@@ -48,15 +48,22 @@ LIBRARY_DIRS += ['/opt/local/lib']
 
 
 ext_modules = [
-        Extension("PETScArakawaRK4",
-                  sources=["PETScArakawaRK4.pyx"],
+        Extension("PETScArakawaGear",
+                  sources=["PETScArakawaGear.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
-        Extension("PETScArakawaGear",
-                  sources=["PETScArakawaGear.pyx"],
+        Extension("PETScArakawaLeapfrog",
+                  sources=["PETScArakawaLeapfrog.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScArakawaRungeKutta",
+                  sources=["PETScArakawaRungeKutta.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,

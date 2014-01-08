@@ -12,10 +12,10 @@ from petsc4py import PETSc
 
 from run_base_split import petscVP1Dbasesplit
 
-from vlasov.explicit.PETScArakawaGear import PETScArakawaGear
+from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
 
-class petscVP1Dgear(petscVP1Dbasesplit):
+class petscVP1Drk4(petscVP1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson LU Solver in 1D.
     '''
@@ -23,12 +23,9 @@ class petscVP1Dgear(petscVP1Dbasesplit):
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
-        self.petsc_solver = PETScArakawaGear(self.da1, self.dax,
-                                             self.h0, self.vGrid,
-                                             self.nx, self.nv, self.ht, self.hx, self.hv)
-        
-        self.petsc_solver.update_external(self.p_ext)
-        self.petsc_solver.update_history(self.f, self.h1)
+        self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht, self.hx, self.hv)
         
         
     def run(self):
@@ -38,23 +35,16 @@ class petscVP1Dgear(petscVP1Dbasesplit):
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 localtime = time.asctime( time.localtime(time.time()) )
-                print("\nit = %4d,   t = %10.4f,   %s" % (itime, current_time, localtime) )
-                print
+                print("it = %4d,   t = %10.4f,   %s" % (itime, current_time, localtime) )
                 self.time.setValue(0, current_time)
             
-            # calculate external field and copy to solver
-            self.calculate_external(current_time)
-            self.petsc_solver.update_external(self.p_ext)
-            
             # solve
-            self.initial_guess_gear(itime)
-            
-            # update data vectors
-            self.copy_x_to_data()
-            
-            # update history
-            self.petsc_solver.update_history(self.x)
-            self.arakawa_gear.update_history(self.f, self.h1)
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
+            self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, 1.0)
+ 
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
+            self.calculate_moments(output=False)
             
             # save to hdf5
             self.save_to_hdf5(itime)
@@ -70,6 +60,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dgear(args.c, args.i)
+    petscvp = petscVP1Drk4(args.c, args.i)
     petscvp.run()
     

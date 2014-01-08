@@ -1,0 +1,421 @@
+'''
+Created on Apr 10, 2012
+
+@author: mkraus
+'''
+
+cimport cython
+
+import  numpy as npy
+cimport numpy as npy
+
+from petsc4py import PETSc
+
+from vlasov.toolbox.Toolbox import Toolbox
+
+
+cdef class PETScVlasovSolver(PETScVlasovSolverBase):
+    '''
+    Implements a variational integrator with fourth order
+    symplectic Runge-Kutta time-derivative and Arakawa's J4
+    discretisation of the Poisson brackets (J4=2J1-J2).
+    '''
+    
+    def __init__(self, VIDA da2, VIDA da1, VIDA dax, Vec H0,
+                 npy.ndarray[npy.float64_t, ndim=1] v,
+                 npy.uint64_t nx, npy.uint64_t nv,
+                 npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
+                 npy.float64_t charge,
+                 npy.float64_t coll_freq=0.,
+                 npy.float64_t coll_diff=1.,
+                 npy.float64_t coll_drag=1.):
+        '''
+        Constructor
+        '''
+        
+        # initialise parent class
+        super().__init__(da1, dax, H0, v, nx, nv, ht, hx, hv, charge, coll_freq, coll_diff, coll_drag, regularisation=0.)
+        
+        # distributed array
+        self.da2 = da2
+        
+        # delta vector
+        self.Xd   = self.da2.createGlobalVec()
+        
+        self.localXd = self.da2.createLocalVec()
+        
+        # create global data arrays
+        self.H11 = self.da1.createGlobalVec()
+        self.H12 = self.da1.createGlobalVec()
+        self.H21 = self.da1.createGlobalVec()
+        self.H22 = self.da1.createGlobalVec()
+        
+        self.F1  = self.da1.createGlobalVec()
+        self.F2  = self.da1.createGlobalVec()
+        self.P1  = self.dax.createGlobalVec()
+        self.P2  = self.dax.createGlobalVec()
+        
+        # create local data arrays
+        self.localH11 = self.da1.createLocalVec()
+        self.localH12 = self.da1.createLocalVec()
+        self.localH21 = self.da1.createLocalVec()
+        self.localH22 = self.da1.createLocalVec()
+
+        self.localF1  = self.da1.createLocalVec()
+        self.localF2  = self.da1.createLocalVec()
+        self.localP1  = self.dax.createLocalVec()
+        self.localP2  = self.dax.createLocalVec()
+
+        
+        # Runge-Kutta factors
+        self.a11 = 0.25
+        self.a12 = 0.25 - npy.sqrt(3.) / 6. 
+        self.a21 = 0.25 + npy.sqrt(3.) / 6. 
+        self.a22 = 0.25
+        
+    
+    cpdef update_previous4(self, Vec F1, Vec F2, Vec P1, Vec P2, Vec Pext1, Vec Pext2, Vec N, Vec U, Vec E):
+        F1.copy(self.F1)
+        F2.copy(self.F2)
+        P1.copy(self.P1)
+        P2.copy(self.P2)
+        N.copy(self.Np)
+        U.copy(self.Up)
+        E.copy(self.Ep)
+        
+        self.toolbox.compute_collision_factor(self.Np,  self.Up, self.Ep, self.Ap)
+        self.toolbox.potential_to_hamiltonian(self.P1, self.H11)
+        self.toolbox.potential_to_hamiltonian(self.P2, self.H12)
+        self.toolbox.potential_to_hamiltonian(Pext1,   self.H21)
+        self.toolbox.potential_to_hamiltonian(Pext2,   self.H22)
+        
+        
+    cpdef update_delta(self, Vec X):
+        X.copy(self.Xd)
+        
+    
+#     cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
+#         X.copy(self.Xd)
+#         self.jacobian(Y)
+#         
+#     
+#     cpdef mult(self, Mat mat, Vec X, Vec Y):
+#         X.copy(self.Xd)
+#         self.jacobian(Y)
+#         
+#     
+#     cpdef jacobian_mult(self, Vec X, Vec Y):
+#         X.copy(self.Xd)
+#         self.jacobian(Y)
+#         
+#     
+#     cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y):
+#         X.copy(self.Xd)
+#         self.function(Y)
+#         
+#     
+#     cpdef function_mult(self, Vec X, Vec Y):
+#         X.copy(self.Xd)
+#         self.function(Y)
+    
+    
+    cdef get_data_arrays(self):
+        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        
+        self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
+        self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
+        self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
+        self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
+        
+        self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
+        self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
+        self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
+        self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
+        self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
+        self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
+        
+        self.h11 = self.da1.getLocalArray(self.H11, self.localH11)
+        self.h12 = self.da1.getLocalArray(self.H12, self.localH12)
+        self.h21 = self.da1.getLocalArray(self.H21, self.localH21)
+        self.h22 = self.da1.getLocalArray(self.H22, self.localH22)
+        
+        self.f1  = self.da1.getLocalArray(self.F1,  self.localF1)
+        self.f2  = self.da1.getLocalArray(self.F2,  self.localF2)
+        self.p1  = self.dax.getLocalArray(self.P1,  self.localP1)
+        self.p2  = self.dax.getLocalArray(self.P2,  self.localP2)
+        
+        self.xd   = self.da2.getLocalArray(self.Xd,  self.localXd)
+
+    
+#     @cython.boundscheck(False)
+#     @cython.wraparound(False)
+#     def formJacobian(self, Mat A):
+#         cdef npy.int64_t i, j, ix
+#         cdef npy.int64_t xe, xs
+#         
+#         (xs, xe), = self.da1.getRanges()
+#         
+#         self.get_data_arrays()
+#         
+#         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1h + self.h11p + self.h12p) \
+#                                                                 + 0.5 * (self.h2h + self.h2p)
+#         
+#         
+# #         cdef npy.float64_t time_fac      = 0.
+# #         cdef npy.float64_t arak_fac_J1   = 0.
+# #         cdef npy.float64_t arak_fac_J2   = 0.
+# #         cdef npy.float64_t coll_drag_fac = 0.
+# #         cdef npy.float64_t coll_diff_fac = 0.
+#         
+#         cdef npy.float64_t time_fac      = 1.0  / self.ht
+#         cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.hx * self.hv)
+#         cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.hx * self.hv)
+#         
+#         cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.hv_inv * 0.5
+#         cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.hv2_inv
+#         
+#         
+#         A.zeroEntries()
+#         
+#         row = Mat.Stencil()
+#         col = Mat.Stencil()
+#         
+#         
+#         # Vlasov Equation
+#         for i in range(xs, xe):
+#             ix = i-xs+self.da1.getStencilWidth()
+#             
+#             row.index = (i,)
+#                 
+#             for j in range(0, self.nv):
+#                 row.field = j
+#                 
+#                 # Dirichlet boundary conditions
+#                 if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+#                     A.setValueStencil(row, row, 1.0)
+#                     
+#                 else:
+#                     
+#                     for index, field, value in [
+#                             ((i-2,), j  , - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+#                             ((i-1,), j-1, - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
+#                                           - (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
+#                                           - (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+#                             ((i-1,), j  , - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
+#                                           - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1),
+#                             ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1 \
+#                                           - (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) * arak_fac_J2 \
+#                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+#                             ((i,  ), j-2, + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+#                             ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
+#                                           + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
+#                                           - coll_drag_fac * ( self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+#                                           + coll_diff_fac),
+#                             ((i,  ), j  , + time_fac \
+#                                           - 2. * coll_diff_fac),
+#                             ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
+#                                           - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
+#                                           + coll_drag_fac * ( self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+#                                           + coll_diff_fac,
+#                             ((i,  ), j+2, - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J2),
+#                             ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
+#                                           + (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
+#                                           + (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
+#                             ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
+#                                           + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1),
+#                             ((i+1,), j+1, + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1 \
+#                                           + (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) * arak_fac_J2 \
+#                                           + (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+#                             ((i+2,), j  , + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+#                         ]:
+# 
+#                         col.index = index
+#                         col.field = field
+#                         A.setValueStencil(row, col, value)
+#                         
+#         
+#         A.assemble()
+
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def jacobian(self, Vec Y):
+        cdef npy.int64_t i, j
+        cdef npy.int64_t ix, iy
+        cdef npy.int64_t xe, xs
+        
+        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t coll_drag, coll_diff
+        
+        self.get_data_arrays()
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        cdef npy.ndarray[npy.float64_t, ndim=3] y = self.da2.getGlobalArray(Y)
+        
+        cdef npy.ndarray[npy.float64_t, ndim=3] f = npy.empty_like(self.xd)
+        cdef npy.ndarray[npy.float64_t, ndim=3] h = npy.empty_like(self.xd)
+         
+        f[:,:,0] = self.a11 * self.xd[:,:,0] + self.a12 * self.xd[:,:,1]
+        f[:,:,1] = self.a21 * self.xd[:,:,0] + self.a22 * self.xd[:,:,1]
+        
+        h[:,:,0] = self.h0 + (self.h1h + self.a11 * self.h11 + self.a12 * self.h12) + self.h21
+        h[:,:,1] = self.h0 + (self.h1h + self.a21 * self.h11 + self.a22 * self.h12) + self.h22
+
+        cdef npy.ndarray[npy.float64_t, ndim=1] v   = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] u   = self.up
+        cdef npy.ndarray[npy.float64_t, ndim=1] a   = self.ap
+        
+        
+        for k in range(0,2):
+            for i in range(xs, xe):
+                ix = i-xs+self.da1.getStencilWidth()
+                iy = i-xs
+            
+                for j in range(0, self.nv):
+                    if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+                        # Dirichlet Boundary Conditions
+                        y[iy, j, k] = f[ix,j,k]
+                        
+                    else:
+                        # Arakawa's J1
+                        jpp_J1 = (f[ix+1, j  ,k] - f[ix-1, j  ,k]) * (h[ix,   j+1,k] - h[ix,   j-1,k]) \
+                               - (f[ix,   j+1,k] - f[ix,   j-1,k]) * (h[ix+1, j  ,k] - h[ix-1, j  ,k])
+                        
+                        jpc_J1 = f[ix+1, j  ,k] * (h[ix+1, j+1,k] - h[ix+1, j-1,k]) \
+                               - f[ix-1, j  ,k] * (h[ix-1, j+1,k] - h[ix-1, j-1,k]) \
+                               - f[ix,   j+1,k] * (h[ix+1, j+1,k] - h[ix-1, j+1,k]) \
+                               + f[ix,   j-1,k] * (h[ix+1, j-1,k] - h[ix-1, j-1,k])
+                        
+                        jcp_J1 = f[ix+1, j+1,k] * (h[ix,   j+1,k] - h[ix+1, j  ,k]) \
+                               - f[ix-1, j-1,k] * (h[ix-1, j  ,k] - h[ix,   j-1,k]) \
+                               - f[ix-1, j+1,k] * (h[ix,   j+1,k] - h[ix-1, j  ,k]) \
+                               + f[ix+1, j-1,k] * (h[ix+1, j  ,k] - h[ix,   j-1,k])
+                        
+                        # Arakawa's J2
+                        jcc_J2 = (f[ix+1, j+1,k] - f[ix-1, j-1,k]) * (h[ix-1, j+1,k] - h[ix+1, j-1,k]) \
+                               - (f[ix-1, j+1,k] - f[ix+1, j-1,k]) * (h[ix+1, j+1,k] - h[ix-1, j-1,k])
+                        
+                        jpc_J2 = f[ix+2, j  ,k] * (h[ix+1, j+1,k] - h[ix+1, j-1,k]) \
+                               - f[ix-2, j  ,k] * (h[ix-1, j+1,k] - h[ix-1, j-1,k]) \
+                               - f[ix,   j+2,k] * (h[ix+1, j+1,k] - h[ix-1, j+1,k]) \
+                               + f[ix,   j-2,k] * (h[ix+1, j-1,k] - h[ix-1, j-1,k])
+                        
+                        jcp_J2 = f[ix+1, j+1,k] * (h[ix,   j+2,k] - h[ix+2, j  ,k]) \
+                               - f[ix-1, j-1,k] * (h[ix-2, j  ,k] - h[ix,   j-2,k]) \
+                               - f[ix-1, j+1,k] * (h[ix,   j+2,k] - h[ix-2, j  ,k]) \
+                               + f[ix+1, j-1,k] * (h[ix+2, j  ,k] - h[ix,   j-2,k])
+                        
+                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                        result_J4 = 2. * result_J1 - result_J2
+                        
+                        
+                        # collision operator
+#                         coll_drag = ( (v[j+1] - u[ix]) * fd[ix, j+1] - (v[j-1] - u[ix]) * fd[ix, j-1] ) * a[ix]
+#                         coll_diff = ( fd[ix, j+1] - 2. * fd[ix, j] + fd[ix, j-1] )
+                        coll_drag = 0.0
+                        coll_diff = 0.0
+             
+                        y[iy, j, k] = self.xd[ix, j, k] - self.ht * result_J4 * self.hx_inv * self.hv_inv \
+                                    + self.ht * 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
+                                    + self.ht * 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv
+    
+    
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def function(self, Vec Y):
+        cdef npy.int64_t i, j
+        cdef npy.int64_t ix, iy
+        cdef npy.int64_t xe, xs
+        
+        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t coll_drag, coll_diff
+        
+        self.get_data_arrays()
+        
+        (xs, xe), = self.da1.getRanges()
+        
+        cdef npy.ndarray[npy.float64_t, ndim=3] y = self.da2.getGlobalArray(Y)
+        
+        cdef npy.ndarray[npy.float64_t, ndim=3] f = npy.empty_like(self.xd)
+        cdef npy.ndarray[npy.float64_t, ndim=3] h = npy.empty_like(self.xd)
+         
+        f[:,:,0] = self.fh[:,:] + self.a11 * self.xd[:,:,0] + self.a12 * self.xd[:,:,1]
+        f[:,:,1] = self.fh[:,:] + self.a21 * self.xd[:,:,0] + self.a22 * self.xd[:,:,1]
+        
+        h[:,:,0] = self.h0 + (self.h1h + self.a11 * self.h11 + self.a12 * self.h12) + self.h21
+        h[:,:,1] = self.h0 + (self.h1h + self.a21 * self.h11 + self.a22 * self.h12) + self.h22
+        
+        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] up    = self.up
+        cdef npy.ndarray[npy.float64_t, ndim=1] ap    = self.ap
+        cdef npy.ndarray[npy.float64_t, ndim=1] uh    = self.uh
+        cdef npy.ndarray[npy.float64_t, ndim=1] ah    = self.ah
+        
+        
+        for k in range(0,2):
+            for i in range(xs, xe):
+                ix = i-xs+self.da1.getStencilWidth()
+                iy = i-xs
+                
+                # Vlasov equation
+                for j in range(0, self.nv):
+                    if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+                        # Dirichlet Boundary Conditions
+                        y[iy, j, k] = f[ix,j,k]
+                        
+                    else:
+                        # Arakawa's J1
+                        jpp_J1 = (f[ix+1, j  ,k] - f[ix-1, j  ,k]) * (h[ix,   j+1,k] - h[ix,   j-1,k]) \
+                               - (f[ix,   j+1,k] - f[ix,   j-1,k]) * (h[ix+1, j  ,k] - h[ix-1, j  ,k])
+                        
+                        jpc_J1 = f[ix+1, j  ,k] * (h[ix+1, j+1,k] - h[ix+1, j-1,k]) \
+                               - f[ix-1, j  ,k] * (h[ix-1, j+1,k] - h[ix-1, j-1,k]) \
+                               - f[ix,   j+1,k] * (h[ix+1, j+1,k] - h[ix-1, j+1,k]) \
+                               + f[ix,   j-1,k] * (h[ix+1, j-1,k] - h[ix-1, j-1,k])
+                        
+                        jcp_J1 = f[ix+1, j+1,k] * (h[ix,   j+1,k] - h[ix+1, j  ,k]) \
+                               - f[ix-1, j-1,k] * (h[ix-1, j  ,k] - h[ix,   j-1,k]) \
+                               - f[ix-1, j+1,k] * (h[ix,   j+1,k] - h[ix-1, j  ,k]) \
+                               + f[ix+1, j-1,k] * (h[ix+1, j  ,k] - h[ix,   j-1,k])
+                        
+                        # Arakawa's J2
+                        jcc_J2 = (f[ix+1, j+1,k] - f[ix-1, j-1,k]) * (h[ix-1, j+1,k] - h[ix+1, j-1,k]) \
+                               - (f[ix-1, j+1,k] - f[ix+1, j-1,k]) * (h[ix+1, j+1,k] - h[ix-1, j-1,k])
+                        
+                        jpc_J2 = f[ix+2, j  ,k] * (h[ix+1, j+1,k] - h[ix+1, j-1,k]) \
+                               - f[ix-2, j  ,k] * (h[ix-1, j+1,k] - h[ix-1, j-1,k]) \
+                               - f[ix,   j+2,k] * (h[ix+1, j+1,k] - h[ix-1, j+1,k]) \
+                               + f[ix,   j-2,k] * (h[ix+1, j-1,k] - h[ix-1, j-1,k])
+                        
+                        jcp_J2 = f[ix+1, j+1,k] * (h[ix,   j+2,k] - h[ix+2, j  ,k]) \
+                               - f[ix-1, j-1,k] * (h[ix-2, j  ,k] - h[ix,   j-2,k]) \
+                               - f[ix-1, j+1,k] * (h[ix,   j+2,k] - h[ix-2, j  ,k]) \
+                               + f[ix+1, j-1,k] * (h[ix+2, j  ,k] - h[ix,   j-2,k])
+                        
+                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                        result_J4 = 2. * result_J1 - result_J2
+                        
+                        
+                        # collision operator
+#                         coll_drag = ( (v[j+1] - up[ix]) * fp[ix, j+1] - (v[j-1] - up[ix]) * fp[ix, j-1] ) * ap[ix] \
+#                                   + ( (v[j+1] - uh[ix]) * fh[ix, j+1] - (v[j-1] - uh[ix]) * fh[ix, j-1] ) * ah[ix]
+#                         coll_diff = ( fp[ix, j+1] - 2. * fp[ix, j] + fp[ix, j-1] ) \
+#                                   + ( fh[ix, j+1] - 2. * fh[ix, j] + fh[ix, j-1] )
+                        coll_drag = 0.0
+                        coll_diff = 0.0
+                        
+                        
+                        y[iy, j, k] = self.xd[ix, j, k] - self.ht * result_J4 * self.hx_inv * self.hv_inv \
+                                    + self.ht * 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
+                                    + self.ht * 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv

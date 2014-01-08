@@ -15,7 +15,7 @@ import h5py
 
 
 from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
-from vlasov.plot import PlotReplay
+from vlasov.plot import PlotNoether
 
 
 class replay(object):
@@ -27,7 +27,7 @@ class replay(object):
     '''
 
 
-    def __init__(self, hdf5_file, nPlot=1, iStart=0, vMax=0.0):
+    def __init__(self, hdf5_file, nPlot=1, iStart=0):
         '''
         Constructor
         '''
@@ -53,10 +53,8 @@ class replay(object):
         self.distribution.read_from_hdf5(iStart)
         self.hamiltonian.read_from_hdf5(iStart)
         
-        self.plot = PlotReplay(self.grid, self.distribution, self.hamiltonian, self.potential,
-                               self.grid.nt, iStart, nPlot, vMax)
-        
-#         self.plot.save_plots()
+        self.plot = PlotNoether(self.grid, self.distribution, self.hamiltonian, self.potential,
+                                self.grid.nt, iStart, nPlot)
         
     
     def __del__(self):
@@ -117,6 +115,14 @@ class replay(object):
         for itime in range(self.iStart+1, self.grid.nt+1):
             self.update(itime, final=(itime == self.grid.nt))
         
+    
+    def movie(self, outfile, fps=1):
+        self.plot.nPlot = 1
+        
+        ani = animation.FuncAnimation(self.plot.figure, self.update, np.arange(1, self.grid.nt+1), 
+                                      init_func=self.init, repeat=False, blit=True)
+        ani.save(outfile, fps=fps)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
@@ -127,8 +133,8 @@ if __name__ == '__main__':
                         help='plot every i\'th frame')    
     parser.add_argument('-ns', metavar='i', type=int, default=0,
                         help='start at frame i')    
-    parser.add_argument('-v', metavar='f', type=float, default=0.0,
-                        help='limit velocity domain to +/-v')
+    parser.add_argument('-o', metavar='<run.mp4>', type=str, default=None,
+                        help='output video file')    
     
     args = parser.parse_args()
     
@@ -136,13 +142,16 @@ if __name__ == '__main__':
     print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = replay(args.hdf5_file, args.np, args.ns, vMax=args.v)
+    pyvp = replay(args.hdf5_file, args.np, args.ns)
     
     print
     input('Hit any key to start replay.')
     print
     
-    pyvp.run()
+    if args.o != None:
+        pyvp.movie(args.o, args.np, args.ns)
+    else:
+        pyvp.run()
     
     print
     print("Replay finished.")

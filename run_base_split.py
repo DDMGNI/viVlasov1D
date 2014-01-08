@@ -17,11 +17,12 @@ from vlasov.toolbox.VIDA    import VIDA
 # from vlasov.toolbox.Arakawa import Arakawa
 from vlasov.toolbox.Toolbox import Toolbox
 
-from vlasov.explicit.PETScArakawaRK4        import PETScArakawaRK4
+from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
 from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
 from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
-from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
+# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
+from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
 
 class petscVP1Dbasesplit():
@@ -49,14 +50,14 @@ class petscVP1Dbasesplit():
         self.nsave = self.cfg['io']['nsave']             # save only every nsave'th timestep
         
         # grid setup
-        self.nx = self.cfg['grid']['nx']                 # number of points in x
-        self.nv = self.cfg['grid']['nv']                 # number of points in v
-        L       = self.cfg['grid']['L']
-        vMax    = self.cfg['grid']['vmax']
-        vMin    = -vMax
+        self.nx   = self.cfg['grid']['nx']                 # number of points in x
+        self.nv   = self.cfg['grid']['nv']                 # number of points in v
+        L         = self.cfg['grid']['L']
+        self.vMax = self.cfg['grid']['vmax']
+        self.vMin = -self.vMax
         
         self.Lx = L
-        self.Lv = vMax - vMin
+        self.Lv = self.vMax - self.vMin
         
         self.hx = self.Lx / self.nx                      # gridstep size in x
         self.hv = self.Lv / (self.nv-1)                  # gridstep size in v
@@ -145,9 +146,9 @@ class petscVP1Dbasesplit():
         
         
         # initialise grid
-        self.da1.setUniformCoordinates(xmin=0.0,  xmax=L)
-        self.dax.setUniformCoordinates(xmin=0.0,  xmax=L)
-        self.day.setUniformCoordinates(xmin=vMin, xmax=vMax) 
+        self.da1.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+        self.dax.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+        self.day.setUniformCoordinates(xmin=self.vMin, xmax=self.vMax) 
         
         # get local index ranges
         (xs, xe), = self.da1.getRanges()
@@ -161,7 +162,7 @@ class petscVP1Dbasesplit():
 
         scatter.begin(coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         scatter.end  (coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-                  
+        
         self.xGrid = xVec.getValues(range(0, self.nx)).copy()
         
         scatter.destroy()
@@ -188,7 +189,7 @@ class petscVP1Dbasesplit():
         self.f     = self.da1.createGlobalVec()     # distribution function
         self.fh    = self.da1.createGlobalVec()     # history
         self.fb    = self.da1.createGlobalVec()     # right hand side
-        self.df     = self.da1.createGlobalVec()    # delta
+        self.df    = self.da1.createGlobalVec()    # delta
         
         # moments
         self.n     = self.dax.createGlobalVec()     # density
@@ -237,9 +238,9 @@ class petscVP1Dbasesplit():
             print("Instantiating Initial Guess Objects.")
             
         # create Arakawa RK4 solver object
-        self.arakawa_rk4 = PETScArakawaRK4(self.da1, self.dax,
-                                           self.h0, self.vGrid,
-                                           self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
+        self.arakawa_rk4 = PETScArakawaRungeKutta(self.da1, self.dax,
+                                                  self.h0, self.vGrid,
+                                                  self.nx, self.nv, self.ht / float(self.nInitial), self.hx, self.hv)
         
         self.arakawa_gear = PETScArakawaGear(self.da1, self.dax,
                                              self.h0, self.vGrid,
@@ -307,13 +308,13 @@ class petscVP1Dbasesplit():
             print("hx = %e" % (self.hx))
             print("hv = %e" % (self.hv))
             print()
-            print("Lx   =  %12.6e" % (L))
-            print("vMin = %+12.6e" % (vMin))
-            print("vMax = %+12.6e" % (vMax))
+            print("Lx   =  %12.6e" % (self.Lx))
+            print("vMin = %+12.6e" % (self.vMin))
+            print("vMax = %+12.6e" % (self.vMax))
             print()
             print("nu   = %7.1e" % (self.coll_freq))
             print()
-            print("CFL  = %e" % (self.hx / vMax))
+            print("CFL  = %e" % (self.hx / self.vMax))
             print()
             print()
         
@@ -394,6 +395,7 @@ class petscVP1Dbasesplit():
             print("Normalise distribution function.")
         nave = self.f.sum() * self.hv / self.nx
         self.f.scale(1./nave)
+        self.f.copy(self.fh)
         
         
         # calculate potential and moments
@@ -428,9 +430,9 @@ class petscVP1Dbasesplit():
         
         
         # update gear solution history
-        gear_arakawa_rk4 = PETScArakawaRK4(self.da1, self.dax,
-                                           self.h0, self.vGrid,
-                                           self.nx, self.nv, - self.ht / float(self.nInitial), self.hx, self.hv)
+        gear_arakawa_rk4 = PETScArakawaRungeKutta(self.da1, self.dax,
+                                                  self.h0, self.vGrid,
+                                                  self.nx, self.nv, - self.ht / float(self.nInitial), self.hx, self.hv)
         
         f_gear = []
         h_gear = []
@@ -462,6 +464,7 @@ class petscVP1Dbasesplit():
         del h_gear
         
         # recover correct moments and potential
+        self.f.copy(self.fh)
         self.calculate_moments(output=False)
         
         
@@ -526,21 +529,24 @@ class petscVP1Dbasesplit():
                 print("  Poisson:                               sum(phi) = %24.16E" % (phisum))
     
     
-    def calculate_external(self, t):
+    def calculate_external(self, t, p=None):
         (xs, xe), = self.da1.getRanges()
+        if p == None:
+            p = self.p_ext
         
         if self.external != None:
-            p_ext_arr = self.dax.getVecArray(self.p_ext)
+            p_ext_arr = self.dax.getVecArray(p)
             
             for i in range(xs, xe):
                 p_ext_arr[i] = self.external(self.xGrid[i], t) 
             
             # remove average
-            phisum = self.p_ext.sum()
+            phisum = p.sum()
             phiave = phisum / self.nx
-            self.p_ext.shift(-phiave)
-    
-        self.copy_pext_to_h()
+            p.shift(-phiave)
+            
+        if p == self.p_ext:
+            self.copy_pext_to_h()
     
     
     def copy_p_to_h(self):
@@ -579,7 +585,7 @@ class petscVP1Dbasesplit():
         prev_norm = self.calculate_residual()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Previous Step:                             funcnorm = %24.16E" % (prev_norm))
+            print("  Previous Step:                             residual = %24.16E" % (prev_norm))
         
         # calculate initial guess
         self.initial_guess_method()
@@ -614,7 +620,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  RK4 Initial Guess:                         funcnorm = %24.16E" % (ignorm))
+            print("  RK4 Initial Guess:                         residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     
@@ -638,7 +644,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Gear Initial Guess:                        funcnorm = %24.16E" % (ignorm))
+            print("  Gear Initial Guess:                        residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
         
@@ -662,7 +668,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("  Symplectic Initial Guess:                  residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     
@@ -706,7 +712,7 @@ class petscVP1Dbasesplit():
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Symplectic Initial Guess:                  funcnorm = %24.16E" % (ignorm))
+            print("  Symplectic Initial Guess:                  residual = %24.16E" % (ignorm))
             print("                                             sum(phi) = %24.16E" % (phisum))
          
     

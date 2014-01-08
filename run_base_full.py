@@ -8,15 +8,12 @@ import sys
 import petsc4py
 petsc4py.init(sys.argv)
 
-import numpy as np
+# import numpy as np
 
 from petsc4py import PETSc
 
-from vlasov.VIDA    import VIDA
-from vlasov.Toolbox import Toolbox
-
-from vlasov.core.config  import Config
-from vlasov.data.maxwell import maxwellian
+# from vlasov.core.config     import Config
+# from vlasov.toolbox.maxwell import maxwellian
 
 from run_base_split import petscVP1Dbasesplit
 
@@ -44,7 +41,7 @@ class petscVP1Dbasefull(petscVP1Dbasesplit):
                                        stencil_type='box')
         
         # initialise grid
-        self.da2.setUniformCoordinates(xmin=0.0,  xmax=L)
+        self.da2.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
         
         # create solution and RHS vector
         self.x  = self.da2.createGlobalVec()

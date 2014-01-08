@@ -9,7 +9,7 @@ Twostream Instability
 
 import numpy as np
 
-from vlasov.data.maxwell import maxwellian
+from vlasov.toolbox.maxwell import maxwellian
 
 
 def distribution(x, v):
