@@ -2,8 +2,9 @@
 #
 #$ -cwd
 #
-#$ -l h_cpu=24:00:00
+#$ -l h_rt=24:00:00
 #
+#$ -P  tokp
 #$ -pe impi_hydra 16
 #
 #$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_200x401_dt1E-1_nu0_rk4.out
