@@ -35,7 +35,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
@@ -59,6 +59,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     y[iy, j] = fd[ix,j]
                     
                 else:
+                    
                     bracket22 = ( \
                                   + (fd[ix,   j+2] - fd[ix,   j-2]) * (h_ave[ix-2, j  ] - h_ave[ix+2, j  ]) \
                                   + (fd[ix+2, j  ] - fd[ix-2, j  ]) * (h_ave[ix,   j+2] - h_ave[ix,   j-2]) \
@@ -111,7 +112,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                   + fd[ix-1, j+1] * (h_ave[ix-1, j  ] - h_ave[ix,   j+1]) \
                                 ) / 12.
                     
-                    bracket = ( 64. * bracket11 - 16. * bracket12 - 16. * bracket21 + 4. * bracket22 ) / 36.
+                    bracket = ( 25. * bracket11 - 10. * bracket12 - 10. * bracket21 + 4. * bracket22 ) / 9.
                     
                     
                     # collision operator
@@ -140,7 +141,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
@@ -220,7 +221,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                   + f_ave[ix-1, j+1] * (h_ave[ix-1, j  ] - h_ave[ix,   j+1]) \
                                 ) / 12.
                     
-                    bracket = ( 64. * bracket11 - 16. * bracket12 - 16. * bracket21 + 4. * bracket22 ) / 36.
+                    bracket = ( 25. * bracket11 - 10. * bracket12 - 10. * bracket21 + 4. * bracket22 ) / 9.
                     
                     
                     # collision operator
