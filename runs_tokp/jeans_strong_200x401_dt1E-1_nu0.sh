@@ -43,4 +43,4 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics/2011.0.013/12.1/compiler/lib/
 #export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 32 -l -n 32 python3.3 run_nonlinear_matrixfree_split.py -c runs_itm/$RUNID.cfg
+mpiexec -perhost 32 -l -n 32 python3.3 run_nonlinear_matrixfree_split.py -c runs_tokp/$RUNID.cfg
