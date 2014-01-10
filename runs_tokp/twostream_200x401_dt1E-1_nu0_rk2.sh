@@ -19,7 +19,7 @@
 #
 
 
-RUNID=twostream_200x400_dt1E-1_nu0_rk2
+RUNID=twostream_200x401_dt1E-1_nu0_rk2
 
 
 module load hdf5-serial/1.8.9
