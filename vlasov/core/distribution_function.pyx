@@ -88,7 +88,7 @@ class DistributionFunction(object):
         
         self.set_hdf5_file(hdf5)
         
-        self.f0   = hdf5['f'][0,:,:]
+        self.f0   = hdf5['f'][0,:,:].T
         self.fMin = hdf5['f'][:,:,:].min()
         self.fMax = hdf5['f'][:,:,:].max()
         
@@ -319,7 +319,7 @@ class DistributionFunction(object):
         
         
     def read_from_hdf5(self, iTime):
-        self.f = self.hdf5_f[iTime,:,:]
+        self.f = self.hdf5_f[iTime,:,:].T
         
         self.fmin = self.hdf5_f[iTime,:,:].min()
         self.fmax = self.hdf5_f[iTime,:,:].max()

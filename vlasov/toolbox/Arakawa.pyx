@@ -133,7 +133,7 @@ cdef class Arakawa(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         
         for i in range(xs, xe):
@@ -163,7 +163,7 @@ cdef class Arakawa(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         
         for i in range(xs, xe):
@@ -197,7 +197,7 @@ cdef class Arakawa(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = h0 + h1
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         
         for i in range(xs, xe):
@@ -260,7 +260,7 @@ cdef class Arakawa(object):
         cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
         cdef np.float64_t result_J1, result_J2, result_J4
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         
         for i in range(xs, xe):

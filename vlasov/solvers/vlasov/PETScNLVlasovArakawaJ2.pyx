@@ -100,7 +100,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec Y):
+    def jacobian(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
         cdef npy.int64_t xe, xs
@@ -113,9 +113,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         (xs, xe), = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
+        cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
+        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fd    = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
@@ -164,7 +164,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec Y):
+    def function(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
         cdef npy.int64_t xe, xs
@@ -177,9 +177,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         (xs, xe), = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
+        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
+        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fp    = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
         cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \

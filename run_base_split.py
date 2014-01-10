@@ -123,10 +123,16 @@ class petscVP1Dbasesplit():
             print("Initialising Distributed Arrays.")
             
         # create DA for 2d grid (f only)
-        self.da1 = VIDA().create(dim=1, dof=self.nv,
-                                       sizes=[self.nx],
-                                       proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                       boundary_type=('periodic'),
+#         self.da1 = VIDA().create(dim=1, dof=self.nv,
+#                                        sizes=[self.nx],
+#                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
+#                                        boundary_type=('periodic'),
+#                                        stencil_width=2,
+#                                        stencil_type='box')
+        self.da1 = VIDA().create(dim=2, dof=1,
+                                       sizes=[self.nx, self.nv],
+                                       proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
+                                       boundary_type=['periodic', 'none'],
                                        stencil_width=2,
                                        stencil_type='box')
         
@@ -146,12 +152,13 @@ class petscVP1Dbasesplit():
         
         
         # initialise grid
-        self.da1.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+#         self.da1.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
+        self.da1.setUniformCoordinates(xmin=0.0,  xmax=self.Lx, ymin=self.vMin, ymax=self.vMax)
         self.dax.setUniformCoordinates(xmin=0.0,  xmax=self.Lx)
         self.day.setUniformCoordinates(xmin=self.vMin, xmax=self.vMax) 
         
         # get local index ranges
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         
         # get coordinate vectors
         coords_x = self.dax.getCoordinates()
@@ -530,7 +537,7 @@ class petscVP1Dbasesplit():
     
     
     def calculate_external(self, t, p=None):
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
         if p == None:
             p = self.p_ext
         

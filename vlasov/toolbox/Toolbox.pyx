@@ -188,7 +188,7 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=2] h_arr = self.da1.getGlobalArray(H)
         cdef np.ndarray[np.float64_t, ndim=1] v     = self.v
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
@@ -203,7 +203,7 @@ cdef class Toolbox(object):
          
         cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
@@ -224,7 +224,7 @@ cdef class Toolbox(object):
         cdef np.float64_t pi  = np.pi
         cdef np.float64_t fac = sqrt(0.5 / pi)
          
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), = self.dax.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):

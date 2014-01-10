@@ -8,7 +8,7 @@ import sys
 import petsc4py
 petsc4py.init(sys.argv)
 
-# import numpy as np
+import numpy as np
 
 from petsc4py import PETSc
 
@@ -31,6 +31,37 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
         super().__init__(cfgfile, runid)
         
         
+        # Runge-Kutta collocation points
+        self.c1 = 0.5 - 0.5 / np.sqrt(3.)
+        self.c2 = 0.5 + 0.5 / np.sqrt(3.)
+#         self.c1 = 0.
+#         self.c2 = 1.
+#         self.c1 = 0.
+#         self.c2 = 0.5
+        
+        # Runge-Kutta weights
+        self.b1 = 0.5
+        self.b2 = 0.5
+#         self.b1 = 0.5
+#         self.b2 = 0.5
+#         self.b1 = 0.
+#         self.b2 = 1.
+        
+        # Runge-Kutta coefficients
+        self.a11 = 0.25
+        self.a12 = 0.25 - 0.5 / np.sqrt(3.) 
+        self.a21 = 0.25 + 0.5 / np.sqrt(3.) 
+        self.a22 = 0.25
+#         self.a11 = 0.
+#         self.a12 = 0.
+#         self.a21 = 0.5
+#         self.a22 = 0.5
+#         self.a11 = 0.
+#         self.a12 = 0.
+#         self.a21 = 0.5
+#         self.a22 = 0.
+        
+        
         # create VIDA for 2d grid (f, phi and moments)
         self.da2 = VIDA().create(dim=2, dof=2,
                                        sizes=[self.nx, self.nv],
@@ -40,14 +71,16 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
                                        stencil_type='box')
         
         # initialise grid
-        self.da2.setUniformCoordinates(xmin=0.0,  xmax=self.Lx, ymin=-self.vMax, ymax=+self.vMax)
+        self.da2.setUniformCoordinates(xmin=0.0,  xmax=self.Lx, ymin=self.vMin, ymax=self.vMax)
         
         # create solution and RHS vector
         self.b  = self.da2.createGlobalVec()
-        self.x  = self.da2.createGlobalVec()
-        self.xh = self.da2.createGlobalVec()
+        self.k  = self.da2.createGlobalVec()
+        self.kh = self.da2.createGlobalVec()
         
         # create substep vectors
+        self.k1 = self.da1.createGlobalVec()
+        self.k2 = self.da1.createGlobalVec()
         self.f1 = self.da1.createGlobalVec()
         self.f2 = self.da1.createGlobalVec()
         self.p1 = self.dax.createGlobalVec()
@@ -58,21 +91,26 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
         self.p2_ext = self.dax.createGlobalVec()
         
         
+        self.p1_niter = 0
+        self.p2_niter = 0
+        
+        
     
     def calculate_moments4(self, potential=True, output=True):
-        x_arr  = self.da2.getGlobalArray(self.x)
-        f1_arr = self.da1.getGlobalArray(self.f1)
-        f2_arr = self.da1.getGlobalArray(self.f2)
+        k_arr  = self.da2.getGlobalArray(self.k)
+        k1_arr = self.da1.getGlobalArray(self.k1)
+        k2_arr = self.da1.getGlobalArray(self.k2)
         
-        f1_arr[:, :] = x_arr[:, :, 0]
-        f2_arr[:, :] = x_arr[:, :, 1]
+        k1_arr[:, :] = k_arr[:, :, 0]
+        k2_arr[:, :] = k_arr[:, :, 1]
         
-        self.fh.copy(self.f)
-        self.f.axpy(0.5, self.f1)
-        self.f.axpy(0.5, self.f2)
+        self.fh.copy(self.f1)
+        self.fh.copy(self.f2)
         
-#         super().calculate_moments(potential=potential, output=output)
-        self.calculate_moments(potential=potential, output=output)
+        self.f1.axpy(self.ht * self.a11, self.k1)
+        self.f1.axpy(self.ht * self.a12, self.k2)
+        self.f2.axpy(self.ht * self.a21, self.k1)
+        self.f2.axpy(self.ht * self.a22, self.k2)
         
         self.toolbox.compute_density(self.f1, self.n1)
         self.toolbox.compute_density(self.f2, self.n2)
@@ -84,14 +122,16 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
         if potential:
             self.poisson_solver.formRHS(self.n1, self.pb)
             self.poisson_ksp.solve(self.pb, self.p1)
-        
+            self.p1_niter = self.poisson_ksp.getIterationNumber()
+            
             self.poisson_solver.formRHS(self.n2, self.pb)
             self.poisson_ksp.solve(self.pb, self.p2)
+            self.p2_niter = self.poisson_ksp.getIterationNumber()
         
         
     
     def calculate_residual4(self):
-        self.vlasov_solver.function_mult(self.x, self.b)
+        self.vlasov_solver.function_mult(self.k, self.b)
         fnorm = self.b.norm()
         
         self.poisson_solver.function_mult(self.p1, self.n1, self.pb)
@@ -105,14 +145,11 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
     
     def initial_guess4(self):
         self.initial_guess_none()
+        self.calculate_moments4(output=False)
     
         
     def initial_guess_none(self):
-        self.x.set(0.)
-        self.f1.set(0.)
-        self.f2.set(0.)
-        self.p1.set(0.)
-        self.p2.set(0.)
+        self.k.set(0.)
         
     
 #     def initial_guess_symplectic2(self):
