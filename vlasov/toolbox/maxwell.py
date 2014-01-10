@@ -4,7 +4,7 @@ Created on Mar 23, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-from numpy import exp, pi, zeros
+from numpy import exp, pi, sqrt, zeros
 
 from .boltzmann import boltzmannian
 
@@ -20,4 +20,4 @@ def maxwellian_grid(grid, temperature, vOffset=0.0):
 
     
 def maxwellian(temperature, velocity, vOffset=0.0):
-    return boltzmannian(temperature, 0.5 * (velocity+vOffset)**2)
+    return boltzmannian(temperature, 0.5 * (velocity+vOffset)**2) / sqrt(temperature)

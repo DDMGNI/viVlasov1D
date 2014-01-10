@@ -113,7 +113,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec Y):
+    def jacobian(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
         cdef npy.int64_t xe, xs
@@ -127,9 +127,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         (xs, xe), = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
+        cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
+        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] f  = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] hh = self.h0 + self.h1h + self.h2h
         
         for i in range(xs, xe):
@@ -140,52 +140,52 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             for j in range(0, self.nv):
                 if j <= 1 or j >= self.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = f[ix,j]
+                    y[iy, j] = fd[ix,j]
                     
                 else:
                     ### TODO ###
                     ### collision operator not complete ###
                     ### TODO ###
                     
-                    jpp_J1 = (f[ix+1, j  ] - f[ix-1, j  ]) * (hh[ix,   j+1] - hh[ix,   j-1]) \
-                           - (f[ix,   j+1] - f[ix,   j-1]) * (hh[ix+1, j  ] - hh[ix-1, j  ])
+                    jpp_J1 = (fd[ix+1, j  ] - fd[ix-1, j  ]) * (hh[ix,   j+1] - hh[ix,   j-1]) \
+                           - (fd[ix,   j+1] - fd[ix,   j-1]) * (hh[ix+1, j  ] - hh[ix-1, j  ])
                     
-                    jpc_J1 = f[ix+1, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - f[ix-1, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - f[ix,   j+1] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + f[ix,   j-1] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J1 = fd[ix+1, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
+                           - fd[ix-1, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
+                           - fd[ix,   j+1] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
+                           + fd[ix,   j-1] * (hh[ix+1, j-1] - hh[ix-1, j-1])
                     
-                    jcp_J1 = f[ix+1, j+1] * (hh[ix,   j+1] - hh[ix+1, j  ]) \
-                           - f[ix-1, j-1] * (hh[ix-1, j  ] - hh[ix,   j-1]) \
-                           - f[ix-1, j+1] * (hh[ix,   j+1] - hh[ix-1, j  ]) \
-                           + f[ix+1, j-1] * (hh[ix+1, j  ] - hh[ix,   j-1])
+                    jcp_J1 = fd[ix+1, j+1] * (hh[ix,   j+1] - hh[ix+1, j  ]) \
+                           - fd[ix-1, j-1] * (hh[ix-1, j  ] - hh[ix,   j-1]) \
+                           - fd[ix-1, j+1] * (hh[ix,   j+1] - hh[ix-1, j  ]) \
+                           + fd[ix+1, j-1] * (hh[ix+1, j  ] - hh[ix,   j-1])
                     
-                    jcc_J2 = (f[ix+1, j+1] - f[ix-1, j-1]) * (hh[ix-1, j+1] - hh[ix+1, j-1]) \
-                           - (f[ix-1, j+1] - f[ix+1, j-1]) * (hh[ix+1, j+1] - hh[ix-1, j-1])
+                    jcc_J2 = (fd[ix+1, j+1] - fd[ix-1, j-1]) * (hh[ix-1, j+1] - hh[ix+1, j-1]) \
+                           - (fd[ix-1, j+1] - fd[ix+1, j-1]) * (hh[ix+1, j+1] - hh[ix-1, j-1])
                     
-                    jpc_J2 = f[ix+2, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - f[ix-2, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - f[ix,   j+2] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + f[ix,   j-2] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J2 = fd[ix+2, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
+                           - fd[ix-2, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
+                           - fd[ix,   j+2] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
+                           + fd[ix,   j-2] * (hh[ix+1, j-1] - hh[ix-1, j-1])
                     
-                    jcp_J2 = f[ix+1, j+1] * (hh[ix,   j+2] - hh[ix+2, j  ]) \
-                           - f[ix-1, j-1] * (hh[ix-2, j  ] - hh[ix,   j-2]) \
-                           - f[ix-1, j+1] * (hh[ix,   j+2] - hh[ix-2, j  ]) \
-                           + f[ix+1, j-1] * (hh[ix+2, j  ] - hh[ix,   j-2])
+                    jcp_J2 = fd[ix+1, j+1] * (hh[ix,   j+2] - hh[ix+2, j  ]) \
+                           - fd[ix-1, j-1] * (hh[ix-2, j  ] - hh[ix,   j-2]) \
+                           - fd[ix-1, j+1] * (hh[ix,   j+2] - hh[ix-2, j  ]) \
+                           + fd[ix+1, j-1] * (hh[ix+2, j  ] - hh[ix,   j-2])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
          
          
-                    y[iy, j] = f[ix, j] * self.ht_inv \
+                    y[iy, j] = fd[ix, j] * self.ht_inv \
                              + 0.5 * result_J4 * self.hx_inv * self.hv_inv
     
     
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec Y):
+    def function(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
         cdef npy.int64_t xe, xs
@@ -199,9 +199,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         (xs, xe), = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da1.getGlobalArray(Y)
+        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
+        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.fd
         cdef npy.ndarray[npy.float64_t, ndim=2] fh = self.fh
         cdef npy.ndarray[npy.float64_t, ndim=2] hp = self.h0 + self.h1p + self.h2p
         cdef npy.ndarray[npy.float64_t, ndim=2] hh = self.h0 + self.h1h + self.h2h

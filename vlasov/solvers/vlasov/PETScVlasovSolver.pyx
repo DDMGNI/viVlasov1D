@@ -95,8 +95,6 @@ cdef class PETScVlasovSolverBase(object):
         self.Eh  = self.dax.createGlobalVec()
         self.Ah  = self.dax.createGlobalVec()
         
-        self.Fd  = self.da1.createGlobalVec()
-        
         # create local vectors
         self.localH0  = da1.createLocalVec()
         self.localH1p = da1.createLocalVec()
@@ -151,34 +149,24 @@ cdef class PETScVlasovSolverBase(object):
         
         
     
-    cpdef update_delta(self, Vec F):
-        F.copy(self.Fd)
-        
-        
-    
     cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.update_delta(X)
-        self.jacobian(Y)
+        self.jacobian(X, Y)
         
     
     cpdef mult(self, Mat mat, Vec X, Vec Y):
-        self.update_delta(X)
-        self.jacobian(Y)
+        self.jacobian(X, Y)
         
     
     cpdef jacobian_mult(self, Vec X, Vec Y):
-        self.update_delta(X)
-        self.jacobian(Y)
+        self.jacobian(X, Y)
         
     
     cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.update_delta(X)
-        self.function(Y)
+        self.function(X, Y)
         
     
     cpdef function_mult(self, Vec X, Vec Y):
-        self.update_delta(X)
-        self.function(Y)
+        self.function(X, Y)
         
     
     cdef get_data_arrays(self):
@@ -201,30 +189,14 @@ cdef class PETScVlasovSolverBase(object):
         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
-        
-        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
 
 
     cdef get_data_arrays_jacobian(self):
         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+        self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
-        
-#         self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
-#         self.pp  = self.dax.getLocalArray(self.Pp,  self.localPp)
-#         self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
-#         self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
-#         self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
-#         self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
-        
-#         self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
-#         self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
-#         self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
-#         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
-#         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
-#         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
-        
-        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
 
 
     cdef get_data_arrays_function(self):
@@ -246,5 +218,3 @@ cdef class PETScVlasovSolverBase(object):
 #         self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
 #         self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
 #         self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
-        
-        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)

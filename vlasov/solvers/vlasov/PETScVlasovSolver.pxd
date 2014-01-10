@@ -45,7 +45,6 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef Vec Fp
     cdef Vec Fh
-    cdef Vec Fd
     
     cdef Vec H0
     cdef Vec H1p
@@ -115,7 +114,6 @@ cdef class PETScVlasovSolverBase(object):
     
     cpdef update_history (self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E)
     cpdef update_previous(self, Vec F, Vec P, Vec Pext, Vec N, Vec U, Vec E)
-    cpdef update_delta   (self, Vec F)
     
     cpdef mult(self, Mat mat, Vec X, Vec Y)
     cpdef snes_mult(self, SNES snes, Vec X, Vec Y)
