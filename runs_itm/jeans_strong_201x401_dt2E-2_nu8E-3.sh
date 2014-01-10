@@ -35,7 +35,7 @@ module load impi/4.1.0
 module load llvm
 module load cmake
 
-module load python32/all
+module load python33/all
 
 
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl_core.so:$LD_PRELOAD

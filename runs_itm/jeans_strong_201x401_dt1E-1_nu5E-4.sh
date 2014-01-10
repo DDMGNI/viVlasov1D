@@ -4,7 +4,7 @@
 #
 #$ -l h_cpu=96:00:00
 #
-#$ -pe mpich2_tok_production 8
+#$ -pe impi_hydra 16
 #
 #$ -o /ptmp1/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu5E-4.out
 #$ -e /ptmp1/mkraus/petscVlasovPoisson1D/jeans_strong_201x401_dt1E-1_nu5E-4.err
@@ -36,7 +36,7 @@ module load impi/4.1.0
 module load llvm
 module load cmake
 
-module load python32/all
+module load python33/all
 
 
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/mkl/lib/intel64/libmkl_core.so:$LD_PRELOAD
