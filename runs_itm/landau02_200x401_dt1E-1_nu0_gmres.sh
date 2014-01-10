@@ -29,8 +29,8 @@ export MODULEPATH=/afs/ipp/common/usr/modules/@sys/modulefiles/TOK:${MODULEPATH}
 module load hdf5-serial/1.8.9
 module load netcdf-serial/4.2.1.1
 
-#module load intel/13.1
-module load mkl/11.0
+module load intel/12.1
+module load mkl/11.1
 module load impi/4.1.0
 module load llvm
 module load cmake
@@ -47,5 +47,5 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics/2011.0.013/12.1/compiler/lib/
 #export LD_PRELOAD=/afs/@cell/common/soft/intel/ics13/13.1/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split.py runs_itm/$RUNID.cfg
+mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split.py -c runs_itm/$RUNID.cfg
 
