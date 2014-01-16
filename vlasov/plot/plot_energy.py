@@ -403,11 +403,11 @@ class PlotEnergy(object):
         
     
     def add_timepoint(self):
-#         E0 = self.hamiltonian.Ewoa_0
-#         E  = self.hamiltonian.Ewoa
+#         E0 = self.hamiltonian.E0
+#         E  = self.hamiltonian.E
         
-        E  = self.hamiltonian.Ewoa_kin  + self.hamiltonian.Ewoa_pot  + self.potential.E
-        E0 = self.hamiltonian.Ewoa_kin0 + self.hamiltonian.Ewoa_pot0 + self.potential.E0
+        E  = self.hamiltonian.E_kin  + self.hamiltonian.E_pot  + self.potential.E
+        E0 = self.hamiltonian.E_kin0 + self.hamiltonian.E_pot0 + self.potential.E0
         
         E_error   = (E - E0) / E0
         
