@@ -54,7 +54,7 @@ cdef class Toolbox(object):
     cpdef potential_to_hamiltonian(self, Vec P, Vec H):
         cdef np.float64_t phisum, phiave
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         p = self.dax.getVecArray(P)
         h = self.da1.getVecArray(H)
@@ -102,7 +102,7 @@ cdef class Toolbox(object):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(0, xe-xs):
             n[i] = 0.
@@ -126,7 +126,7 @@ cdef class Toolbox(object):
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(0, xe-xs):
             u[i] = 0.
@@ -150,7 +150,7 @@ cdef class Toolbox(object):
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.v
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(0, xe-xs):
             e[i] = 0.
@@ -175,7 +175,7 @@ cdef class Toolbox(object):
         cdef np.uint64_t i
         cdef np.uint64_t xs, xe
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(0, xe-xs):
             a[i] = n[i]**2 / (n[i] * e[i] - u[i]**2)
@@ -188,7 +188,7 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=2] h_arr = self.da1.getGlobalArray(H)
         cdef np.ndarray[np.float64_t, ndim=1] v     = self.v
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
@@ -203,7 +203,7 @@ cdef class Toolbox(object):
          
         cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
         
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):
@@ -224,7 +224,7 @@ cdef class Toolbox(object):
         cdef np.float64_t pi  = np.pi
         cdef np.float64_t fac = sqrt(0.5 / pi)
          
-        (xs, xe), = self.dax.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
  
         for i in range(0, xe-xs):
             for j in range(0, self.nv):

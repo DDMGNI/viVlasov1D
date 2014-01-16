@@ -110,7 +110,7 @@ cdef class PETScArakawaGear(object):
         cdef np.ndarray[np.float64_t, ndim=2] hh2 = h0 + h1h2
         
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
@@ -150,7 +150,7 @@ cdef class PETScArakawaGear(object):
         cdef np.ndarray[np.float64_t, ndim=2] hh3 = h0 + h1h3
         
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
             for j in range(0, self.nv):
@@ -195,7 +195,7 @@ cdef class PETScArakawaGear(object):
         cdef np.ndarray[np.float64_t, ndim=2] hh4 = h0 + h1h4
         
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
             for j in range(0, self.nv):

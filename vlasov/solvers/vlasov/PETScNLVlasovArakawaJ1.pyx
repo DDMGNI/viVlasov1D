@@ -25,13 +25,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
         cdef npy.int64_t i, j, ix
-        cdef npy.int64_t xe, xs
+        cdef npy.int64_t xe, xs, ye, ys
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         self.get_data_arrays()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (self.fd + self.fh)
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
@@ -107,7 +106,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     def jacobian(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
-        cdef npy.int64_t xe, xs
+        cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
@@ -116,7 +115,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
@@ -173,7 +172,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     def function(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy
-        cdef npy.int64_t xe, xs
+        cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
@@ -182,7 +181,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da1.getRanges()
+        (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)

@@ -129,6 +129,7 @@ cdef class PETScPoissonSolver(object):
         cdef np.int64_t xe, xs
         
         cdef np.float64_t nmean = N.sum() / self.nx
+        
         (xs, xe), = self.dax.getRanges()
         
         cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)

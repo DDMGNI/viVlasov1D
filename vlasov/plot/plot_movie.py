@@ -201,7 +201,7 @@ class PlotMovie(object):
         fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
         
-#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
+#         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
         
         if self.vMax > 0.0:
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 

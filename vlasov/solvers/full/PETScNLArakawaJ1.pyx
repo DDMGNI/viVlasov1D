@@ -25,7 +25,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
         cdef npy.int64_t i, j, ix
-        cdef npy.int64_t xe, xs
+        cdef npy.int64_t xe, xs, ye, ys
         
         (xs, xe), = self.da2.getRanges()
         
