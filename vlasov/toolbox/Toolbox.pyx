@@ -9,6 +9,8 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
+from petsc4py import PETSc
+
 from libc.math cimport exp, pow, sqrt
 
 
@@ -17,228 +19,204 @@ cdef class Toolbox(object):
     
     '''
     
-    def __cinit__(self, VIDA da1, VIDA dax, 
-                  np.ndarray[np.float64_t, ndim=1] v,
-                  np.uint64_t  nx, np.uint64_t  nv,
-                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
+    def __cinit__(self,
+                 VIDA da1  not None,
+                 VIDA dax  not None,
+                 Grid grid not None):
         '''
         Constructor
         '''
         
-        # distributed arrays
-        self.dax = dax
-        self.da1 = da1
+        # distributed arrays and grid
+        self.dax  = dax
+        self.da1  = da1
+        self.grid = grid
         
-        # grid
-        self.nx = nx
-        self.nv = nv
-        
-        self.ht = ht
-        self.hx = hx
-        self.hv = hv
-
-        self.ht_inv  = 1. / self.ht 
-        self.hx_inv  = 1. / self.hx 
-        self.hv_inv  = 1. / self.hv
-         
-        self.hx2     = hx**2
-        self.hx2_inv = 1. / self.hx2 
-        
-        self.hv2     = hv**2
-        self.hv2_inv = 1. / self.hv2 
-        
-        # velocity grid
-        self.v = v.copy()
     
-    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef potential_to_hamiltonian(self, Vec P, Vec H):
+        cdef np.uint64_t i
+        cdef np.uint64_t pxs, pxe, hxs, hxe, hys, hye
         cdef np.float64_t phisum, phiave
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        cdef np.ndarray[np.float64_t, ndim=2] h = self.da1.getGlobalArray(H)
+        cdef np.ndarray[np.float64_t, ndim=1] p
         
-        p = self.dax.getVecArray(P)
-        h = self.da1.getVecArray(H)
+        (pxs, pxe),            = self.dax.getRanges()
+        (hxs, hxe), (hys, hye) = self.da1.getRanges()
         
         phisum = P.sum()
-        phiave = phisum / self.nx
+        phiave = phisum / self.grid.nx
         
-        for j in range(0, self.nv):
-            h[xs:xe, j] = p[xs:xe] - phiave
+        if pxs == hxs and pxe == hxe:
+            p = self.dax.getGlobalArray(P)
+            
+            for j in range(0, hye-hys):
+                h[:, j] = p[:] - phiave
+                
+        else:
+            scatter, pVec = PETSc.Scatter.toAll(P)
+    
+            scatter.begin(P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+            scatter.end  (P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+            
+            p = pVec.getValues(range(0, self.grid.nx)).copy()
+            
+            scatter.destroy()
+            pVec.destroy()
+            
+            for j in range(0, hye-hys):
+                h[:, j] = p[hxs:hxe] - phiave
 
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef compute_density(self, Vec F, Vec N):
-        f = self.da1.getGlobalArray(F)
-        n = self.dax.getGlobalArray(N)
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe, ys, ye 
+        cdef np.float64_t n
         
-        self.compute_density_array(f, n)
+        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        N.set(0.)
+        N.assemblyBegin()
+        N.assemblyEnd()
+        
+        for i in range(0, xe-xs):
+            n = 0.
+            
+            for j in range(0, ye-ys):
+                n += f[i,j]
+                
+            N.setValue(i+xs, n*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
+    
+        N.assemblyBegin()
+        N.assemblyEnd()
     
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef compute_velocity_density(self, Vec F, Vec U):
-        f = self.da1.getGlobalArray(F)
-        u = self.dax.getGlobalArray(U)
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+        cdef np.float64_t u
         
-        self.compute_velocity_density_array(f, u)
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        
+        U.set(0.)
+        U.assemblyBegin()
+        U.assemblyEnd()
+        
+        for i in range(0, xe-xs):
+            u = 0.
+            
+            for j in range(0, ye-ys):
+                u += v[j+ys] * f[i,j]
+                
+            U.setValue(i+xs, u*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
     
+        U.assemblyBegin()
+        U.assemblyEnd()
+        
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef compute_energy_density(self, Vec F, Vec E):
-        f = self.da1.getGlobalArray(F)
-        e = self.dax.getGlobalArray(E)
+        cdef np.uint64_t i, j
+        cdef np.uint64_t xs, xe
+        cdef np.float64_t e
         
-        self.compute_energy_density_array(f, e)
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        
+        E.set(0.)
+        E.assemblyBegin()
+        E.assemblyEnd()
+        
+        for i in range(0, xe-xs):
+            e = 0.
+            
+            for j in range(0, ye-ys):
+                e += v[j+ys]**2 * f[i,j]
+            
+            E.setValue(i+xs, e*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
     
+        E.assemblyBegin()
+        E.assemblyEnd()
+        
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A):
-        n = self.dax.getGlobalArray(N)
-        u = self.dax.getGlobalArray(U)
-        e = self.dax.getGlobalArray(E)
-        a = self.dax.getGlobalArray(A)
-        
-        self.compute_collision_factor_array(n, u, e, a)
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef compute_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] n):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for i in range(0, xe-xs):
-            n[i] = 0.
-             
-#             for j in range(0, (self.nv-1)/2):
-#                 n[i] += f[i,j] + f[i, self.nv-1-j]
-# 
-#             n[i] += f[i, (self.nv-1)/2]
-        
-            for j in range(0, self.nv):
-                n[i] += f[i,j]
-                
-            n[i] *= self.hv
-    
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef compute_velocity_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] u):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for i in range(0, xe-xs):
-            u[i] = 0.
-            
-#             for j in range(0, (self.nv-1)/2):
-#                 u[i] += v[j] * f[i,j] + v[self.nv-1-j] * f[i, self.nv-1-j]
-# 
-#             u[i] += v[(self.nv-1)/2] * f[i, (self.nv-1)/2]
-                
-            for j in range(0, self.nv):
-                u[i] += v[j] * f[i,j]
-            
-            u[i] *= self.hv
-    
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef compute_energy_density_array(self, np.ndarray[np.float64_t, ndim=2] f, np.ndarray[np.float64_t, ndim=1] e):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for i in range(0, xe-xs):
-            e[i] = 0.
-            
-#             for j in range(0, (self.nv-1)/2):
-#                 e[i] += v[j]**2 * f[i,j] + v[self.nv-1-j]**2 * f[i, self.nv-1-j]
-# 
-#             e[i] += v[(self.nv-1)/2]**2 * f[i, (self.nv-1)/2]
-                
-            for j in range(0, self.nv):
-                e[i] += v[j]**2 * f[i,j]
-            
-            e[i] *= self.hv
-    
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef compute_collision_factor_array(self, np.ndarray[np.float64_t, ndim=1] n,
-                                              np.ndarray[np.float64_t, ndim=1] u,
-                                              np.ndarray[np.float64_t, ndim=1] e,
-                                              np.ndarray[np.float64_t, ndim=1] a):
         cdef np.uint64_t i
         cdef np.uint64_t xs, xe
         
-        (xs, xe), (ys, ye) = self.da1.getRanges()
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getGlobalArray(N)
+        cdef np.ndarray[np.float64_t, ndim=1] u = self.dax.getGlobalArray(U)
+        cdef np.ndarray[np.float64_t, ndim=1] e = self.dax.getGlobalArray(E)
+        cdef np.ndarray[np.float64_t, ndim=1] a = self.dax.getGlobalArray(A)
+        
+        (xs, xe), = self.dax.getRanges()
         
         for i in range(0, xe-xs):
             a[i] = n[i]**2 / (n[i] * e[i] - u[i]**2)
-
-
+    
+    
     def initialise_kinetic_hamiltonian(self, Vec H, np.float64_t mass):
         cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
+        cdef np.uint64_t xs, xe, ys, ye
          
-        cdef np.ndarray[np.float64_t, ndim=2] h_arr = self.da1.getGlobalArray(H)
-        cdef np.ndarray[np.float64_t, ndim=1] v     = self.v
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=2] h = self.da1.getGlobalArray(H)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
- 
+        
         for i in range(0, xe-xs):
-            for j in range(0, self.nv):
-                h_arr[i,j] = 0.5 * v[j]**2 * mass
+            for j in range(0, ye-ys):
+
+                h[i, j] = 0.5 * v[j+ys]**2 * mass
  
  
-    def initialise_distribution_function(self, np.ndarray[np.float64_t, ndim=2] f_arr,
-                                               np.ndarray[np.float64_t, ndim=1] xGrid,
-                                               init_function):
+    def initialise_distribution_function(self, Vec F, init_function):
         cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
-         
-        cdef np.ndarray[np.float64_t, ndim=1] vGrid = self.v
+        cdef np.uint64_t xs, xe, ys, ye
+        
+        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
- 
-        for i in range(0, xe-xs):
-            for j in range(0, self.nv):
-                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
-                    f_arr[i,j] = 0.0
+        
+        for i in range(xs, xe):
+            for j in range(ys, ye):
+                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                    f[i-xs, j-ys] = 0.0
                 else:
-                    f_arr[i,j] = init_function(xGrid[i], vGrid[j]) 
+                    f[i-xs, j-ys] = init_function(self.grid.x[i], self.grid.v[j]) 
  
  
-    def initialise_distribution_nT(self, np.ndarray[np.float64_t, ndim=2] f_arr,
-                                         np.ndarray[np.float64_t, ndim=1] n_arr,
-                                         np.ndarray[np.float64_t, ndim=1] T_arr):
+    def initialise_distribution_nT(self, Vec F, Vec N, Vec T):
         cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
+        cdef np.uint64_t xs, xe, ys, ye
          
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.v
-         
-        cdef np.float64_t pi  = np.pi
-        cdef np.float64_t fac = sqrt(0.5 / pi)
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getGlobalArray(N)
+        cdef np.ndarray[np.float64_t, ndim=1] t = self.dax.getGlobalArray(T)
+        
+        cdef np.float64_t fac = sqrt(0.5 / np.pi)
          
         (xs, xe), (ys, ye) = self.da1.getRanges()
  
-        for i in range(0, xe-xs):
-            for j in range(0, self.nv):
-                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
-                    f_arr[i,j] = 0.0
+        for i in range(xs, xe):
+            for j in range(ys, ye):
+                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                    f[i-xs, j-ys] = 0.0
                 else:
-                    f_arr[i,j] = n_arr[i] * fac * exp( - 0.5 * v[j]**2 / T_arr[i] ) 
-
-
-#     cdef maxwellian(self, np.float64_t temperature, np.float64_t velocity, np.float64_t vOffset):
-#         return self.boltzmannian(temperature, 0.5 * pow(velocity+vOffset, 2))
-#     
-#     
-#     cdef boltzmannian(self, np.float64_t temperature, np.float64_t energy):
-#         return sqrt(0.5 / np.pi) * exp( - energy / temperature )
-
-
+                    f[i-xs, j-ys] = n[i-xs] * fac * exp( - 0.5 * v[j]**2 / T[i-xs] ) / sqrt(T[i-xs])

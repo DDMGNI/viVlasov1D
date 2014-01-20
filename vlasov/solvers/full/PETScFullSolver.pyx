@@ -22,11 +22,20 @@ cdef class PETScFullSolverBase(object):
     implementation of the Jacobian.  
     '''
     
-    def __init__(self, VIDA da1, VIDA da2, VIDA dax, Vec H0,
-                 npy.ndarray[npy.float64_t, ndim=1] v,
-                 npy.uint64_t nx, npy.uint64_t nv,
-                 npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
-                 npy.float64_t charge, npy.float64_t coll_freq=0.,
+    def __init__(self,
+                 VIDA da1  not None,
+                 VIDA da2  not None,
+                 VIDA dax  not None,
+                 Grid grid not None,
+                 Vec H0  not None,
+                 Vec H1p not None,
+                 Vec H1h not None,
+                 Vec H2p not None,
+                 Vec H2h not None,
+                 npy.float64_t charge=-1.,
+                 npy.float64_t coll_freq=0.,
+                 npy.float64_t coll_diff=1.,
+                 npy.float64_t coll_drag=1.,
                  regularisation=0.):
         '''
         Constructor
@@ -36,46 +45,32 @@ cdef class PETScFullSolverBase(object):
         self.dax = dax
         self.da1 = da1
         self.da2 = da2
+        self.grid = grid
         
-        # grid
-        self.nx = nx
-        self.nv = nv
         
-        self.ht = ht
-        self.hx = hx
-        self.hv = hv
-        
-        self.ht_inv = 1. / self.ht
-        self.hx_inv = 1. / self.hx
-        self.hv_inv = 1. / self.hv
-        
-        self.hx2     = hx**2
-        self.hx2_inv = 1. / self.hx2 
-        
-        self.hv2     = hv**2
-        self.hv2_inv = 1. / self.hv2 
-        
-        # Poisson constant
+        # charge
         self.charge = charge
         
-        # collision frequency
+        # collision operator
         self.nu = coll_freq
+        
+        self.coll_diff = coll_diff
+        self.coll_drag = coll_drag
         
         # regularisation parameter
         self.regularisation = regularisation
+
         
-        # velocity grid
-        self.v = v.copy()
+        # Hamiltonians
+        self.H0  = H0
+        self.H1p = H1p
+        self.H1h = H1h
+        self.H2p = H2p
+        self.H2h = H2h
         
-        # kinetic Hamiltonian
-        self.H0 = H0
         
         # create work and history vectors
-        self.H1p = self.da1.createGlobalVec()
-        self.H1h = self.da1.createGlobalVec()
         self.H1d = self.da1.createGlobalVec()
-        self.H2p = self.da1.createGlobalVec()
-        self.H2h = self.da1.createGlobalVec()
         
         self.Fp  = self.da1.createGlobalVec()
         self.Pp  = self.dax.createGlobalVec()
@@ -136,12 +131,12 @@ cdef class PETScFullSolverBase(object):
         self.localEc  = dax.createLocalVec()
         
         # create toolbox object
-        self.toolbox = Toolbox(da1, dax, v, nx, nv, ht, hx, hv)
+        self.toolbox = Toolbox(da1, dax, grid)
         
         
     
     def update_history(self, Vec X):
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         x = self.da2.getVecArray(X)
         f = self.da1.getVecArray(self.Fh)
@@ -150,18 +145,18 @@ cdef class PETScFullSolverBase(object):
         u = self.dax.getVecArray(self.Uh)
         e = self.dax.getVecArray(self.Eh)
         
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+        f[xs:xe] = x[xs:xe, 0:self.grid.nv]
+        p[xs:xe] = x[xs:xe,   self.grid.nv]
+        n[xs:xe] = x[xs:xe,   self.grid.nv+1]
+        u[xs:xe] = x[xs:xe,   self.grid.nv+2]
+        e[xs:xe] = x[xs:xe,   self.grid.nv+3]
         
         self.toolbox.compute_collision_factor(self.Nh, self.Uh, self.Eh, self.Ah)
         self.toolbox.potential_to_hamiltonian(self.Ph, self.H1h)
         
     
     def update_previous(self, Vec X):
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         x = self.da2.getVecArray(X)
         f = self.da1.getVecArray(self.Fp)
@@ -170,11 +165,11 @@ cdef class PETScFullSolverBase(object):
         u = self.dax.getVecArray(self.Up)
         e = self.dax.getVecArray(self.Ep)
         
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+        f[xs:xe] = x[xs:xe, 0:self.grid.nv]
+        p[xs:xe] = x[xs:xe,   self.grid.nv]
+        n[xs:xe] = x[xs:xe,   self.grid.nv+1]
+        u[xs:xe] = x[xs:xe,   self.grid.nv+2]
+        e[xs:xe] = x[xs:xe,   self.grid.nv+3]
         
         self.toolbox.compute_collision_factor(self.Np, self.Up, self.Ep, self.Ap)
         self.toolbox.potential_to_hamiltonian(self.Pp, self.H1p)
@@ -182,7 +177,7 @@ cdef class PETScFullSolverBase(object):
         
     
     def update_delta(self, Vec X):
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         x = self.da2.getVecArray(X)
         f = self.da1.getVecArray(self.Fd)
@@ -191,11 +186,11 @@ cdef class PETScFullSolverBase(object):
         u = self.dax.getVecArray(self.Ud)
         e = self.dax.getVecArray(self.Ed)
         
-        f[xs:xe] = x[xs:xe, 0:self.nv]
-        p[xs:xe] = x[xs:xe,   self.nv]
-        n[xs:xe] = x[xs:xe,   self.nv+1]
-        u[xs:xe] = x[xs:xe,   self.nv+2]
-        e[xs:xe] = x[xs:xe,   self.nv+3]
+        f[xs:xe] = x[xs:xe, 0:self.grid.nv]
+        p[xs:xe] = x[xs:xe,   self.grid.nv]
+        n[xs:xe] = x[xs:xe,   self.grid.nv+1]
+        u[xs:xe] = x[xs:xe,   self.grid.nv+2]
+        e[xs:xe] = x[xs:xe,   self.grid.nv+3]
         
         self.toolbox.compute_collision_factor(self.Nd, self.Ud, self.Ed, self.Ad)
         self.toolbox.potential_to_hamiltonian(self.Pd, self.H1d)

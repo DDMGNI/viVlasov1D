@@ -69,7 +69,7 @@ class Potential(object):
         
     
     def set_hdf5_file(self, hdf5):
-        self.hdf5_phi = hdf5['phi']
+        self.hdf5_phi = hdf5['phi_int']
                 
         
     def read_from_hdf5(self, iTime):

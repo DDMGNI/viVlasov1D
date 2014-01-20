@@ -43,24 +43,23 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         
         
         # create solver objects
-        self.vlasov_solver = PETScVlasovSolver(self.da1, self.dax,
-                                               self.h0, self.vGrid,
-                                               self.nx, self.nv, self.ht, self.hx, self.hv,
+        self.vlasov_solver = PETScVlasovSolver(self.da1, self.grid,
+                                               self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
                                                self.charge, coll_freq=self.coll_freq)
+        
+        self.vlasov_solver.set_moments(self.nc, self.uc, self.ec, self.ac,
+                                       self.nh, self.uh, self.eh, self.ah)
         
         
         # initialise matrixfree Jacobian
-        self.Jmf = PETSc.Mat().createPython([self.f.getSizes(), self.fb.getSizes()], 
-                                            context=self.vlasov_solver,
-                                            comm=PETSc.COMM_WORLD)
+        self.Jmf.setPythonContext(self.vlasov_solver)
         self.Jmf.setUp()
         
         
-
         # update solution history
-        self.vlasov_solver.update_history(self.f, self.p, self.p_ext, self.n, self.u, self.e)
-
-
+        self.vlasov_solver.update_history(self.fc)
+        
+        
         # create nonlinear predictor solver
         self.snes = PETSc.SNES().create()
         self.snes.setType('ksponly')
@@ -75,10 +74,10 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         del self.poisson_ksp
         del self.poisson_solver
             
-        self.poisson_solver = PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
-        self.poisson_solver.formMat(self.poisson_A)
+        self.poisson_solver = PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+        self.poisson_solver.formMat(self.poisson_matrix)
         
-        self.poisson_mf = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], 
+        self.poisson_mf = PETSc.Mat().createPython([self.pc_int.getSizes(), self.pb.getSizes()], 
                                                    context=self.poisson_solver,
                                                    comm=PETSc.COMM_WORLD)
         self.poisson_mf.setUp()
@@ -88,7 +87,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
-        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_A)
+        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_matrix)
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')
@@ -105,8 +104,8 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     
     
     def run(self):
-        for itime in range(1, self.nt+1):
-            current_time = self.ht*itime
+        for itime in range(1, self.grid.nt+1):
+            current_time = self.grid.ht*itime
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 localtime = time.asctime( time.localtime(time.time()) )
@@ -114,12 +113,17 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
                 print
                 self.time.setValue(0, current_time)
             
-            # compute initial guess
-            self.initial_guess()
+            # update history
+            self.make_history()
             
             # calculate external field and copy to solver
             self.calculate_external(current_time)
-            self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
+            
+            # compute initial guess
+            self.initial_guess()
+            
+            # update current solution in solver
+            self.vlasov_solver.update_previous(self.fc)
             
             # nonlinear solve
             i = 0
@@ -127,27 +131,16 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             while True:
                 i+=1
                 
-#                 if i == 1:
-#                     self.snes.getKSP().setTolerances(rtol=1E-5)
-#                 if i == 2:
-#                     self.snes.getKSP().setTolerances(rtol=1E-4)
-#                 if i == 3:
-#                     self.snes.getKSP().setTolerances(rtol=1E-3)
-#                 if i == 4:
-#                     self.snes.getKSP().setTolerances(rtol=1E-3)
+                self.fc.copy(self.fl)
                 
-                
-                self.f.copy(self.fh)
-                
-#                 self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
-                self.snes.solve(None, self.f)
+                self.snes.solve(None, self.fc)
                 
                 self.calculate_moments(output=False)
-                self.vlasov_solver.update_previous(self.f, self.p, self.p_ext, self.n, self.u, self.e)
+                self.vlasov_solver.update_previous(self.fc)
                 
                 prev_norm = pred_norm
                 pred_norm = self.calculate_residual()
-                phisum = self.p.sum()
+                phisum = self.pc_int.sum()
 
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(), pred_norm) )
@@ -155,14 +148,10 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
                 
                 if pred_norm > prev_norm or pred_norm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
                     if pred_norm > prev_norm:
-                        self.fh.copy(self.f)
+                        self.fl.copy(self.fc)
                         self.calculate_moments(output=False)
                     
                     break
-            
-            # update history
-            self.vlasov_solver.update_history(self.f, self.p, self.p_ext, self.n, self.u, self.e)
-            self.arakawa_gear.update_history(self.f, self.h1)
             
             # save to hdf5
             self.save_to_hdf5(itime)

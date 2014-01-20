@@ -17,38 +17,19 @@ cdef class Collisions(object):
     
     '''
     
-    def __cinit__(self, VIDA da1, VIDA dax, 
-                  np.ndarray[np.float64_t, ndim=1] v,
-                  np.uint64_t  nx, np.uint64_t  nv,
-                  np.float64_t ht, np.float64_t hx, np.float64_t hv):
+    def __cinit__(self,
+                  VIDA dax  not None,
+                  VIDA da1  not None,
+                  Grid grid not None):
         '''
         Constructor
         '''
         
-        # distributed arrays
-        self.dax = dax
-        self.da1 = da1
+        # distributed arrays and grid
+        self.dax  = dax
+        self.da1  = da1
+        self.grid = grid
         
-        # grid
-        self.nx = nx
-        self.nv = nv
-        
-        self.ht = ht
-        self.hx = hx
-        self.hv = hv
-
-        self.ht_inv  = 1. / self.ht 
-        self.hx_inv  = 1. / self.hx 
-        self.hv_inv  = 1. / self.hv
-         
-        self.hx2     = hx**2
-        self.hx2_inv = 1. / self.hx2 
-        
-        self.hv2     = hv**2
-        self.hv2_inv = 1. / self.hv2 
-        
-        # velocity grid
-        self.v = v.copy()
     
     
     @cython.boundscheck(False)
@@ -63,7 +44,7 @@ cdef class Collisions(object):
         Collision Operator
         '''
         
-        return ( (self.v[j+1] - U[i  ]) * f[i,   j+1] - (self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
+        return ( (self.v[j+1] - U[i  ]) * f[i,   j+1] - (self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.grid.hv
     
     
     
@@ -79,7 +60,7 @@ cdef class Collisions(object):
         Collision Operator
         '''
         
-        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
+        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.grid.hv2_inv
 
 
 
@@ -95,7 +76,7 @@ cdef class Collisions(object):
         Collision Operator
         '''
         
-        return ( (N[i  ] * self.v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.hv
+        return ( (N[i  ] * self.v[j+1] - U[i  ]) * f[i,   j+1] - (N[i  ] * self.v[j-1] - U[i  ]) * f[i,   j-1] ) * A[i  ] * 0.5 / self.grid.hv
     
     
     
@@ -111,7 +92,7 @@ cdef class Collisions(object):
         Collision Operator
         '''
         
-        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.hv2_inv
+        return ( f[i,   j+1] - 2. * f[i,   j  ] + f[i,   j-1] ) * self.grid.hv2_inv
 
 
 

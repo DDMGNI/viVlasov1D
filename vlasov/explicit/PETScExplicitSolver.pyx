@@ -25,10 +25,14 @@ cdef class PETScExplicitSolver(object):
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
-                 Vec H2    not None):
+                 Vec H2    not None,
+                 niter=1):
         '''
         Constructor
         '''
+        
+        # number of iterations per timestep
+        self.niter = niter
         
         # distributed array and grid
         self.da1  = da1

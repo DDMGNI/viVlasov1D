@@ -27,7 +27,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
         cdef npy.int64_t i, j, ix
         cdef npy.int64_t xe, xs, ye, ys
         
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         self.get_data_arrays()
         
@@ -40,11 +40,11 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
 #         cdef npy.float64_t coll1_fac   = 0.
 #         cdef npy.float64_t coll2_fac   = 0.
         
-        cdef npy.float64_t time_fac    = 1.0  / self.ht
-        cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.hx * self.hv)
+        cdef npy.float64_t time_fac    = 1.0  / self.grid.ht
+        cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
-        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.hv
-        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.hv2_inv
+        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.grid.hv
+        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.grid.hv2_inv
         
         
         A.zeroEntries()
@@ -56,23 +56,23 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
         # Poisson equation
         for i in range(xs, xe):
             row.index = (i,)
-            row.field = self.nv
+            row.field = self.grid.nv
             
             # charge density
             col.index = (i,  )
-            col.field = self.nv+1
+            col.field = self.grid.nv+1
             A.setValueStencil(row, col, self.charge)
             
             
             # Laplace operator
             for index, value in [
-                    ((i-1,), - 1. * self.hx2_inv),
-                    ((i,  ), + 2. * self.hx2_inv),
-                    ((i+1,), - 1. * self.hx2_inv),
+                    ((i-1,), - 1. * self.grid.hx2_inv),
+                    ((i,  ), + 2. * self.grid.hx2_inv),
+                    ((i+1,), - 1. * self.grid.hx2_inv),
                 ]:
                 
                 col.index = index
-                col.field = self.nv
+                col.field = self.grid.nv
                 A.setValueStencil(row, col, value)
          
             
@@ -86,36 +86,45 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             
             
             # density
-            row.field = self.nv+1
-            col.field = self.nv+1
+            row.field = self.grid.nv+1
+            col.field = self.grid.nv+1
             
             A.setValueStencil(row, col, 1.)
             
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 col.field = j
-                A.setValueStencil(row, col, - 1. * self.hv)
+                A.setValueStencil(row, col, - 1. * self.grid.hv)
              
             
             # average velocity density
-            row.field = self.nv+2
-            col.field = self.nv+2
+            row.field = self.grid.nv+2
+            col.field = self.grid.nv+2
             
             A.setValueStencil(row, col, 1.)
             
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j] * self.hv)
+                A.setValueStencil(row, col, - self.v[j] * self.grid.hv)
             
             
             # average energy density
-            row.field = self.nv+3
-            col.field = self.nv+3
+            row.field = self.grid.nv+3
+            col.field = self.grid.nv+3
             
             A.setValueStencil(row, col, 1.)
             
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 col.field = j
-                A.setValueStencil(row, col, - self.v[j]**2 * self.hv)
+                A.setValueStencil(row, col, - self.v[j]**2 * self.grid.hv)
                 
             
         
@@ -126,59 +135,62 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             row.index = (i,)
 #             col.index = (i,)
                 
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 row.field = j
                 
                 # Dirichlet boundary conditions
-                if j <= 1 or j >= self.nv-2:
+                if j <= 1 or j >= self.grid.nv-2:
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
                     
                     for index, field, value in [
-                            ((i-1,), j-1, - (hh[ix-1, j  ] - hh[ix,   j-1]) * arak_fac_J1),
-                            ((i-1,), j  , - (hh[ix,   j+1] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          - (hh[ix-1, j+1] - hh[ix-1, j-1]) * arak_fac_J1),
-                            ((i-1,), j+1, - (hh[ix,   j+1] - hh[ix-1, j  ]) * arak_fac_J1),
-                            ((i,  ), j-1, + (hh[ix+1, j  ] - hh[ix-1, j  ]) * arak_fac_J1 \
-                                          + (hh[ix+1, j-1] - hh[ix-1, j-1]) * arak_fac_J1 \
-                                          - coll1_fac * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i-1,), j-1, - (hh[ix-1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1),
+                            ((i-1,), j  , - (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J1),
+                            ((i-1,), j+1, - (hh[ix,   jx+1] - hh[ix-1, jx  ]) * arak_fac_J1),
+                            ((i,  ), j-1, + (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                          + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J1 \
+                                          - coll1_fac * ( self.np[ix  ] * self.v[jx-1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
                             ((i,  ), j  , + time_fac
                                           - 2. * coll2_fac),
-                            ((i,  ), j+1, - (hh[ix+1, j  ] - hh[ix-1, j  ]) * arak_fac_J1 \
-                                          - (hh[ix+1, j+1] - hh[ix-1, j+1]) * arak_fac_J1 \
-                                          + coll1_fac * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i,  ), j+1, - (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                          - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J1 \
+                                          + coll1_fac * ( self.np[ix  ] * self.v[jx+1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
-                            ((i+1,), j-1, + (hh[ix+1, j  ] - hh[ix,   j-1]) * arak_fac_J1),
-                            ((i+1,), j  , + (hh[ix,   j+1] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          + (hh[ix+1, j+1] - hh[ix+1, j-1]) * arak_fac_J1),
-                            ((i+1,), j+1, + (hh[ix,   j+1] - hh[ix+1, j  ]) * arak_fac_J1),
+                            ((i+1,), j-1, + (hh[ix+1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1),
+                            ((i+1,), j  , + (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J1),
+                            ((i+1,), j+1, + (hh[ix,   jx+1] - hh[ix+1, jx  ]) * arak_fac_J1),
                             
-                            ((i-1,), self.nv, + 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
-                                              + 1. * (fh[ix-1, j+1] - fh[ix-1, j-1]) * arak_fac_J1 ),
-                            ((i,  ), self.nv, - 1. * (fh[ix+1, j-1] - fh[ix-1, j-1]) * arak_fac_J1 \
-                                              + 1. * (fh[ix+1, j+1] - fh[ix-1, j+1]) * arak_fac_J1 ),
-                            ((i+1,), self.nv, - 2. * (fh[ix,   j+1] - fh[ix,   j-1]) * arak_fac_J1 \
-                                              - 1. * (fh[ix+1, j+1] - fh[ix+1, j-1]) * arak_fac_J1 ),
+                            ((i-1,), self.grid.nv, + 2. * (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac_J1 \
+                                              + 1. * (fh[ix-1, jx+1] - fh[ix-1, jx-1]) * arak_fac_J1 ),
+                            ((i,  ), self.grid.nv, - 1. * (fh[ix+1, jx-1] - fh[ix-1, jx-1]) * arak_fac_J1 \
+                                              + 1. * (fh[ix+1, jx+1] - fh[ix-1, jx+1]) * arak_fac_J1 ),
+                            ((i+1,), self.grid.nv, - 2. * (fh[ix,   jx+1] - fh[ix,   jx-1]) * arak_fac_J1 \
+                                              - 1. * (fh[ix+1, jx+1] - fh[ix+1, jx-1]) * arak_fac_J1 ),
                             
                             
 #                             ### TODO ###
 #                             check the following lines
 #                             not updodate anymore
 #                             ### TODO ###
-#                             ((i,  ), self.nv+1,  + coll1_fac * self.fp[ix,   j+1] * self.v[j+1] * self.ap[ix  ] \
-#                                                  - coll1_fac * self.fp[ix,   j-1] * self.v[j-1] * self.ap[ix  ] \
-#                                                  + coll1_fac * self.fp[ix,   j+1] * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * ( self.ap[ix  ] / self.np[ix  ] - self.ep[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ) \
-#                                                  - coll1_fac * self.fp[ix,   j-1] * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * ( self.ap[ix  ] / self.np[ix  ] - self.ep[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ) ),
+#                             ((i,  ), self.grid.nv+1,  + coll1_fac * self.fp[ix,   jx+1] * self.v[jx+1] * self.ap[ix  ] \
+#                                                  - coll1_fac * self.fp[ix,   jx-1] * self.v[jx-1] * self.ap[ix  ] \
+#                                                  + coll1_fac * self.fp[ix,   jx+1] * ( self.np[ix  ] * self.v[jx+1] - self.up[ix  ] ) * ( self.ap[ix  ] / self.np[ix  ] - self.ep[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ) \
+#                                                  - coll1_fac * self.fp[ix,   jx-1] * ( self.np[ix  ] * self.v[jx-1] - self.up[ix  ] ) * ( self.ap[ix  ] / self.np[ix  ] - self.ep[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ) ),
 #                              
-#                             ((i,  ), self.nv+2,  - coll1_fac * self.fp[ix,   j+1] * self.ap[ix  ] \
-#                                                  + coll1_fac * self.fp[ix,   j-1] * self.ap[ix  ] \
-#                                                  + coll1_fac * self.fp[ix,   j+1] * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * 2. * self.up[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] \
-#                                                  - coll1_fac * self.fp[ix,   j-1] * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * 2. * self.up[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ),
+#                             ((i,  ), self.grid.nv+2,  - coll1_fac * self.fp[ix,   jx+1] * self.ap[ix  ] \
+#                                                  + coll1_fac * self.fp[ix,   jx-1] * self.ap[ix  ] \
+#                                                  + coll1_fac * self.fp[ix,   jx+1] * ( self.np[ix  ] * self.v[jx+1] - self.up[ix  ] ) * 2. * self.up[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] \
+#                                                  - coll1_fac * self.fp[ix,   jx-1] * ( self.np[ix  ] * self.v[jx-1] - self.up[ix  ] ) * 2. * self.up[ix  ] * self.ap[ix  ]**2 / self.np[ix  ] ),
 #                              
-#                             ((i,  ), self.nv+3,  - coll1_fac * self.fp[ix,   j+1] * ( self.np[ix  ] * self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ]**2 \
-#                                                  + coll1_fac * self.fp[ix,   j-1] * ( self.np[ix  ] * self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ]**2 ),
+#                             ((i,  ), self.grid.nv+3,  - coll1_fac * self.fp[ix,   jx+1] * ( self.np[ix  ] * self.v[jx+1] - self.up[ix  ] ) * self.ap[ix  ]**2 \
+#                                                  + coll1_fac * self.fp[ix,   jx-1] * ( self.np[ix  ] * self.v[jx-1] - self.up[ix  ] ) * self.ap[ix  ]**2 ),
                         ]:
 
                         col.index = index
@@ -203,7 +215,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da2.getGlobalArray(Y)
         
@@ -218,30 +230,33 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             iy = i-xs
             
             # Poisson equation
-            y[iy, self.nv] = - ( self.pd[ix-1] + self.pd[ix+1] - 2. * self.pd[ix] ) * self.hx2_inv + self.charge * self.nd[ix]
+            y[iy, self.grid.nv] = - ( self.pd[ix-1] + self.pd[ix+1] - 2. * self.pd[ix] ) * self.grid.hx2_inv + self.charge * self.nd[ix]
             
             
             # moments
-            y[iy, self.nv+1] = self.nd[ix] - self.nc[ix]
-            y[iy, self.nv+2] = self.ud[ix] - self.uc[ix]
-            y[iy, self.nv+3] = self.ed[ix] - self.ec[ix]
+            y[iy, self.grid.nv+1] = self.nd[ix] - self.nc[ix]
+            y[iy, self.grid.nv+2] = self.ud[ix] - self.uc[ix]
+            y[iy, self.grid.nv+3] = self.ed[ix] - self.ec[ix]
             
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = self.fd[ix,j]
+                    y[iy, jy] = self.fd[ix, jx]
                     
                 else:
                     ### TODO ###
                     ### collision operator not complete ###
                     ### TODO ###
-                    y[iy, j] = self.toolbox.time_derivative(fd, ix, j) \
+                    y[iy, jy] = self.toolbox.time_derivative(fd, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J1(fd, hh, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J1(fh, hd, ix, j) \
-                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fd[ix, j] - fd[ix+1, j] - fd[ix-1, j] ) \
-                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fd[ix, j] - fd[ix, j+1] - fd[ix, j-1] ) #\
+                             + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fd[ix, jx] - fd[ix+1, jx] - fd[ix-1, jx] ) \
+                             + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fd[ix, jx] - fd[ix, jx+1] - fd[ix, jx-1] ) #\
 #                              - 0.5 * self.nu * self.toolbox.collT1(self.fd, self.np, self.up, self.ep, self.ap, ix, j) \
 #                              - 0.5 * self.nu * self.toolbox.collT2(self.fd, self.np, self.up, self.ep, self.ap, ix, j)
             
@@ -254,7 +269,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
         cdef npy.uint64_t ix, iy
         cdef npy.uint64_t xe, xs
         
-        cdef npy.float64_t nmean = self.Nd.sum() / self.nx
+        cdef npy.float64_t nmean = self.Nd.sum() / self.grid.nx
         
         self.toolbox.compute_density(self.Fd, self.Nc)
         self.toolbox.compute_velocity_density(self.Fd, self.Uc)
@@ -262,7 +277,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
         
         self.get_data_arrays()
         
-        (xs, xe), = self.da2.getRanges()
+        (xs, xe), (ys, ye) = self.da2.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=2] y = self.da2.getGlobalArray(Y)
         
@@ -277,23 +292,26 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             iy = i-xs
             
             # Poisson equation
-            y[iy, self.nv] = - ( self.pd[ix-1] + self.pd[ix+1] - 2. * self.pd[ix] ) * self.hx2_inv + self.charge * (self.nd[ix] - nmean)
+            y[iy, self.grid.nv] = - ( self.pd[ix-1] + self.pd[ix+1] - 2. * self.pd[ix] ) * self.grid.hx2_inv + self.charge * (self.nd[ix] - nmean)
             
             
             # moments
-            y[iy, self.nv+1] = self.nd[ix] - self.nc[ix]
-            y[iy, self.nv+2] = self.ud[ix] - self.uc[ix]
-            y[iy, self.nv+3] = self.ed[ix] - self.ec[ix]
+            y[iy, self.grid.nv+1] = self.nd[ix] - self.nc[ix]
+            y[iy, self.grid.nv+2] = self.ud[ix] - self.uc[ix]
+            y[iy, self.grid.nv+3] = self.ed[ix] - self.ec[ix]
             
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = self.fp[ix,j]
+                    y[iy, jy] = self.fp[ix, jx]
                     
                 else:
-                    y[iy, j] = self.toolbox.time_derivative(self.fd, ix, j) \
+                    y[iy, jy] = self.toolbox.time_derivative(self.fd, ix, j) \
                              - self.toolbox.time_derivative(self.fh, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J1(fp, hh, ix, j) \
                              + 0.5 * self.toolbox.arakawa_J1(fh, hp, ix, j) #\

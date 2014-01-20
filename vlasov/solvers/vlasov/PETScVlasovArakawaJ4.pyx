@@ -40,12 +40,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 #         cdef npy.float64_t coll1_fac   = 0.
 #         cdef npy.float64_t coll2_fac   = 0.
         
-        cdef npy.float64_t time_fac    = 1.0  / self.ht
-        cdef npy.float64_t arak_fac_J1 = + 1.0 / (12. * self.hx * self.hv)
-        cdef npy.float64_t arak_fac_J2 = - 0.5 / (24. * self.hx * self.hv)
+        cdef npy.float64_t time_fac    = 1.0  / self.grid.ht
+        cdef npy.float64_t arak_fac_J1 = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+        cdef npy.float64_t arak_fac_J2 = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.hv
-        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.hv2_inv
+        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.grid.hv
+        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.grid.hv2_inv
         
         
         A.zeroEntries()
@@ -60,46 +60,49 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             
             row.index = (i,)
                 
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 row.field = j
                 
                 # Dirichlet boundary conditions
-                if j <= 1 or j >= self.nv-2:
+                if j <= 1 or j >= self.grid.nv-2:
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
                     
                     for index, field, value in [
-                            ((i-2,), j  , - (hh[ix-1, j+1] - hh[ix-1, j-1]) * arak_fac_J2),
-                            ((i-1,), j-1, - (hh[ix-1, j  ] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          - (hh[ix-2, j  ] - hh[ix,   j-2]) * arak_fac_J2 \
-                                          - (hh[ix-1, j+1] - hh[ix+1, j-1]) * arak_fac_J2),
-                            ((i-1,), j  , - (hh[ix,   j+1] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          - (hh[ix-1, j+1] - hh[ix-1, j-1]) * arak_fac_J1),
-                            ((i-1,), j+1, - (hh[ix,   j+1] - hh[ix-1, j  ]) * arak_fac_J1 \
-                                          - (hh[ix,   j+2] - hh[ix-2, j  ]) * arak_fac_J2 \
-                                          - (hh[ix+1, j+1] - hh[ix-1, j-1]) * arak_fac_J2),
-                            ((i,  ), j-2, + (hh[ix+1, j-1] - hh[ix-1, j-1]) * arak_fac_J2),
-                            ((i,  ), j-1, + (hh[ix+1, j  ] - hh[ix-1, j  ]) * arak_fac_J1 \
-                                          + (hh[ix+1, j-1] - hh[ix-1, j-1]) * arak_fac_J1 \
-                                          - coll1_fac * ( self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i-2,), j  , - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i-1,), j-1, - (hh[ix-1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          - (hh[ix-2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
+                                          - (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
+                            ((i-1,), j  , - (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J1),
+                            ((i-1,), j+1, - (hh[ix,   jx+1] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                          - (hh[ix,   jx+2] - hh[ix-2, jx  ]) * arak_fac_J2 \
+                                          - (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,  ), j-2, + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,  ), j-1, + (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                          + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J1 \
+                                          - coll1_fac * ( self.v[jx-1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
                             ((i,  ), j  , + time_fac \
                                           - 2. * coll2_fac),
-                            ((i,  ), j+1, - (hh[ix+1, j  ] - hh[ix-1, j  ]) * arak_fac_J1 \
-                                          - (hh[ix+1, j+1] - hh[ix-1, j+1]) * arak_fac_J1 \
-                                          + coll1_fac * ( self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i,  ), j+1, - (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                          - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J1 \
+                                          + coll1_fac * ( self.v[jx+1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll2_fac),
-                            ((i,  ), j+2, - (hh[ix+1, j+1] - hh[ix-1, j+1]) * arak_fac_J2),
-                            ((i+1,), j-1, + (hh[ix+1, j  ] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          + (hh[ix+2, j  ] - hh[ix,   j-2]) * arak_fac_J2 \
-                                          + (hh[ix+1, j+1] - hh[ix-1, j-1]) * arak_fac_J2),
-                            ((i+1,), j  , + (hh[ix,   j+1] - hh[ix,   j-1]) * arak_fac_J1 \
-                                          + (hh[ix+1, j+1] - hh[ix+1, j-1]) * arak_fac_J1),
-                            ((i+1,), j+1, + (hh[ix,   j+1] - hh[ix+1, j  ]) * arak_fac_J1 \
-                                          + (hh[ix,   j+2] - hh[ix+2, j  ]) * arak_fac_J2 \
-                                          + (hh[ix-1, j+1] - hh[ix+1, j-1]) * arak_fac_J2),
-                            ((i+2,), j  , + (hh[ix+1, j+1] - hh[ix+1, j-1]) * arak_fac_J2),
+                            ((i,  ), j+2, - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J2),
+                            ((i+1,), j-1, + (hh[ix+1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          + (hh[ix+2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
+                                          + (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i+1,), j  , + (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                          + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J1),
+                            ((i+1,), j+1, + (hh[ix,   jx+1] - hh[ix+1, jx  ]) * arak_fac_J1 \
+                                          + (hh[ix,   jx+2] - hh[ix+2, jx  ]) * arak_fac_J2 \
+                                          + (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
+                            ((i+2,), j  , + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
                         ]:
 
                         col.index = index
@@ -115,7 +118,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy
+        cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
@@ -137,49 +140,52 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             iy = i-xs
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = fd[ix,j]
+                    y[iy, jy] = fd[ix, jx]
                     
                 else:
                     ### TODO ###
                     ### collision operator not complete ###
                     ### TODO ###
                     
-                    jpp_J1 = (fd[ix+1, j  ] - fd[ix-1, j  ]) * (hh[ix,   j+1] - hh[ix,   j-1]) \
-                           - (fd[ix,   j+1] - fd[ix,   j-1]) * (hh[ix+1, j  ] - hh[ix-1, j  ])
+                    jpp_J1 = (fd[ix+1, jx  ] - fd[ix-1, jx  ]) * (hh[ix,   jx+1] - hh[ix,   jx-1]) \
+                           - (fd[ix,   jx+1] - fd[ix,   jx-1]) * (hh[ix+1, jx  ] - hh[ix-1, jx  ])
                     
-                    jpc_J1 = fd[ix+1, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - fd[ix-1, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - fd[ix,   j+1] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + fd[ix,   j-1] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J1 = fd[ix+1, jx  ] * (hh[ix+1, jx+1] - hh[ix+1, jx-1]) \
+                           - fd[ix-1, jx  ] * (hh[ix-1, jx+1] - hh[ix-1, jx-1]) \
+                           - fd[ix,   jx+1] * (hh[ix+1, jx+1] - hh[ix-1, jx+1]) \
+                           + fd[ix,   jx-1] * (hh[ix+1, jx-1] - hh[ix-1, jx-1])
                     
-                    jcp_J1 = fd[ix+1, j+1] * (hh[ix,   j+1] - hh[ix+1, j  ]) \
-                           - fd[ix-1, j-1] * (hh[ix-1, j  ] - hh[ix,   j-1]) \
-                           - fd[ix-1, j+1] * (hh[ix,   j+1] - hh[ix-1, j  ]) \
-                           + fd[ix+1, j-1] * (hh[ix+1, j  ] - hh[ix,   j-1])
+                    jcp_J1 = fd[ix+1, jx+1] * (hh[ix,   jx+1] - hh[ix+1, jx  ]) \
+                           - fd[ix-1, jx-1] * (hh[ix-1, jx  ] - hh[ix,   jx-1]) \
+                           - fd[ix-1, jx+1] * (hh[ix,   jx+1] - hh[ix-1, jx  ]) \
+                           + fd[ix+1, jx-1] * (hh[ix+1, jx  ] - hh[ix,   jx-1])
                     
-                    jcc_J2 = (fd[ix+1, j+1] - fd[ix-1, j-1]) * (hh[ix-1, j+1] - hh[ix+1, j-1]) \
-                           - (fd[ix-1, j+1] - fd[ix+1, j-1]) * (hh[ix+1, j+1] - hh[ix-1, j-1])
+                    jcc_J2 = (fd[ix+1, jx+1] - fd[ix-1, jx-1]) * (hh[ix-1, jx+1] - hh[ix+1, jx-1]) \
+                           - (fd[ix-1, jx+1] - fd[ix+1, jx-1]) * (hh[ix+1, jx+1] - hh[ix-1, jx-1])
                     
-                    jpc_J2 = fd[ix+2, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - fd[ix-2, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - fd[ix,   j+2] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + fd[ix,   j-2] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J2 = fd[ix+2, jx  ] * (hh[ix+1, jx+1] - hh[ix+1, jx-1]) \
+                           - fd[ix-2, jx  ] * (hh[ix-1, jx+1] - hh[ix-1, jx-1]) \
+                           - fd[ix,   jx+2] * (hh[ix+1, jx+1] - hh[ix-1, jx+1]) \
+                           + fd[ix,   jx-2] * (hh[ix+1, jx-1] - hh[ix-1, jx-1])
                     
-                    jcp_J2 = fd[ix+1, j+1] * (hh[ix,   j+2] - hh[ix+2, j  ]) \
-                           - fd[ix-1, j-1] * (hh[ix-2, j  ] - hh[ix,   j-2]) \
-                           - fd[ix-1, j+1] * (hh[ix,   j+2] - hh[ix-2, j  ]) \
-                           + fd[ix+1, j-1] * (hh[ix+2, j  ] - hh[ix,   j-2])
+                    jcp_J2 = fd[ix+1, jx+1] * (hh[ix,   jx+2] - hh[ix+2, jx  ]) \
+                           - fd[ix-1, jx-1] * (hh[ix-2, jx  ] - hh[ix,   jx-2]) \
+                           - fd[ix-1, jx+1] * (hh[ix,   jx+2] - hh[ix-2, jx  ]) \
+                           + fd[ix+1, jx-1] * (hh[ix+2, jx  ] - hh[ix,   jx-2])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
          
          
-                    y[iy, j] = fd[ix, j] * self.ht_inv \
-                             + 0.5 * result_J4 * self.hx_inv * self.hv_inv
+                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
+                             + 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
     
     
     
@@ -187,7 +193,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy
+        cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
@@ -212,76 +218,79 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             iy = i-xs
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j <= 1 or j >= self.nv-2:
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = fp[ix,j]
+                    y[iy, jy] = fp[ix, jx]
                     
                 else:
-                    y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv
+                    y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv
                     
 
-                    jpp_J1 = (fp[ix+1, j  ] - fp[ix-1, j  ]) * (hh[ix,   j+1] - hh[ix,   j-1]) \
-                           - (fp[ix,   j+1] - fp[ix,   j-1]) * (hh[ix+1, j  ] - hh[ix-1, j  ])
+                    jpp_J1 = (fp[ix+1, jx  ] - fp[ix-1, jx  ]) * (hh[ix,   jx+1] - hh[ix,   jx-1]) \
+                           - (fp[ix,   jx+1] - fp[ix,   jx-1]) * (hh[ix+1, jx  ] - hh[ix-1, jx  ])
                     
-                    jpc_J1 = fp[ix+1, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - fp[ix-1, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - fp[ix,   j+1] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + fp[ix,   j-1] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J1 = fp[ix+1, jx  ] * (hh[ix+1, jx+1] - hh[ix+1, jx-1]) \
+                           - fp[ix-1, jx  ] * (hh[ix-1, jx+1] - hh[ix-1, jx-1]) \
+                           - fp[ix,   jx+1] * (hh[ix+1, jx+1] - hh[ix-1, jx+1]) \
+                           + fp[ix,   jx-1] * (hh[ix+1, jx-1] - hh[ix-1, jx-1])
                     
-                    jcp_J1 = fp[ix+1, j+1] * (hh[ix,   j+1] - hh[ix+1, j  ]) \
-                           - fp[ix-1, j-1] * (hh[ix-1, j  ] - hh[ix,   j-1]) \
-                           - fp[ix-1, j+1] * (hh[ix,   j+1] - hh[ix-1, j  ]) \
-                           + fp[ix+1, j-1] * (hh[ix+1, j  ] - hh[ix,   j-1])
+                    jcp_J1 = fp[ix+1, jx+1] * (hh[ix,   jx+1] - hh[ix+1, jx  ]) \
+                           - fp[ix-1, jx-1] * (hh[ix-1, jx  ] - hh[ix,   jx-1]) \
+                           - fp[ix-1, jx+1] * (hh[ix,   jx+1] - hh[ix-1, jx  ]) \
+                           + fp[ix+1, jx-1] * (hh[ix+1, jx  ] - hh[ix,   jx-1])
                     
-                    jcc_J2 = (fp[ix+1, j+1] - fp[ix-1, j-1]) * (hh[ix-1, j+1] - hh[ix+1, j-1]) \
-                           - (fp[ix-1, j+1] - fp[ix+1, j-1]) * (hh[ix+1, j+1] - hh[ix-1, j-1])
+                    jcc_J2 = (fp[ix+1, jx+1] - fp[ix-1, jx-1]) * (hh[ix-1, jx+1] - hh[ix+1, jx-1]) \
+                           - (fp[ix-1, jx+1] - fp[ix+1, jx-1]) * (hh[ix+1, jx+1] - hh[ix-1, jx-1])
                     
-                    jpc_J2 = fp[ix+2, j  ] * (hh[ix+1, j+1] - hh[ix+1, j-1]) \
-                           - fp[ix-2, j  ] * (hh[ix-1, j+1] - hh[ix-1, j-1]) \
-                           - fp[ix,   j+2] * (hh[ix+1, j+1] - hh[ix-1, j+1]) \
-                           + fp[ix,   j-2] * (hh[ix+1, j-1] - hh[ix-1, j-1])
+                    jpc_J2 = fp[ix+2, jx  ] * (hh[ix+1, jx+1] - hh[ix+1, jx-1]) \
+                           - fp[ix-2, jx  ] * (hh[ix-1, jx+1] - hh[ix-1, jx-1]) \
+                           - fp[ix,   jx+2] * (hh[ix+1, jx+1] - hh[ix-1, jx+1]) \
+                           + fp[ix,   jx-2] * (hh[ix+1, jx-1] - hh[ix-1, jx-1])
                     
-                    jcp_J2 = fp[ix+1, j+1] * (hh[ix,   j+2] - hh[ix+2, j  ]) \
-                           - fp[ix-1, j-1] * (hh[ix-2, j  ] - hh[ix,   j-2]) \
-                           - fp[ix-1, j+1] * (hh[ix,   j+2] - hh[ix-2, j  ]) \
-                           + fp[ix+1, j-1] * (hh[ix+2, j  ] - hh[ix,   j-2])
-                    
-                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
-                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
-                    result_J4 = 2. * result_J1 - result_J2
-                    
-                    y[iy, j] += 0.5 * result_J4 * self.hx_inv * self.hv_inv
-                    
-                    
-                    jpp_J1 = (fh[ix+1, j  ] - fh[ix-1, j  ]) * (hp[ix,   j+1] - hp[ix,   j-1]) \
-                           - (fh[ix,   j+1] - fh[ix,   j-1]) * (hp[ix+1, j  ] - hp[ix-1, j  ])                    
-                    
-                    jpc_J1 = fh[ix+1, j  ] * (hp[ix+1, j+1] - hp[ix+1, j-1]) \
-                           - fh[ix-1, j  ] * (hp[ix-1, j+1] - hp[ix-1, j-1]) \
-                           - fh[ix,   j+1] * (hp[ix+1, j+1] - hp[ix-1, j+1]) \
-                           + fh[ix,   j-1] * (hp[ix+1, j-1] - hp[ix-1, j-1])
-                    
-                    jcp_J1 = fh[ix+1, j+1] * (hp[ix,   j+1] - hp[ix+1, j  ]) \
-                           - fh[ix-1, j-1] * (hp[ix-1, j  ] - hp[ix,   j-1]) \
-                           - fh[ix-1, j+1] * (hp[ix,   j+1] - hp[ix-1, j  ]) \
-                           + fh[ix+1, j-1] * (hp[ix+1, j  ] - hp[ix,   j-1])
-                    
-                    jcc_J2 = (fh[ix+1, j+1] - fh[ix-1, j-1]) * (hp[ix-1, j+1] - hp[ix+1, j-1]) \
-                           - (fh[ix-1, j+1] - fh[ix+1, j-1]) * (hp[ix+1, j+1] - hp[ix-1, j-1])
-                    
-                    jpc_J2 = fh[ix+2, j  ] * (hp[ix+1, j+1] - hp[ix+1, j-1]) \
-                           - fh[ix-2, j  ] * (hp[ix-1, j+1] - hp[ix-1, j-1]) \
-                           - fh[ix,   j+2] * (hp[ix+1, j+1] - hp[ix-1, j+1]) \
-                           + fh[ix,   j-2] * (hp[ix+1, j-1] - hp[ix-1, j-1])
-                    
-                    jcp_J2 = fh[ix+1, j+1] * (hp[ix,   j+2] - hp[ix+2, j  ]) \
-                           - fh[ix-1, j-1] * (hp[ix-2, j  ] - hp[ix,   j-2]) \
-                           - fh[ix-1, j+1] * (hp[ix,   j+2] - hp[ix-2, j  ]) \
-                           + fh[ix+1, j-1] * (hp[ix+2, j  ] - hp[ix,   j-2])
+                    jcp_J2 = fp[ix+1, jx+1] * (hh[ix,   jx+2] - hh[ix+2, jx  ]) \
+                           - fp[ix-1, jx-1] * (hh[ix-2, jx  ] - hh[ix,   jx-2]) \
+                           - fp[ix-1, jx+1] * (hh[ix,   jx+2] - hh[ix-2, jx  ]) \
+                           + fp[ix+1, jx-1] * (hh[ix+2, jx  ] - hh[ix,   jx-2])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
                     
-                    y[iy, j] += 0.5 * result_J4 * self.hx_inv * self.hv_inv
+                    y[iy, jy] += 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
+                    
+                    
+                    jpp_J1 = (fh[ix+1, jx  ] - fh[ix-1, jx  ]) * (hp[ix,   jx+1] - hp[ix,   jx-1]) \
+                           - (fh[ix,   jx+1] - fh[ix,   jx-1]) * (hp[ix+1, jx  ] - hp[ix-1, jx  ])                    
+                    
+                    jpc_J1 = fh[ix+1, jx  ] * (hp[ix+1, jx+1] - hp[ix+1, jx-1]) \
+                           - fh[ix-1, jx  ] * (hp[ix-1, jx+1] - hp[ix-1, jx-1]) \
+                           - fh[ix,   jx+1] * (hp[ix+1, jx+1] - hp[ix-1, jx+1]) \
+                           + fh[ix,   jx-1] * (hp[ix+1, jx-1] - hp[ix-1, jx-1])
+                    
+                    jcp_J1 = fh[ix+1, jx+1] * (hp[ix,   jx+1] - hp[ix+1, jx  ]) \
+                           - fh[ix-1, jx-1] * (hp[ix-1, jx  ] - hp[ix,   jx-1]) \
+                           - fh[ix-1, jx+1] * (hp[ix,   jx+1] - hp[ix-1, jx  ]) \
+                           + fh[ix+1, jx-1] * (hp[ix+1, jx  ] - hp[ix,   jx-1])
+                    
+                    jcc_J2 = (fh[ix+1, jx+1] - fh[ix-1, jx-1]) * (hp[ix-1, jx+1] - hp[ix+1, jx-1]) \
+                           - (fh[ix-1, jx+1] - fh[ix+1, jx-1]) * (hp[ix+1, jx+1] - hp[ix-1, jx-1])
+                    
+                    jpc_J2 = fh[ix+2, jx  ] * (hp[ix+1, jx+1] - hp[ix+1, jx-1]) \
+                           - fh[ix-2, jx  ] * (hp[ix-1, jx+1] - hp[ix-1, jx-1]) \
+                           - fh[ix,   jx+2] * (hp[ix+1, jx+1] - hp[ix-1, jx+1]) \
+                           + fh[ix,   jx-2] * (hp[ix+1, jx-1] - hp[ix-1, jx-1])
+                    
+                    jcp_J2 = fh[ix+1, jx+1] * (hp[ix,   jx+2] - hp[ix+2, jx  ]) \
+                           - fh[ix-1, jx-1] * (hp[ix-2, jx  ] - hp[ix,   jx-2]) \
+                           - fh[ix-1, jx+1] * (hp[ix,   jx+2] - hp[ix-2, jx  ]) \
+                           + fh[ix+1, jx-1] * (hp[ix+2, jx  ] - hp[ix,   jx-2])
+                    
+                    result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                    result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
+                    result_J4 = 2. * result_J1 - result_J2
+                    
+                    y[iy, jy] += 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv

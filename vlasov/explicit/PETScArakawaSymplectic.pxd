@@ -16,6 +16,8 @@ from vlasov.toolbox.Arakawa cimport Arakawa
 
 cdef class PETScArakawaSymplectic(object):
     
+    cdef np.uint64_t niter 
+    
     cdef VIDA da1
     cdef Grid grid
     

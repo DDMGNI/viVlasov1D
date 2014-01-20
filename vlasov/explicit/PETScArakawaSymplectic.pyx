@@ -25,10 +25,14 @@ cdef class PETScArakawaSymplectic(object):
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
-                 Vec H2    not None):
+                 Vec H2    not None,
+                 niter=1):
         '''
         Constructor
         '''
+        
+        # number of iterations per timestep
+        self.niter = niter
         
         # distributed array and grid
         self.da1  = da1
@@ -69,7 +73,7 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
         
-        x[:,:] += factor * self.grid.ht * y
+        x[:,:] += factor * self.grid.ht / float(self.niter) * y
 
 
     def potential(self, Vec X, np.float64_t factor=1.0):
@@ -89,6 +93,6 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
         
-        x[:,:] += factor * self.grid.ht * y
+        x[:,:] += factor * self.grid.ht / float(self.niter) * y
 
 

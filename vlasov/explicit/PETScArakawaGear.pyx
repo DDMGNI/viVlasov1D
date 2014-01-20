@@ -25,12 +25,13 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
-                 Vec H2    not None):
+                 Vec H2    not None,
+                 niter=1):
         '''
         Constructor
         '''
         
-        super().__init__(da1, grid, H0, H1, H2)
+        super().__init__(da1, grid, H0, H1, H2, niter)
         
         # potential Hamiltonian history
         self.H1h1 = self.da1.createGlobalVec()
@@ -65,6 +66,41 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
         self.localFh2  = da1.createLocalVec()
         self.localFh3  = da1.createLocalVec()
         self.localFh4  = da1.createLocalVec()
+        
+    
+#     def initialise_history(self, Vec F):
+#         # update gear solution history
+#         # !!! TODO !!!
+#         gear_arakawa_rk4 = PETScArakawaRungeKutta(self.da1, self.grid, self.h0, self.h1h, self.h2h)
+#          
+#         f_gear = []
+#         h_gear = []
+#          
+#         f_gear.append(self.da1.createGlobalVec())
+#         h_gear.append(self.da1.createGlobalVec())
+#         
+#         self.fc.copy(f_gear[0])
+#         self.h1c.copy(h_gear[0])
+#          
+#         for i in range(1,4):
+#             f_gear.append(self.da1.createGlobalVec())
+#             h_gear.append(self.da1.createGlobalVec())
+#              
+#             f_gear[i-1].copy(f_gear[i])
+#             h_gear[i-1].copy(h_gear[i])
+#              
+#             gear_arakawa_rk4.rk18_J4(f_gear[i], h_gear[i])
+#              
+#             self.calculate_moments(output=False)
+#             self.h1.copy(h_gear[i])
+#              
+#          
+#         for i in range(0,4):
+#             self.arakawa_gear.update_history(f_gear[3-i], h_gear[3-i])
+#          
+#         del gear_arakawa_rk4
+#         del f_gear
+#         del h_gear
         
     
     def update_history(self, Vec F):
@@ -124,8 +160,8 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                     y[iy, jy] = 2./3. * (
                                          + 2.  * fh1[ix, jx]
                                          - 0.5 * fh2[ix, jx]
-                                         - 2.  * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 1.  * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 2.  * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 1.  * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
                                        )
     
     
@@ -168,9 +204,9 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                                          + 3.   * fh1[ix, jx]
                                          - 1.5  * fh2[ix, jx]
                                          + 1./3.* fh3[ix, jx]
-                                         - 3.   * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 3.   * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
-                                         - 1.   * self.grid.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
+                                         - 3.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 3.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 1.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
                                        )
 
 
@@ -217,8 +253,8 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                                          - 3.   * fh2[ix, jx]
                                          + 4./3.* fh3[ix, jx]
                                          - 0.25 * fh4[ix, jx]
-                                         - 4.   * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 6.   * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
-                                         - 4.   * self.grid.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
-                                         + 1.   * self.grid.ht * self.arakawa.arakawa_J4(fh4, hh4, ix, j)
+                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 6.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
+                                         + 1.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh4, hh4, ix, j)
                                        )

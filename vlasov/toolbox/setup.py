@@ -48,6 +48,13 @@ LIBRARY_DIRS += ['/opt/local/lib']
 
 
 ext_modules = [
+        Extension("Grid",
+                  sources=["Grid.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("VIDA",
                   sources=["VIDA.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

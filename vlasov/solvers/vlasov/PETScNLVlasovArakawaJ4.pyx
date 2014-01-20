@@ -24,7 +24,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
-        cdef npy.int64_t i, j, ix
+        cdef npy.int64_t i, j, ix, jx
         cdef npy.int64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -41,12 +41,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 #         cdef npy.float64_t coll_drag_fac = 0.
 #         cdef npy.float64_t coll_diff_fac = 0.
         
-        cdef npy.float64_t time_fac      = 1.0  / self.ht
-        cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.hx * self.hv)
-        cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.hx * self.hv)
+        cdef npy.float64_t time_fac      = 1.0  / self.grid.ht
+        cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+        cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.hv_inv * 0.5
-        cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.hv2_inv
+        cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
         
         
         A.zeroEntries()
@@ -59,57 +59,58 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         for i in range(xs, xe):
             ix = i-xs+self.da1.getStencilWidth()
             
-            row.index = (i,)
-                
-            for j in range(0, self.nv):
-                row.field = j
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+
+                row.index = (i,j)
+                row.field = 0
                 
                 # Dirichlet boundary conditions
-                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
                     
-                    for index, field, value in [
-                            ((i-2,), j  , - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i-1,), j-1, - (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
-                                          - (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
-                            ((i-1,), j  , - (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                          - self.ht * self.regularisation * self.hx2_inv),
-                            ((i-1,), j+1, - (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                          - (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) * arak_fac_J2 \
-                                          - (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i,  ), j-2, + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i,  ), j-1, + (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                          + (h_ave[ix+1, j-1] - h_ave[ix-1, j-1]) * arak_fac_J1 \
-                                          - coll_drag_fac * ( self.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                    for index, value in [
+                            ((i-2, j  ), - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
+                            ((i-1, j-1), - (h_ave[ix-1, jx  ] - h_ave[ix,   jx-1]) * arak_fac_J1 \
+                                          - (h_ave[ix-2, jx  ] - h_ave[ix,   jx-2]) * arak_fac_J2 \
+                                          - (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
+                            ((i-1, j  ), - (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) * arak_fac_J1 \
+                                          - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J1 \
+                                          - self.grid.ht * self.regularisation * self.grid.hx2_inv),
+                            ((i-1, j+1), - (h_ave[ix,   jx+1] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
+                                          - (h_ave[ix,   jx+2] - h_ave[ix-2, jx  ]) * arak_fac_J2 \
+                                          - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-2), + (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-1), + (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
+                                          + (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1]) * arak_fac_J1 \
+                                          - coll_drag_fac * ( self.grid.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll_diff_fac \
-                                          - self.ht * self.regularisation * self.hv2_inv),
-                            ((i,  ), j  , + time_fac \
+                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
+                            ((i,   j  ), + time_fac \
                                           - 2. * coll_diff_fac \
-                                          + 2. * self.ht * self.regularisation * (self.hx2_inv + self.hv2_inv)),
-                            ((i,  ), j+1, - (h_ave[ix+1, j  ] - h_ave[ix-1, j  ]) * arak_fac_J1 \
-                                          - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J1 \
-                                          + coll_drag_fac * ( self.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                                          + 2. * self.grid.ht * self.regularisation * (self.grid.hx2_inv + self.grid.hv2_inv)),
+                            ((i,   j+1), - (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
+                                          - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) * arak_fac_J1 \
+                                          + coll_drag_fac * ( self.grid.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
                                           + coll_diff_fac \
-                                          - self.ht * self.regularisation * self.hv2_inv),
-                            ((i,  ), j+2, - (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) * arak_fac_J2),
-                            ((i+1,), j-1, + (h_ave[ix+1, j  ] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+2, j  ] - h_ave[ix,   j-2]) * arak_fac_J2 \
-                                          + (h_ave[ix+1, j+1] - h_ave[ix-1, j-1]) * arak_fac_J2),
-                            ((i+1,), j  , + (h_ave[ix,   j+1] - h_ave[ix,   j-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J1 \
-                                          - self.ht * self.regularisation * self.hx2_inv),
-                            ((i+1,), j+1, + (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) * arak_fac_J1 \
-                                          + (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) * arak_fac_J2 \
-                                          + (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
-                            ((i+2,), j  , + (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) * arak_fac_J2),
+                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
+                            ((i,   j+2), - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) * arak_fac_J2),
+                            ((i+1, j-1), + (h_ave[ix+1, jx  ] - h_ave[ix,   jx-1]) * arak_fac_J1 \
+                                          + (h_ave[ix+2, jx  ] - h_ave[ix,   jx-2]) * arak_fac_J2 \
+                                          + (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
+                            ((i+1, j  ), + (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) * arak_fac_J1 \
+                                          + (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J1 \
+                                          - self.grid.ht * self.regularisation * self.grid.hx2_inv),
+                            ((i+1, j+1), + (h_ave[ix,   jx+1] - h_ave[ix+1, jx  ]) * arak_fac_J1 \
+                                          + (h_ave[ix,   jx+2] - h_ave[ix+2, jx  ]) * arak_fac_J2 \
+                                          + (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
+                            ((i+2, j  ), + (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
                         ]:
 
                         col.index = index
-                        col.field = field
+                        col.field = 0
                         A.setValueStencil(row, col, value)
                         
         
@@ -121,7 +122,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy
+        cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
@@ -139,7 +140,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
         cdef npy.ndarray[npy.float64_t, ndim=1] u     = self.up
         cdef npy.ndarray[npy.float64_t, ndim=1] a     = self.ap
         
@@ -149,39 +150,42 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             iy = i-xs
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = fd[ix,j]
+                    y[iy, jy] = fd[ix, jx]
                     
                 else:
                     # Arakawa's J1
-                    jpp_J1 = (fd[ix+1, j  ] - fd[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
-                           - (fd[ix,   j+1] - fd[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
+                    jpp_J1 = (fd[ix+1, jx  ] - fd[ix-1, jx  ]) * (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) \
+                           - (fd[ix,   jx+1] - fd[ix,   jx-1]) * (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ])
                     
-                    jpc_J1 = fd[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - fd[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - fd[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + fd[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    jpc_J1 = fd[ix+1, jx  ] * (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - fd[ix-1, jx  ] * (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) \
+                           - fd[ix,   jx+1] * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) \
+                           + fd[ix,   jx-1] * (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1])
                     
-                    jcp_J1 = fd[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
-                           - fd[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
-                           - fd[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
-                           + fd[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
+                    jcp_J1 = fd[ix+1, jx+1] * (h_ave[ix,   jx+1] - h_ave[ix+1, jx  ]) \
+                           - fd[ix-1, jx-1] * (h_ave[ix-1, jx  ] - h_ave[ix,   jx-1]) \
+                           - fd[ix-1, jx+1] * (h_ave[ix,   jx+1] - h_ave[ix-1, jx  ]) \
+                           + fd[ix+1, jx-1] * (h_ave[ix+1, jx  ] - h_ave[ix,   jx-1])
                     
                     # Arakawa's J2
-                    jcc_J2 = (fd[ix+1, j+1] - fd[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
-                           - (fd[ix-1, j+1] - fd[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
+                    jcc_J2 = (fd[ix+1, jx+1] - fd[ix-1, jx-1]) * (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - (fd[ix-1, jx+1] - fd[ix+1, jx-1]) * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1])
                     
-                    jpc_J2 = fd[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - fd[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - fd[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + fd[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    jpc_J2 = fd[ix+2, jx  ] * (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - fd[ix-2, jx  ] * (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) \
+                           - fd[ix,   jx+2] * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) \
+                           + fd[ix,   jx-2] * (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1])
                     
-                    jcp_J2 = fd[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
-                           - fd[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
-                           - fd[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
-                           + fd[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
+                    jcp_J2 = fd[ix+1, jx+1] * (h_ave[ix,   jx+2] - h_ave[ix+2, jx  ]) \
+                           - fd[ix-1, jx-1] * (h_ave[ix-2, jx  ] - h_ave[ix,   jx-2]) \
+                           - fd[ix-1, jx+1] * (h_ave[ix,   jx+2] - h_ave[ix-2, jx  ]) \
+                           + fd[ix+1, jx-1] * (h_ave[ix+2, jx  ] - h_ave[ix,   jx-2])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
@@ -189,16 +193,16 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     
                     
                     # collision operator
-                    coll_drag = ( (v[j+1] - u[ix]) * fd[ix, j+1] - (v[j-1] - u[ix]) * fd[ix, j-1] ) * a[ix]
-                    coll_diff = ( fd[ix, j+1] - 2. * fd[ix, j] + fd[ix, j-1] )
+                    coll_drag = ( (v[j+1] - u[ix]) * fd[ix, jx+1] - (v[j-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
+                    coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
                     
          
-                    y[iy, j] = fd[ix, j] * self.ht_inv \
-                             + 0.5 * result_J4 * self.hx_inv * self.hv_inv \
-                             - 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
-                             - 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv \
-                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fd[ix, j] - fd[ix+1, j] - fd[ix-1, j] ) \
-                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fd[ix, j] - fd[ix, j+1] - fd[ix, j-1] )
+                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
+                              + 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                              - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
+                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                              + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fd[ix, jx] - fd[ix+1, jx] - fd[ix-1, jx] ) \
+                              + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fd[ix, jx] - fd[ix, jx+1] - fd[ix, jx-1] )
     
     
     
@@ -206,7 +210,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy
+        cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
@@ -226,7 +230,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.v
+        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
         cdef npy.ndarray[npy.float64_t, ndim=1] up    = self.up
         cdef npy.ndarray[npy.float64_t, ndim=1] ap    = self.ap
         cdef npy.ndarray[npy.float64_t, ndim=1] uh    = self.uh
@@ -238,39 +242,42 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             iy = i-xs
             
             # Vlasov equation
-            for j in range(0, self.nv):
-                if j < self.da1.getStencilWidth() or j >= self.nv-self.da1.getStencilWidth():
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
+                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
                     # Dirichlet Boundary Conditions
-                    y[iy, j] = fp[ix,j]
+                    y[iy, jy] = fp[ix, jx]
                     
                 else:
                     # Arakawa's J1
-                    jpp_J1 = (f_ave[ix+1, j  ] - f_ave[ix-1, j  ]) * (h_ave[ix,   j+1] - h_ave[ix,   j-1]) \
-                           - (f_ave[ix,   j+1] - f_ave[ix,   j-1]) * (h_ave[ix+1, j  ] - h_ave[ix-1, j  ])
+                    jpp_J1 = (f_ave[ix+1, jx  ] - f_ave[ix-1, jx  ]) * (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) \
+                           - (f_ave[ix,   jx+1] - f_ave[ix,   jx-1]) * (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ])
                     
-                    jpc_J1 = f_ave[ix+1, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - f_ave[ix-1, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - f_ave[ix,   j+1] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + f_ave[ix,   j-1] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    jpc_J1 = f_ave[ix+1, jx  ] * (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - f_ave[ix-1, jx  ] * (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) \
+                           - f_ave[ix,   jx+1] * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) \
+                           + f_ave[ix,   jx-1] * (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1])
                     
-                    jcp_J1 = f_ave[ix+1, j+1] * (h_ave[ix,   j+1] - h_ave[ix+1, j  ]) \
-                           - f_ave[ix-1, j-1] * (h_ave[ix-1, j  ] - h_ave[ix,   j-1]) \
-                           - f_ave[ix-1, j+1] * (h_ave[ix,   j+1] - h_ave[ix-1, j  ]) \
-                           + f_ave[ix+1, j-1] * (h_ave[ix+1, j  ] - h_ave[ix,   j-1])
+                    jcp_J1 = f_ave[ix+1, jx+1] * (h_ave[ix,   jx+1] - h_ave[ix+1, jx  ]) \
+                           - f_ave[ix-1, jx-1] * (h_ave[ix-1, jx  ] - h_ave[ix,   jx-1]) \
+                           - f_ave[ix-1, jx+1] * (h_ave[ix,   jx+1] - h_ave[ix-1, jx  ]) \
+                           + f_ave[ix+1, jx-1] * (h_ave[ix+1, jx  ] - h_ave[ix,   jx-1])
                     
                     # Arakawa's J2
-                    jcc_J2 = (f_ave[ix+1, j+1] - f_ave[ix-1, j-1]) * (h_ave[ix-1, j+1] - h_ave[ix+1, j-1]) \
-                           - (f_ave[ix-1, j+1] - f_ave[ix+1, j-1]) * (h_ave[ix+1, j+1] - h_ave[ix-1, j-1])
+                    jcc_J2 = (f_ave[ix+1, jx+1] - f_ave[ix-1, jx-1]) * (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - (f_ave[ix-1, jx+1] - f_ave[ix+1, jx-1]) * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1])
                     
-                    jpc_J2 = f_ave[ix+2, j  ] * (h_ave[ix+1, j+1] - h_ave[ix+1, j-1]) \
-                           - f_ave[ix-2, j  ] * (h_ave[ix-1, j+1] - h_ave[ix-1, j-1]) \
-                           - f_ave[ix,   j+2] * (h_ave[ix+1, j+1] - h_ave[ix-1, j+1]) \
-                           + f_ave[ix,   j-2] * (h_ave[ix+1, j-1] - h_ave[ix-1, j-1])
+                    jpc_J2 = f_ave[ix+2, jx  ] * (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) \
+                           - f_ave[ix-2, jx  ] * (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) \
+                           - f_ave[ix,   jx+2] * (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) \
+                           + f_ave[ix,   jx-2] * (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1])
                     
-                    jcp_J2 = f_ave[ix+1, j+1] * (h_ave[ix,   j+2] - h_ave[ix+2, j  ]) \
-                           - f_ave[ix-1, j-1] * (h_ave[ix-2, j  ] - h_ave[ix,   j-2]) \
-                           - f_ave[ix-1, j+1] * (h_ave[ix,   j+2] - h_ave[ix-2, j  ]) \
-                           + f_ave[ix+1, j-1] * (h_ave[ix+2, j  ] - h_ave[ix,   j-2])
+                    jcp_J2 = f_ave[ix+1, jx+1] * (h_ave[ix,   jx+2] - h_ave[ix+2, jx  ]) \
+                           - f_ave[ix-1, jx-1] * (h_ave[ix-2, jx  ] - h_ave[ix,   jx-2]) \
+                           - f_ave[ix-1, jx+1] * (h_ave[ix,   jx+2] - h_ave[ix-2, jx  ]) \
+                           + f_ave[ix+1, jx-1] * (h_ave[ix+2, jx  ] - h_ave[ix,   jx-2])
                     
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
@@ -278,15 +285,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     
                     
                     # collision operator
-                    coll_drag = ( (v[j+1] - up[ix]) * fp[ix, j+1] - (v[j-1] - up[ix]) * fp[ix, j-1] ) * ap[ix] \
-                              + ( (v[j+1] - uh[ix]) * fh[ix, j+1] - (v[j-1] - uh[ix]) * fh[ix, j-1] ) * ah[ix]
-                    coll_diff = ( fp[ix, j+1] - 2. * fp[ix, j] + fp[ix, j-1] ) \
-                              + ( fh[ix, j+1] - 2. * fh[ix, j] + fh[ix, j-1] )
+                    coll_drag = ( (v[j+1] - up[ix]) * fp[ix, jx+1] - (v[j-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
+                              + ( (v[j+1] - uh[ix]) * fh[ix, jx+1] - (v[j-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
+                    coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
+                              + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
                     
                     
-                    y[iy, j] = (fp[ix, j] - fh[ix, j]) * self.ht_inv \
-                             + result_J4 * self.hx_inv * self.hv_inv \
-                             - 0.5 * self.nu * self.coll_drag * coll_drag * self.hv_inv * 0.5 \
-                             - 0.5 * self.nu * self.coll_diff * coll_diff * self.hv2_inv \
-                             + self.ht * self.regularisation * self.hx2_inv * ( 2. * fp[ix, j] - fp[ix+1, j] - fp[ix-1, j] ) \
-                             + self.ht * self.regularisation * self.hv2_inv * ( 2. * fp[ix, j] - fp[ix, j+1] - fp[ix, j-1] )
+                    y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv \
+                              + result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                              - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
+                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                              + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fp[ix, jx] - fp[ix+1, jx] - fp[ix-1, jx] ) \
+                              + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )

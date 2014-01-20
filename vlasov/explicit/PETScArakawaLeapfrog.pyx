@@ -25,12 +25,13 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
-                 Vec H2    not None):
+                 Vec H2    not None,
+                 niter=1):
         '''
         Constructor
         '''
         
-        super().__init__(da1, grid, H0, H1, H2)
+        super().__init__(da1, grid, H0, H1, H2, niter)
         
         # distribution function history
         self.Fh1 = self.da1.createGlobalVec()
@@ -77,7 +78,7 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
                     
                 else:
                     # Vlasov equation
-                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht * self.arakawa.arakawa_J1(fh1, hh, ix, j)
+                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J1(fh1, hh, ix, j)
     
     
     def leapfrog4(self, Vec Y):
@@ -111,6 +112,6 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
                     
                 else:
                     # Vlasov equation
-                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh, ix, j)
+                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh1, hh, ix, j)
     
     
