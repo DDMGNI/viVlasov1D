@@ -14,36 +14,23 @@ from petsc4py.PETSc cimport Vec
 from vlasov.toolbox.Arakawa import Arakawa
 
 
-cdef class PETScArakawaGear(object):
+cdef class PETScArakawaGear(PETScExplicitSolver):
     '''
-    PETSc/Cython Implementation of Explicit Arakawa-RK4 Vlasov-Poisson Solver
+    PETSc/Cython Implementation of Explicit Arakawa-Gear Vlasov-Poisson Solver
     '''
     
     
-    def __init__(self, VIDA da1, VIDA dax, Vec H0,
-                 np.ndarray[np.float64_t, ndim=1] v,
-                 np.uint64_t nx, np.uint64_t nv,
-                 np.float64_t ht, np.float64_t hx, np.float64_t hv):
+    def __init__(self, 
+                 VIDA da1  not None,
+                 Grid grid not None,
+                 Vec H0    not None,
+                 Vec H1    not None,
+                 Vec H2    not None):
         '''
         Constructor
         '''
         
-        # grid
-        self.nx = nx
-        self.nv = nv
-        
-        self.ht = ht
-        self.hx = hx
-        self.hv = hv
-
-        # distributed array
-        self.da1 = da1
-        
-        # velocity grid
-        self.v = v.copy()
-        
-        # kinetic Hamiltonian
-        self.H0 = H0
+        super().__init__(da1, grid, H0, H1, H2)
         
         # potential Hamiltonian history
         self.H1h1 = self.da1.createGlobalVec()
@@ -51,47 +38,55 @@ cdef class PETScArakawaGear(object):
         self.H1h3 = self.da1.createGlobalVec()
         self.H1h4 = self.da1.createGlobalVec()
         
+        # external Hamiltonian history
+        self.H2h1 = self.da1.createGlobalVec()
+        self.H2h2 = self.da1.createGlobalVec()
+        self.H2h3 = self.da1.createGlobalVec()
+        self.H2h4 = self.da1.createGlobalVec()
+        
         # distribution function history
         self.Fh1 = self.da1.createGlobalVec()
         self.Fh2 = self.da1.createGlobalVec()
         self.Fh3 = self.da1.createGlobalVec()
         self.Fh4 = self.da1.createGlobalVec()
         
-        # create global vectors
-        self.X1 = self.da1.createGlobalVec()
-        self.X2 = self.da1.createGlobalVec()
-        self.X3 = self.da1.createGlobalVec()
-        self.X4 = self.da1.createGlobalVec()
-        
         # create local vectors
-        self.localH0   = da1.createLocalVec()
-        
         self.localH1h1 = da1.createLocalVec()
         self.localH1h2 = da1.createLocalVec()
         self.localH1h3 = da1.createLocalVec()
         self.localH1h4 = da1.createLocalVec()
+        
+        self.localH2h1 = da1.createLocalVec()
+        self.localH2h2 = da1.createLocalVec()
+        self.localH2h3 = da1.createLocalVec()
+        self.localH2h4 = da1.createLocalVec()
         
         self.localFh1  = da1.createLocalVec()
         self.localFh2  = da1.createLocalVec()
         self.localFh3  = da1.createLocalVec()
         self.localFh4  = da1.createLocalVec()
         
-        # create toolbox object
-        self.arakawa = Arakawa(da1, dax, v, nx, nv, ht, hx, hv)
     
-    
-    def update_history(self, Vec F, Vec H1):
+    def update_history(self, Vec F):
         self.Fh3.copy(self.Fh4)
         self.Fh2.copy(self.Fh3)
         self.Fh1.copy(self.Fh2)
         
         F.copy(self.Fh1)
         
+        
         self.H1h3.copy(self.H1h4)
         self.H1h2.copy(self.H1h3)
         self.H1h1.copy(self.H1h2)
         
-        H1.copy(self.H1h1)
+        self.H1.copy(self.H1h1)
+        
+        
+        self.H2h3.copy(self.H2h4)
+        self.H2h2.copy(self.H2h3)
+        self.H2h1.copy(self.H2h2)
+        
+        self.H2.copy(self.H2h1)
         
     
     def gear2(self, Vec Y):
@@ -113,21 +108,24 @@ cdef class PETScArakawaGear(object):
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet boundary conditions
-                    y[iy, j] = 0.0
+                    y[iy, jy] = 0.0
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = 2./3. * (
-                                         + 2.  * fh1[ix,j]
-                                         - 0.5 * fh2[ix,j]
-                                         - 2.  * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 1.  * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                    y[iy, jy] = 2./3. * (
+                                         + 2.  * fh1[ix, jx]
+                                         - 0.5 * fh2[ix, jx]
+                                         - 2.  * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 1.  * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
                                        )
     
     
@@ -153,23 +151,26 @@ cdef class PETScArakawaGear(object):
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet boundary conditions
-                    y[iy, j] = 0.0
+                    y[iy, jy] = 0.0
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = 6./11. * (
-                                         + 3.   * fh1[ix,j]
-                                         - 1.5  * fh2[ix,j]
-                                         + 1./3.* fh3[ix,j]
-                                         - 3.   * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 3.   * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
-                                         - 1.   * self.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
+                    y[iy, jy] = 6./11. * (
+                                         + 3.   * fh1[ix, jx]
+                                         - 1.5  * fh2[ix, jx]
+                                         + 1./3.* fh3[ix, jx]
+                                         - 3.   * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 3.   * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 1.   * self.grid.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
                                        )
 
 
@@ -198,23 +199,26 @@ cdef class PETScArakawaGear(object):
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         for i in range(xs, xe):
-            for j in range(0, self.nv):
+            for j in range(ys, ye):
+                jx = j-ys+self.da1.getStencilWidth()
+                jy = j-ys
+
                 ix = i-xs+2
                 iy = i-xs
                 
-                if j <= 1 or j >= self.nv-2:
+                if j <= 1 or j >= self.grid.nv-2:
                     # Dirichlet boundary conditions
-                    y[iy, j] = 0.0
+                    y[iy, jy] = 0.0
                     
                 else:
                     # Vlasov equation
-                    y[iy, j] = 12./25. * (
-                                         + 4.   * fh1[ix,j]
-                                         - 3.   * fh2[ix,j]
-                                         + 4./3.* fh3[ix,j]
-                                         - 0.25 * fh4[ix,j]
-                                         - 4.   * self.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
-                                         + 6.   * self.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
-                                         - 4.   * self.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
-                                         + 1.   * self.ht * self.arakawa.arakawa_J4(fh4, hh4, ix, j)
+                    y[iy, jy] = 12./25. * (
+                                         + 4.   * fh1[ix, jx]
+                                         - 3.   * fh2[ix, jx]
+                                         + 4./3.* fh3[ix, jx]
+                                         - 0.25 * fh4[ix, jx]
+                                         - 4.   * self.grid.ht * self.arakawa.arakawa_J4(fh1, hh1, ix, j)
+                                         + 6.   * self.grid.ht * self.arakawa.arakawa_J4(fh2, hh2, ix, j)
+                                         - 4.   * self.grid.ht * self.arakawa.arakawa_J4(fh3, hh3, ix, j)
+                                         + 1.   * self.grid.ht * self.arakawa.arakawa_J4(fh4, hh4, ix, j)
                                        )

@@ -16,44 +16,41 @@ from vlasov.toolbox.Arakawa import Arakawa
 
 cdef class PETScArakawaSymplectic(object):
     '''
-    PETSc/Cython Implementation of Explicit Arakawa-RK4 Vlasov-Poisson Solver
+    PETSc/Cython Implementation of Explicit Arakawa-Symplectic-Splitting Vlasov-Poisson Solver
     '''
     
     
-    def __init__(self, VIDA da1, VIDA dax, Vec H0,
-                 np.ndarray[np.float64_t, ndim=1] v,
-                 np.uint64_t nx, np.uint64_t nv,
-                 np.float64_t ht, np.float64_t hx, np.float64_t hv):
+    def __init__(self, 
+                 VIDA da1  not None,
+                 Grid grid not None,
+                 Vec H0    not None,
+                 Vec H1    not None,
+                 Vec H2    not None):
         '''
         Constructor
         '''
         
-        # grid
-        self.nx = nx
-        self.nv = nv
+        # distributed array and grid
+        self.da1  = da1
+        self.grid = grid
         
-        self.ht = ht
-        self.hx = hx
-        self.hv = hv
-
-        # distributed array
-        self.da1 = da1
-        
-        # velocity grid
-        self.v = v.copy()
-        
-        # kinetic Hamiltonian
+        # Hamiltonians
         self.H0 = H0
+        self.H1 = H1
+        self.H2 = H2
         
         # create global vectors
         self.Y = da1.createGlobalVec()
         
         # create local vectors
-        self.localX = da1.createLocalVec()
-        self.localH = da1.createLocalVec()
+        self.localH0 = da1.createLocalVec()
+        self.localH1 = da1.createLocalVec()
+        self.localH2 = da1.createLocalVec()
+        
+        self.localX  = da1.createLocalVec()
         
         # create toolbox object
-        self.arakawa = Arakawa(da1, dax, v, nx, nv, ht, hx, hv)
+        self.arakawa = Arakawa(da1, grid)
         
     
     
@@ -63,7 +60,7 @@ cdef class PETScArakawaSymplectic(object):
         cdef np.ndarray[np.float64_t, ndim=2] y
         cdef np.ndarray[np.float64_t, ndim=2] h0
         
-        h0 = self.da1.getLocalArray(self.H0, self.localH)
+        h0 = self.da1.getLocalArray(self.H0, self.localH0)
         x  = self.da1.getLocalArray(X,       self.localX)
         y  = self.da1.getGlobalArray(self.Y)
         
@@ -72,24 +69,26 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
         
-        x[:,:] += factor * self.ht * y
+        x[:,:] += factor * self.grid.ht * y
 
 
-    def potential(self, Vec X, Vec H1, np.float64_t factor=1.0):
+    def potential(self, Vec X, np.float64_t factor=1.0):
         
         cdef np.ndarray[np.float64_t, ndim=2] x
         cdef np.ndarray[np.float64_t, ndim=2] y
         cdef np.ndarray[np.float64_t, ndim=2] h1
+        cdef np.ndarray[np.float64_t, ndim=2] h2
         
-        h1 = self.da1.getLocalArray(H1, self.localH)
-        x  = self.da1.getLocalArray(X,  self.localX)
-        
+        h1 = self.da1.getLocalArray(self.H1, self.localH1)
+        h2 = self.da1.getLocalArray(self.H2, self.localH2)
+        x  = self.da1.getLocalArray(X,       self.localX)
         y  = self.da1.getGlobalArray(self.Y)
-        self.arakawa.arakawa_J4_timestep_h(x, y, h1)
+        
+        self.arakawa.arakawa_J4_timestep_h(x, y, h1+h2)
         
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
         
-        x[:,:] += factor * self.ht * y
+        x[:,:] += factor * self.grid.ht * y
 
 

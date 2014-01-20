@@ -48,6 +48,13 @@ LIBRARY_DIRS += ['/opt/local/lib']
 
 
 ext_modules = [
+        Extension("PETScExplicitSolver",
+                  sources=["PETScExplicitSolver.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScArakawaGear",
                   sources=["PETScArakawaGear.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
