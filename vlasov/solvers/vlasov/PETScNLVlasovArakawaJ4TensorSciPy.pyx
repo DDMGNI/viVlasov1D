@@ -1,3 +1,4 @@
+# cython: profile=True
 '''
 Created on Apr 10, 2012
 
@@ -13,7 +14,9 @@ from scipy.sparse        import diags, eye
 from scipy.sparse.linalg import splu
 from scipy.fftpack       import fftshift, ifftshift
 
-from scipy.fftpack                   import rfft, irfft
+from scipy.fftpack                   import fft, ifft
+# from scipy.fftpack                   import rfft, irfft
+# from pyfftw.interfaces.scipy_fftpack import fft, ifft
 # from pyfftw.interfaces.scipy_fftpack import rfft, irfft
 
 from petsc4py import PETSc
@@ -129,8 +132,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.tensorProduct(self.B, Y)
         
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
+#     @cython.boundscheck(False)
+#     @cython.wraparound(False)
     def tensorProduct(self, Vec X, Vec Y):
         
 #         hdf5_viewer = PETSc.ViewerHDF5().create("tensor.hdf5",
@@ -308,8 +311,14 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             scatter.destroy()
         
     
+#     @cython.boundscheck(False)
+#     @cython.wraparound(False)
     cdef fft(self, Vec X, Vec YR, Vec YI):
         # Fourier Transform for each v
+        
+        cdef npy.uint64_t i, j
+        cdef npy.uint64_t n1, n2, n3
+        cdef npy.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
@@ -319,28 +328,39 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] x  = self.dax.getGlobalArray(X)
         cdef npy.ndarray[npy.float64_t, ndim=2] yr = self.dax.getGlobalArray(YR)
         cdef npy.ndarray[npy.float64_t, ndim=2] yi = self.dax.getGlobalArray(YI)
-        cdef npy.ndarray[npy.float64_t, ndim=2] z  = npy.empty_like(x)
+        
+        cdef npy.ndarray[npy.complex128_t, ndim=2] z = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex)
         
         for j in range(0, ye-ys):
-            z[:,j] = rfft(x[:,j])
+            z[:,j] = fft(x[:,j])
+#             z[:,j] = rfft(x[:,j])
         
-        n1 = self.grid.nx
-        n2 = int(n1/2)
-        n3 = n2+1
-        if n1 % 2 != 0:
-            n2 += 1
-    
-        yr[0   , :] = z[0     , :]
-        yr[1:n3, :] = z[1:n1:2, :]
-        yi[1:n2, :] = z[2:n1:2, :]
-    
-        for i in range(1, n2):
-            yr[-i,:] =  yr[i,:]
-            yi[-i,:] = -yi[i,:]
+        yr[:,:] = z.real
+        yi[:,:] = z.imag
+        
+#         n1 = self.grid.nx
+#         n2 = int(n1/2)
+#         n3 = n2+1
+#         if n1 % 2 != 0:
+#             n2 += 1
+#     
+#         yr[0   , :] = z[0     , :]
+#         yr[1:n3, :] = z[1:n1:2, :]
+#         yi[1:n2, :] = z[2:n1:2, :]
+#     
+#         for i in range(1, n2):
+#             yr[-i,:] =  yr[i,:]
+#             yi[-i,:] = -yi[i,:]
         
     
+#     @cython.boundscheck(False)
+#     @cython.wraparound(False)
     cdef ifft(self, Vec XR, Vec XI, Vec Y):
         # inverse Fourier Transform for each v
+        
+        cdef npy.uint64_t i, j
+        cdef npy.uint64_t n1, n2, n3
+        cdef npy.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
@@ -350,20 +370,28 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.float64_t, ndim=2] xr = self.dax.getGlobalArray(XR)
         cdef npy.ndarray[npy.float64_t, ndim=2] xi = self.dax.getGlobalArray(XI)
         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.dax.getGlobalArray(Y)
-        cdef npy.ndarray[npy.float64_t, ndim=2] z  = npy.empty_like(y)
+#         cdef npy.ndarray[npy.float64_t, ndim=2] z  = npy.empty_like(y)
         
-        n1 = self.grid.nx
-        n2 = int(n1/2)
-        n3 = n2+1
-        if n1 % 2 != 0:
-            n2 += 1
-    
-        z[0,      :] = xr[0,    :]
-        z[1:n1:2, :] = xr[1:n3, :]
-        z[2:n1:2, :] = xi[1:n2, :]
+        cdef npy.ndarray[npy.complex128_t, ndim=2] z = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex)
+        
+#         n1 = self.grid.nx
+#         n2 = int(n1/2)
+#         n3 = n2+1
+#         if n1 % 2 != 0:
+#             n2 += 1
+#     
+#         z[0,      :] = xr[0,    :]
+#         z[1:n1:2, :] = xr[1:n3, :]
+#         z[2:n1:2, :] = xi[1:n2, :]
+        
+        z[:,:] = xr + 1j * xi
+        
+#         z.real[:,:] = xr
+#         z.imag[:,:] = xi
         
         for j in range(0, ye-ys):
-            y[:,j] = irfft(z[:,j])
+            y[:,j] = ifft(z[:,j]).real
+#             y[:,j] = irfft(z[:,j])
         
     
     cdef solve(self, Vec XR, Vec XI, Vec YR, Vec YI):
@@ -386,8 +414,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.complex128_t, ndim=2] b = npy.empty((xe-xs, self.grid.nv), dtype=npy.complex)
         cdef npy.ndarray[npy.complex128_t, ndim=2] c = npy.empty((xe-xs, self.grid.nv), dtype=npy.complex)
         
-        b.real[:,:] = xr
-        b.imag[:,:] = xi
+        b[:,:] = xr + 1j * xi
+        
+#         b.real[:,:] = xr
+#         b.imag[:,:] = xi
         
         for i in range(xs, xe):
             c[i-xs,:] = self.solvers[i].solve(b[i-xs,:])
