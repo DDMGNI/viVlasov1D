@@ -32,7 +32,7 @@ cdef class PETScVlasovSolverBase(object):
                  npy.float64_t coll_freq=0.,
                  npy.float64_t coll_diff=1.,
                  npy.float64_t coll_drag=1.,
-                 regularisation=0.):
+                 npy.float64_t regularisation=0.):
         '''
         Constructor
         '''

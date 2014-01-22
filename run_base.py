@@ -138,9 +138,15 @@ class petscVP1Dbase():
 #                                        boundary_type=['periodic', 'ghosted'],
 #                                        stencil_width=2,
 #                                        stencil_type='box')
+        self.da1 = VIDA().create(dim=2, dof=1,
+                                       sizes=[nx, nv],
+                                       proc_sizes=[PETSc.DECIDE, 2],
+                                       boundary_type=['periodic', 'ghosted'],
+                                       stencil_width=2,
+                                       stencil_type='box')
 #         self.da1 = VIDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
-#                                        proc_sizes=[PETSc.DECIDE, 2],
+#                                        proc_sizes=[PETSc.DECIDE, PETSc.DECIDE],
 #                                        boundary_type=['periodic', 'ghosted'],
 #                                        stencil_width=2,
 #                                        stencil_type='box')
@@ -212,7 +218,6 @@ class petscVP1Dbase():
         self.fh     = self.da1.createGlobalVec()     # history (k)
         
         # distribution function solver vectors
-#         self.f      = self.da1.createGlobalVec()     # working vector
         self.fb     = self.da1.createGlobalVec()     # right hand side
         
         # moments

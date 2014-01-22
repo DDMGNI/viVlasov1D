@@ -100,6 +100,21 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+               
+        Extension("PETScNLVlasovArakawaJ4TensorPETSc",
+                  sources=["PETScNLVlasovArakawaJ4TensorPETSc.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScNLVlasovArakawaJ4TensorSciPy",
+                  sources=["PETScNLVlasovArakawaJ4TensorSciPy.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         
         Extension("PETScNLVlasovArakawaJ4RK2",
                   sources=["PETScNLVlasovArakawaJ4RK2.pyx"],

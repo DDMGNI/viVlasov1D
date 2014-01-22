@@ -8,18 +8,12 @@ import argparse, time
 
 from petsc4py import PETSc
 
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
+# import vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4
+
 
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorPETSc import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorSciPy import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorSciPy import PETScVlasovSolver
 
-# from vlasov.solvers.vlasov.PETScNLVlasovSimpson         import PETScVlasovSolver
-
-# from vlasov.solvers.vlasov.PETScVlasovArakawaJ4       import PETScVlasovSolver
-
-# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
 from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
 from run_base_split import petscVP1Dbasesplit
@@ -53,10 +47,24 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.vlasov_solver.set_moments(self.nc, self.uc, self.ec, self.ac,
                                        self.nh, self.uh, self.eh, self.ah)
         
+#         # create corrector objects
+#         self.vlasov_corrector = vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4.PETScVlasovSolver(
+#                                                self.da1, self.grid,
+#                                                self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
+#                                                self.charge, coll_freq=self.coll_freq)
+#         
+#         self.vlasov_corrector.set_moments(self.nc, self.uc, self.ec, self.ac,
+#                                           self.nh, self.uh, self.eh, self.ah)
+        
         
         # initialise matrixfree Jacobian
         self.Jmf.setPythonContext(self.vlasov_solver)
         self.Jmf.setUp()
+        
+#         self.Cmf = PETSc.Mat().createPython([self.fc.getSizes(), self.fb.getSizes()], 
+#                                             comm=PETSc.COMM_WORLD)
+#         self.Cmf.setPythonContext(self.vlasov_corrector)
+#         self.Cmf.setUp()
         
         
         # create nonlinear predictor solver
@@ -67,6 +75,15 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().getPC().setType('none')
+        
+        
+#         # create nonlinear corrector solver
+#         self.corr = PETSc.SNES().create()
+#         self.corr.setFunction(self.vlasov_corrector.function_snes_mult, self.fb)
+#         self.corr.setJacobian(self.updateCorrectorJacobian, self.Cmf)
+#         self.corr.setFromOptions()
+#         self.corr.getKSP().setType('gmres')
+#         self.corr.getKSP().getPC().setType('none')
         
         
         
@@ -100,6 +117,13 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         if J != P:
             self.vlasov_solver.formJacobian(P)
         
+        
+#     def updateCorrectorJacobian(self, snes, X, J, P):
+#         self.vlasov_corrector.update_previous(self.fc)
+#         
+#         if J != P:
+#             self.vlasov_corrector.formJacobian(P)
+        
     
     
     def run(self):
@@ -114,6 +138,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             
             # update history
             self.make_history()
+#             self.vlasov_corrector.update_history(self.fc)
             
             # calculate external field and copy to solver
             self.calculate_external(current_time)
@@ -142,8 +167,8 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
                 phisum = self.pc_int.sum()
 
                 if PETSc.COMM_WORLD.getRank() == 0:
-                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(), pred_norm) )
-                    print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum))
+                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(),  pred_norm) )
+                    print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum)    )
                 
                 if pred_norm > prev_norm or pred_norm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
                     if pred_norm > prev_norm:
@@ -151,6 +176,20 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
                         self.calculate_moments(output=False)
                     
                     break
+            
+#             # corrector step
+#             self.corr.solve(None, self.fc)
+#             self.calculate_moments(output=False)
+#             self.vlasov_corrector.update_previous(self.fc)
+#             
+#             self.vlasov_corrector.function_mult(self.fc, self.fb)
+#             
+#             corr_norm = self.fb.norm()
+#             phisum    = self.pc_int.sum()
+#             
+#             if PETSc.COMM_WORLD.getRank() == 0:
+#                 print("  Nonlinear Correc: %5i GMRES  iterations, residual = %24.16E" % (self.corr.getLinearSolveIterations(),  corr_norm) )
+#                 print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum)    )
             
             # save to hdf5
             self.save_to_hdf5(itime)

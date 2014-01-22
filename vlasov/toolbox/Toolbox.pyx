@@ -61,12 +61,14 @@ cdef class Toolbox(object):
             scatter.begin(P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
             scatter.end  (P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
             
+#             p = pVec.getValues(range(hxs, hxe)).copy()
             p = pVec.getValues(range(0, self.grid.nx)).copy()
             
             scatter.destroy()
             pVec.destroy()
             
             for j in range(0, hye-hys):
+#                 h[:, j] = p[:] - phiave
                 h[:, j] = p[hxs:hxe] - phiave
 
 
