@@ -571,8 +571,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
         cdef npy.float64_t coll_drag, coll_diff
+        cdef npy.float64_t collisions = 0.
+        cdef npy.float64_t regularisation = 0.
         
         self.get_data_arrays()
         
@@ -634,20 +636,30 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
+                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
                     
                     
                     # collision operator
-                    coll_drag = ( (v[j+1] - u[ix]) * fd[ix, jx+1] - (v[j-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
-                    coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
-                    
-         
-                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
-                              + 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                    if self.nu > 0.:
+                        coll_drag = ( (v[j+1] - u[ix]) * fd[ix, jx+1] - (v[j-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
+                        
+                        coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
+                        
+                        collisions = \
                               - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
                               - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                    
+                    # regularisation
+                    if self.regularisation != 0.:
+                        regularisation = \
                               + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fd[ix, jx] - fd[ix+1, jx] - fd[ix-1, jx] ) \
                               + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fd[ix, jx] - fd[ix, jx+1] - fd[ix, jx-1] )
-    
+                    
+                    # solution
+                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
+                              + poisson \
+                              + collisions \
+                              + regularisation
     
     
     @cython.boundscheck(False)
@@ -659,8 +671,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
+        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
         cdef npy.float64_t coll_drag, coll_diff
+        cdef npy.float64_t collisions = 0.
+        cdef npy.float64_t regularisation = 0.
         
         self.get_data_arrays()
         
@@ -726,18 +740,29 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
+                    poisson   = result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
                     # collision operator
-                    coll_drag = ( (v[j+1] - up[ix]) * fp[ix, jx+1] - (v[j-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
-                              + ( (v[j+1] - uh[ix]) * fh[ix, jx+1] - (v[j-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
-                    coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
-                              + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
+                    if self.nu > 0.:
+                        coll_drag = ( (v[j+1] - up[ix]) * fp[ix, jx+1] - (v[j-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
+                                  + ( (v[j+1] - uh[ix]) * fh[ix, jx+1] - (v[j-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
+                        
+                        coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
+                                  + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
+                        
+                        collisions = \
+                                   - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
+                                   - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
                     
+                    # regularisation
+                    if self.regularisation != 0.:
+                        regularisation = \
+                                       + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fp[ix, jx] - fp[ix+1, jx] - fp[ix-1, jx] ) \
+                                       + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
                     
+                    # solution
                     y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv \
-                              + result_J4 * self.grid.hx_inv * self.grid.hv_inv \
-                              - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
-                              + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fp[ix, jx] - fp[ix+1, jx] - fp[ix-1, jx] ) \
-                              + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
+                              + poisson \
+                              + collisions \
+                              + regularisation
