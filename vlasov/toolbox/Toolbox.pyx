@@ -193,7 +193,7 @@ cdef class Toolbox(object):
         
         for i in range(xs, xe):
             for j in range(ys, ye):
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     f[i-xs, j-ys] = 0.0
                 else:
                     f[i-xs, j-ys] = init_function(self.grid.x[i], self.grid.v[j]) 
@@ -214,7 +214,7 @@ cdef class Toolbox(object):
  
         for i in range(xs, xe):
             for j in range(ys, ye):
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     f[i-xs, j-ys] = 0.0
                 else:
                     f[i-xs, j-ys] = n[i-xs] * fac * exp( - 0.5 * v[j]**2 / T[i-xs] ) / sqrt(T[i-xs])

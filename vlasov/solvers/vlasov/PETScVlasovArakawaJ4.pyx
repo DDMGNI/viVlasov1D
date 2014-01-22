@@ -61,7 +61,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             row.index = (i,)
                 
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 row.field = j
@@ -141,7 +141,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             
             # Vlasov equation
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 if j <= 1 or j >= self.grid.nv-2:
@@ -219,7 +219,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             
             # Vlasov equation
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 if j <= 1 or j >= self.grid.nv-2:

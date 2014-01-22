@@ -57,16 +57,16 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         # Vlasov Equation
         for i in range(xs, xe):
-            ix = i-xs+self.da1.getStencilWidth()
+            ix = i-xs+self.grid.stencil
             
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
 
                 row.index = (i,j)
                 row.field = 0
                 
                 # Dirichlet boundary conditions
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
@@ -146,15 +146,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         for i in range(xs, xe):
-            ix = i-xs+self.da1.getStencilWidth()
+            ix = i-xs+self.grid.stencil
             iy = i-xs
             
             # Vlasov equation
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     # Dirichlet Boundary Conditions
                     y[iy, jy] = fd[ix, jx]
                     
@@ -238,15 +238,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         for i in range(xs, xe):
-            ix = i-xs+self.da1.getStencilWidth()
+            ix = i-xs+self.grid.stencil
             iy = i-xs
             
             # Vlasov equation
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     # Dirichlet Boundary Conditions
                     y[iy, jy] = fp[ix, jx]
                     

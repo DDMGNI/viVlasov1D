@@ -13,10 +13,13 @@ cdef class Grid(object):
                  np.ndarray[np.float64_t, ndim=1] x,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t  nt, np.uint64_t  nx, np.uint64_t  nv,
-                 np.float64_t ht, np.float64_t hx, np.float64_t hv):
+                 np.float64_t ht, np.float64_t hx, np.float64_t hv,
+                 np.uint64_t  stencil):
         '''
         Constructor
         '''
+        
+        self.stencil= stencil
         
         self.x  = x
         self.v  = v

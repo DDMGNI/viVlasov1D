@@ -9,6 +9,8 @@ cimport numpy as np
 
 cdef class Grid(object):
 
+    cdef readonly np.uint64_t  stencil
+    
     cdef readonly np.ndarray x
     cdef readonly np.ndarray v
     cdef readonly np.ndarray v2

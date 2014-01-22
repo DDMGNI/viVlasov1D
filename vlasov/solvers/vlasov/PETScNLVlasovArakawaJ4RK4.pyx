@@ -160,18 +160,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 #         
 #         # Vlasov Equation
 #         for i in range(xs, xe):
-#             ix = i-xs+self.da1.getStencilWidth()
+#             ix = i-xs+self.grid.stencil
 #             
 #             row.index = (i,)
 #                 
 #             for j in range(ys, ye):
-#                 jx = j-ys+self.da1.getStencilWidth()
+#                 jx = j-ys+self.grid.stencil
 #                 jy = j-ys
 
 #                 row.field = j
 #                 
 #                 # Dirichlet boundary conditions
-#                 if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+#                 if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
 #                     A.setValueStencil(row, row, 1.0)
 #                     
 #                 else:
@@ -257,7 +257,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                 iy = i-xs
             
                 for j in range(ys, ye):
-                    jx = j-ys+self.da1.getStencilWidth()
+                    jx = j-ys+self.grid.stencil
                     jy = j-ys
 
                     if j < self.da2.getStencilWidth() or j >= self.grid.nv-self.da2.getStencilWidth():
@@ -352,7 +352,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                 
                 # Vlasov equation
                 for j in range(ys, ye):
-                    jx = j-ys+self.da1.getStencilWidth()
+                    jx = j-ys+self.grid.stencil
                     jy = j-ys
 
                     if j < self.da2.getStencilWidth() or j >= self.grid.nv-self.da2.getStencilWidth():
