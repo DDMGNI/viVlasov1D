@@ -18,8 +18,9 @@ cdef class Grid(object):
         Constructor
         '''
         
-        self.x = x
-        self.v = v
+        self.x  = x
+        self.v  = v
+        self.v2 = v**2
         
         self.nt = nt
         self.nx = nx

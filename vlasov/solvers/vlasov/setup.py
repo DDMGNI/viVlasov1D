@@ -12,6 +12,9 @@ from os.path import join, isdir
 INCLUDE_DIRS = []
 LIBRARY_DIRS = []
 LIBRARIES    = []
+FLAGS        = []
+#FLAGS        = ["-O3"]
+#FLAGS        = ["-O3","-avx"]
 
 # PETSc
 PETSC_DIR  = os.environ['PETSC_DIR']
@@ -53,7 +56,8 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
                
         Extension("PETScVlasovArakawaJ4",
@@ -61,7 +65,8 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ1",
@@ -69,21 +74,24 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         Extension("PETScNLVlasovArakawaJ2",
                   sources=["PETScNLVlasovArakawaJ2.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         Extension("PETScNLVlasovArakawaJ4",
                   sources=["PETScNLVlasovArakawaJ4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ4kinetic",
@@ -91,14 +99,16 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         Extension("PETScNLVlasovArakawaJ4potential",
                   sources=["PETScNLVlasovArakawaJ4potential.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
                
         Extension("PETScNLVlasovArakawaJ4TensorPETSc",
@@ -106,14 +116,16 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         Extension("PETScNLVlasovArakawaJ4TensorSciPy",
                   sources=["PETScNLVlasovArakawaJ4TensorSciPy.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ4RK2",
@@ -121,14 +133,16 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         Extension("PETScNLVlasovArakawaJ4RK4",
                   sources=["PETScNLVlasovArakawaJ4RK4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  ),
         
         Extension("PETScNLVlasovSimpson",
@@ -136,7 +150,8 @@ ext_modules = [
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=FLAGS
                  )
         
               ]

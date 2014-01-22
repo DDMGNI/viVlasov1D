@@ -11,6 +11,7 @@ cdef class Grid(object):
 
     cdef readonly np.ndarray x
     cdef readonly np.ndarray v
+    cdef readonly np.ndarray v2
     
     cdef readonly np.uint64_t  nt
     cdef readonly np.uint64_t  nx

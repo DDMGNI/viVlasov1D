@@ -42,34 +42,36 @@ cdef class Toolbox(object):
         
         cdef np.ndarray[np.float64_t, ndim=2] h = self.da1.getGlobalArray(H)
         cdef np.ndarray[np.float64_t, ndim=1] p
+        cdef np.ndarray[np.float64_t, ndim=1] p0
         
         (pxs, pxe),            = self.dax.getRanges()
         (hxs, hxe), (hys, hye) = self.da1.getRanges()
         
         phisum = P.sum()
         phiave = phisum / self.grid.nx
+        p0     = np.empty(hxe-hxs)
         
         if pxs == hxs and pxe == hxe:
-            p = self.dax.getGlobalArray(P)
+            p  = self.dax.getGlobalArray(P)
+            p0 = p - phiave
             
             for j in range(0, hye-hys):
-                h[:, j] = p[:] - phiave
+                h[:, j] = p0
                 
         else:
             scatter, pVec = PETSc.Scatter.toAll(P)
     
-            scatter.begin(P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-            scatter.end  (P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+            scatter.scatter(P, pVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
             
 #             p = pVec.getValues(range(hxs, hxe)).copy()
-            p = pVec.getValues(range(0, self.grid.nx)).copy()
+            p  = pVec.getValues(range(0, self.grid.nx)).copy()
+            p0 = p[hxs:hxe] - phiave
             
             scatter.destroy()
             pVec.destroy()
             
             for j in range(0, hye-hys):
-#                 h[:, j] = p[:] - phiave
-                h[:, j] = p[hxs:hxe] - phiave
+                h[:, j] = p0
 
 
     @cython.boundscheck(False)
@@ -84,26 +86,24 @@ cdef class Toolbox(object):
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         N.set(0.)
-        N.assemblyBegin()
-        N.assemblyEnd()
+        N.assemble()
         
         for i in range(0, xe-xs):
             n = 0.
-            
+             
             for j in range(0, ye-ys):
                 n += f[i,j]
                 
             N.setValue(i+xs, n*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
     
-        N.assemblyBegin()
-        N.assemblyEnd()
+        N.assemble()
     
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_velocity_density(self, Vec F, Vec U):
         cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
+        cdef np.uint64_t xs, xe, ye, ys
         cdef np.float64_t u
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -112,8 +112,7 @@ cdef class Toolbox(object):
         cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
         
         U.set(0.)
-        U.assemblyBegin()
-        U.assemblyEnd()
+        U.assemble()
         
         for i in range(0, xe-xs):
             u = 0.
@@ -123,36 +122,33 @@ cdef class Toolbox(object):
                 
             U.setValue(i+xs, u*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
     
-        U.assemblyBegin()
-        U.assemblyEnd()
+        U.assemble()
         
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_energy_density(self, Vec F, Vec E):
         cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe
+        cdef np.uint64_t xs, xe, ye, ys
         cdef np.float64_t e
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        cdef np.ndarray[np.float64_t, ndim=1] v2 = self.grid.v2
+        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getGlobalArray(F)
         
         E.set(0.)
-        E.assemblyBegin()
-        E.assemblyEnd()
+        E.assemble()
         
         for i in range(0, xe-xs):
             e = 0.
             
             for j in range(0, ye-ys):
-                e += v[j+ys]**2 * f[i,j]
+                e += v2[j+ys] * f[i,j]
             
             E.setValue(i+xs, e*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
     
-        E.assemblyBegin()
-        E.assemblyEnd()
+        E.assemble()
         
     
     @cython.boundscheck(False)

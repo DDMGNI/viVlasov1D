@@ -11,7 +11,10 @@ cimport numpy as npy
 
 from scipy.sparse        import diags, eye
 from scipy.sparse.linalg import splu
-from scipy.fftpack       import rfft, irfft, fftshift, ifftshift
+from scipy.fftpack       import fftshift, ifftshift
+
+from scipy.fftpack                   import rfft, irfft
+# from pyfftw.interfaces.scipy_fftpack import rfft, irfft
 
 from petsc4py import PETSc
 
