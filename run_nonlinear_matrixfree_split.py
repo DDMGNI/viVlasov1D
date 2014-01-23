@@ -5,7 +5,7 @@ Created on Mar 23, 2012
 '''
 
 import argparse, time
-import pstats, cProfile
+# import pstats, cProfile
 
 from petsc4py import PETSc
 
@@ -168,10 +168,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     petscvp = petscVP1Dmatrixfree(args.c, args.i)
-#     petscvp.run()
+    petscvp.run()
     
-    cProfile.runctx("petscvp.run()", globals(), locals(), "Profile.prof")
-      
-    s = pstats.Stats("Profile.prof")
-    s.strip_dirs().sort_stats("time").print_stats()
+#     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile.prof")
+#       
+#     s = pstats.Stats("Profile.prof")
+#     s.strip_dirs().sort_stats("time").print_stats()
 
