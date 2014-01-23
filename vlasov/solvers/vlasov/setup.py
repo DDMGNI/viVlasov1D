@@ -12,9 +12,8 @@ from os.path import join, isdir
 INCLUDE_DIRS = []
 LIBRARY_DIRS = []
 LIBRARIES    = []
-FLAGS        = []
-#FLAGS        = ["-O3"]
-#FLAGS        = ["-O3","-avx"]
+#FLAGS        = []
+FLAGS        = ["-axavx"]
 
 # PETSc
 PETSC_DIR  = os.environ['PETSC_DIR']
