@@ -93,7 +93,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             A.setValueStencil(row, col, 1.)
             
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 col.field = j
@@ -107,7 +107,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             A.setValueStencil(row, col, 1.)
             
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 col.field = j
@@ -121,7 +121,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             A.setValueStencil(row, col, 1.)
             
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 col.field = j
@@ -137,7 +137,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
 #             col.index = (i,)
                 
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 row.field = j
@@ -242,7 +242,7 @@ cdef class PETScArakawaJ1(PETScFullSolverBase):
             
             # Vlasov equation
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 if j <= 1 or j >= self.grid.nv-2:

@@ -32,10 +32,16 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec Fp
     cdef Vec Fh
     
+#     cdef Vec Pintp
+#     cdef Vec Pextp
+     
     cdef Vec Np
     cdef Vec Up
     cdef Vec Ep
     cdef Vec Ap
+    
+#     cdef Vec Pinth
+#     cdef Vec Pexth
     
     cdef Vec Nh
     cdef Vec Uh

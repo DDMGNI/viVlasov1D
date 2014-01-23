@@ -69,10 +69,10 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
             iy = i-xs
                 
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     # Dirichlet boundary conditions
                     y[iy, jy] = 0.0
                     
@@ -103,10 +103,10 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
             iy = i-xs
                 
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                if j < self.da1.getStencilWidth() or j >= self.grid.nv-self.da1.getStencilWidth():
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     # Dirichlet boundary conditions
                     y[iy, jy] = 0.0
                     

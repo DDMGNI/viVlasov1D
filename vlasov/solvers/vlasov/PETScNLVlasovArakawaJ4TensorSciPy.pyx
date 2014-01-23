@@ -1,5 +1,5 @@
-# cython: profile=True
 '''
+# cython: profile=True
 Created on Apr 10, 2012
 
 @author: mkraus
@@ -484,14 +484,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.complex128_t, ndim=1] c
         
         
-        b[:,:] = xr + 1j * xi
+        b[:,:].real = xr
+        b[:,:].imag = xi
         
         for i in range(0, xe-xs):
             c = self.solvers[i].solve(b[i,:])
             
             yr[i,:] = c.real
             yi[i,:] = c.imag
-    
+        
     
     cdef formPreconditionerMatrix(self):
         cdef npy.int64_t j

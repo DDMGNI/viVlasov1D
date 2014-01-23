@@ -40,6 +40,8 @@ class petscVP1Dbase():
         if runid == "":
             runid = datetime.datetime.fromtimestamp(time.time()).strftime("%y%m%d%H%M%S")
         
+        # stencil width
+        stencil = 2
         
         # load run config file
         self.cfg = Config(cfgfile)
@@ -130,25 +132,25 @@ class petscVP1Dbase():
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
 #                                        boundary_type=['periodic', 'ghosted'],
-#                                        stencil_width=2,
+#                                        stencil_width=stencil,
 #                                        stencil_type='box')
         self.da1 = VIDA().create(dim=2, dof=1,
                                        sizes=[nx, nv],
                                        proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                        boundary_type=['periodic', 'ghosted'],
-                                       stencil_width=2,
+                                       stencil_width=stencil,
                                        stencil_type='box')
 #         self.da1 = VIDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.DECIDE, 2],
 #                                        boundary_type=['periodic', 'ghosted'],
-#                                        stencil_width=2,
+#                                        stencil_width=stencil,
 #                                        stencil_type='box')
 #         self.da1 = VIDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.DECIDE, PETSc.DECIDE],
 #                                        boundary_type=['periodic', 'ghosted'],
-#                                        stencil_width=2,
+#                                        stencil_width=stencil,
 #                                        stencil_type='box')
         
         # create VIDA for x grid
@@ -156,14 +158,16 @@ class petscVP1Dbase():
                                        sizes=[nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
-                                       stencil_width=2,
+                                       stencil_width=stencil,
                                        stencil_type='box')
         
         # create VIDA for y grid
         self.day = VIDA().create(dim=1, dof=1,
                                        sizes=[nv],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
-                                       boundary_type=('ghosted'))
+                                       boundary_type=('ghosted'),
+                                       stencil_width=stencil,
+                                       stencil_type='box')
         
         
         # initialise grid
@@ -202,7 +206,7 @@ class petscVP1Dbase():
         
         
         # create grid object
-        self.grid = Grid(xGrid, vGrid, nt, nx, nv, ht, hx, hv)
+        self.grid = Grid(xGrid, vGrid, nt, nx, nv, ht, hx, hv, stencil)
         
         
         # create vectors for Hamiltonians
@@ -499,10 +503,12 @@ class petscVP1Dbase():
         return fnorm + pnorm
     
     
-    def calculate_moments(self, potential=True, output=True):
-        self.toolbox.compute_density(self.fc, self.N)
-        self.toolbox.compute_velocity_density(self.fc, self.U)
-        self.toolbox.compute_energy_density(self.fc, self.E)
+    def calculate_moments(self, potential=True, output=True, f=None):
+        if f == None: f = self.fc
+        
+        self.toolbox.compute_density(f, self.N)
+        self.toolbox.compute_velocity_density(f, self.U)
+        self.toolbox.compute_energy_density(f, self.E)
         self.toolbox.compute_collision_factor(self.N, self.U, self.E, self.A)
  
         self.copy_xvec_to_seq(self.N, self.nc)
@@ -511,7 +517,7 @@ class petscVP1Dbase():
         self.copy_xvec_to_seq(self.A, self.ac)
         
         if potential:
-            self.calculate_potential(output)      # calculate initial potential
+            self.calculate_potential(output)         # calculate initial potential
             self.copy_pint_to_h()                    # copy potential to Hamiltonian
     
     

@@ -145,7 +145,7 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
         
         for i in range(xs, xe):
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 ix = i-xs+2
@@ -188,7 +188,7 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
         
         for i in range(xs, xe):
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 ix = i-xs+2
@@ -236,7 +236,7 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
         
         for i in range(xs, xe):
             for j in range(ys, ye):
-                jx = j-ys+self.da1.getStencilWidth()
+                jx = j-ys+self.grid.stencil
                 jy = j-ys
 
                 ix = i-xs+2

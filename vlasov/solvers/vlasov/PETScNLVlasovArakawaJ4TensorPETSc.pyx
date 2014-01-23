@@ -1,5 +1,4 @@
 '''
-# cython: profile=True
 Created on Apr 10, 2012
 
 @author: mkraus
@@ -22,116 +21,225 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     discretisation of the Poisson brackets (J4=2J1-J2).
     '''
     
+    def __init__(self,
+                 VIDA da1  not None,
+                 VIDA dax  not None,
+                 VIDA day  not None,
+                 Grid grid not None,
+                 Vec H0  not None,
+                 Vec H1p not None,
+                 Vec H1h not None,
+                 Vec H2p not None,
+                 Vec H2h not None,
+                 npy.float64_t charge=-1.,
+                 npy.float64_t coll_freq=0.,
+                 npy.float64_t coll_diff=1.,
+                 npy.float64_t coll_drag=1.,
+                 regularisation=0.):
+        '''
+        Constructor
+        '''
+        
+        super().__init__(da1, grid, H0, H1p, H1h, H2p, H1h, charge, coll_freq, coll_diff, coll_drag, regularisation)
+        
+        # distributed arrays
+        self.dax = dax
+        self.day = day
+        
+        # interim vectors
+        self.X = self.da1.createGlobalVec()     # LHS
+        self.B = self.da1.createGlobalVec()     # RHS
+        self.F = self.da1.createGlobalVec()     # FFT
+        
+        # get local index ranges
+        (xs, xe), = self.dax.getRanges()
+        (ys, ye), = self.day.getRanges()
+        
+        
+        # x and v vectors
+        self.xvecs = {}
+        self.yvecs = {}
+        
+        for i in range(ys, ye):
+            self.xvecs[i] = PETSc.Vec().createSeq(self.grid.nx)
+
+        for i in range(0, self.grid.nx):
+            self.yvecs[i] = self.day.createGlobalVec()
+        
+        
+        # eigenvectors
+        lambdas = npy.empty(self.nx, dtype=npy.complex128)
+        
+        for i in range(0, self.grid.nx):
+            lambdas[i] = npy.exp(2.j * npy.pi * float(i) / self.grid.nx) \
+                       - npy.exp(2.j * npy.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
+        
+        
+        # prototype matrix
+        proto = PETSc.Mat().create()
+        proto.setType(PETSc.Mat.MatType.SEQAIJ)
+        proto.setSizes([self.grid.nv**2, self.grid.nv**2])
+        proto.setUp()
+        
+        self.formPreconditionerMatrix(proto)
+        
+        
+        # identity matrix
+        identity = PETSc.Mat().create()
+        identity.setType(PETSc.Mat.MatType.SEQAIJ)
+        identity.setSizes([self.grid.nv**2, self.grid.nv**2])
+        identity.setUp()
+        
+        identity.zeroEntries()
+        
+        for i in range(0, self.grid.nv): identity.setValue(i, i, 1. * self.grid.ht_inv)
+        
+        identity.assemble()
+        
+        
+        # preconditioner matrices
+        self.pmats = {}
+        
+        for i in range(ys, ye):
+            self.pmats[i] = PETSc.Mat().create()
+            self.pmats[i].setType(PETSc.Mat.MatType.SEQAIJ)
+            self.pmats[i].setSizes([self.grid.nv**2, self.grid.nv**2])
+            self.pmats[i].setUp()
+            
+            identity.copy(self.pmats[i])
+            self.pmats[i].axpy(lambdas[i], proto)
+        
+        
+        # destroy temporary matrices 
+        proto.destroy()
+        identity.destroy()
+        
+        
+        # fftw matrix
+        fvec = self.day.createGlobalVec()
+        
+        fftw = PETSc.Mat().create(comm=PETSc.COMM_WORLD)
+        fftw.setType(PETSc.Mat.MatType.FFTW)
+        fftw.setSizes([fvec.getSizes(), fvec.getSizes()])
+        fftw.setUp()
+        
+        
+            
+    
+    def jacobian(self, Vec F, Vec Y):
+        self.jacobianArakawaJ4(F, self.X)
+        self.tensorProduct(self.X, Y)
+    
+    
+    def function(self, Vec F, Vec Y):
+        self.functionArakawaJ4(F, self.B)
+        self.tensorProduct(self.B, Y)
+        
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def formJacobian(self, Mat A):
-        cdef npy.int64_t i, j, ix, jx
-        cdef npy.int64_t xe, xs, ye, ys
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        self.get_data_arrays()
-        
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
-                                                                + 0.5 * (self.h2p + self.h2h)
+    def tensorProduct(self, Vec X, Vec Y):
+        pass
+    
         
         
-#         cdef npy.float64_t time_fac      = 0.
-#         cdef npy.float64_t arak_fac_J1   = 0.
-#         cdef npy.float64_t arak_fac_J2   = 0.
-#         cdef npy.float64_t coll_drag_fac = 0.
-#         cdef npy.float64_t coll_diff_fac = 0.
+#         cdef npy.int64_t i, j
+#         cdef npy.int64_t ix, iy, jx, jy
+#         cdef npy.int64_t xe, xs, ye, ys
+#         
+#         
+#         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
+#         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
+#         cdef npy.float64_t result_J1, result_J2, result_J4
+#         cdef npy.float64_t coll_drag, coll_diff
+#         
+#         self.get_data_arrays()
+#         
+#         (xs, xe), (ys, ye) = self.da1.getRanges()
+#         
+#         cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
+#         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+#         
+#         cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
+#         cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
+#         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
+#                                                                 + 0.5 * (self.h2p + self.h2h)
+#         
+#         
+#         
+#         for i in range(xs, xe):
+#             ix = i-xs+self.grid.stencil
+#             iy = i-xs
+#             
+#             # Vlasov equation
+#             for j in range(ys, ye):
+#                 jx = j-ys+self.grid.stencil
+#                 jy = j-ys
+
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def formPreconditionerMatrix(self, Mat A):
+        cdef npy.int64_t i, j
         
-        cdef npy.float64_t time_fac      = 1.0  / self.grid.ht
-        cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
-        cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
+        cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
         
-        cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
-        cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
+        cdef npy.float64_t arak_fac_J1   = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        
+#         cdef npy.float64_t time_fac      = 1.0  / self.grid.ht
+#         cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+#         cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
         
         A.zeroEntries()
         
-        row = Mat.Stencil()
-        col = Mat.Stencil()
+        for i in range(0, self.grid.nv):
         
-        
-        # Vlasov Equation
-        for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
-            
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
+#             for index, value in [
+#                     ((i-2, j  ), - (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                     ((i-1, j-1), - (h[ix, jx  ] - h[ix, jx-1]) * arak_fac_J1 \
+#                                  - (h[ix, jx  ] - h[ix, jx-2]) * arak_fac_J2 \
+#                                  - (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                     ((i-1, j  ), - (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J1 \
+#                                  - (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J1),
+#                     ((i-1, j+1), - (h[ix, jx+1] - h[ix, jx  ]) * arak_fac_J1 \
+#                                  - (h[ix, jx+2] - h[ix, jx  ]) * arak_fac_J2 \
+#                                  - (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                     ((i,   j  ), + time_fac),
+#                     ((i+1, j-1), + (h[ix, jx  ] - h[ix, jx-1]) * arak_fac_J1 \
+#                                  + (h[ix, jx  ] - h[ix, jx-2]) * arak_fac_J2 \
+#                                  + (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                     ((i+1, j  ), + (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J1 \
+#                                  + (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J1),
+#                     ((i+1, j+1), + (h[ix, jx+1] - h[ix, jx  ]) * arak_fac_J1 \
+#                                  + (h[ix, jx+2] - h[ix, jx  ]) * arak_fac_J2 \
+#                                  + (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                     ((i+2, j  ), + (h[ix, jx+1] - h[ix, jx-1]) * arak_fac_J2),
+#                 ]:
 
-                row.index = (i,j)
-                row.field = 0
+            for j, value in [
+                    (i-1, - 0.5 * (v[j  ]**2 - v[j-1]**2) * arak_fac_J1),
+                    (i,   - 1.0 * (v[j+1]**2 - v[j-1]**2) * arak_fac_J1),
+                    (i+1, - 0.5 * (v[j+1]**2 - v[j  ]**2) * arak_fac_J1),
+                ]:
                 
-                # Dirichlet boundary conditions
-                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                    A.setValueStencil(row, row, 1.0)
-                    
-                else:
-                    
-                    for index, value in [
-                            ((i-2, j  ), - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
-                            ((i-1, j-1), - (h_ave[ix-1, jx  ] - h_ave[ix,   jx-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-2, jx  ] - h_ave[ix,   jx-2]) * arak_fac_J2 \
-                                          - (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
-                            ((i-1, j  ), - (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) * arak_fac_J1 \
-                                          - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J1 \
-                                          - self.grid.ht * self.regularisation * self.grid.hx2_inv),
-                            ((i-1, j+1), - (h_ave[ix,   jx+1] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
-                                          - (h_ave[ix,   jx+2] - h_ave[ix-2, jx  ]) * arak_fac_J2 \
-                                          - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,   j-2), + (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,   j-1), + (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
-                                          + (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1]) * arak_fac_J1 \
-                                          - coll_drag_fac * ( self.grid.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll_diff_fac \
-                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
-                            ((i,   j  ), + time_fac \
-                                          - 2. * coll_diff_fac \
-                                          + 2. * self.grid.ht * self.regularisation * (self.grid.hx2_inv + self.grid.hv2_inv)),
-                            ((i,   j+1), - (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ]) * arak_fac_J1 \
-                                          - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) * arak_fac_J1 \
-                                          + coll_drag_fac * ( self.grid.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
-                                          + coll_diff_fac \
-                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
-                            ((i,   j+2), - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) * arak_fac_J2),
-                            ((i+1, j-1), + (h_ave[ix+1, jx  ] - h_ave[ix,   jx-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+2, jx  ] - h_ave[ix,   jx-2]) * arak_fac_J2 \
-                                          + (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
-                            ((i+1, j  ), + (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) * arak_fac_J1 \
-                                          + (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J1 \
-                                          - self.grid.ht * self.regularisation * self.grid.hx2_inv),
-                            ((i+1, j+1), + (h_ave[ix,   jx+1] - h_ave[ix+1, jx  ]) * arak_fac_J1 \
-                                          + (h_ave[ix,   jx+2] - h_ave[ix+2, jx  ]) * arak_fac_J2 \
-                                          + (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
-                            ((i+2, j  ), + (h_ave[ix+1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
-                        ]:
-
-                        col.index = index
-                        col.field = 0
-                        A.setValueStencil(row, col, value)
+                A.setValue(i, j, value)
                         
-        
         A.assemble()
-
-
-
+    
+    
+    
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec F, Vec Y):
+    def jacobianArakawaJ4(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
+        cdef npy.float64_t result_J1, result_J2, result_J4
         cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions = 0.
-        cdef npy.float64_t regularisation = 0.
         
         self.get_data_arrays()
         
@@ -193,45 +301,33 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
                     
                     
                     # collision operator
-                    if self.nu > 0.:
-                        coll_drag = ( (v[j+1] - u[ix]) * fd[ix, jx+1] - (v[j-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
-                        
-                        coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
-                        
-                        collisions = \
+                    coll_drag = ( (v[j+1] - u[ix]) * fd[ix, jx+1] - (v[j-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
+                    coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
+                    
+         
+                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
+                              + 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
                               - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
                               - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
-                    
-                    # regularisation
-                    if self.regularisation != 0.:
-                        regularisation = \
                               + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fd[ix, jx] - fd[ix+1, jx] - fd[ix-1, jx] ) \
                               + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fd[ix, jx] - fd[ix, jx+1] - fd[ix, jx-1] )
-                    
-                    # solution
-                    y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
-                              + poisson \
-                              + collisions \
-                              + regularisation
+    
     
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec F, Vec Y):
+    def functionArakawaJ4(self, Vec F, Vec Y):
         cdef npy.int64_t i, j
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
+        cdef npy.float64_t result_J1, result_J2, result_J4
         cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions = 0.
-        cdef npy.float64_t regularisation = 0.
         
         self.get_data_arrays()
         
@@ -297,29 +393,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-                    poisson   = result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
                     # collision operator
-                    if self.nu > 0.:
-                        coll_drag = ( (v[j+1] - up[ix]) * fp[ix, jx+1] - (v[j-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
-                                  + ( (v[j+1] - uh[ix]) * fh[ix, jx+1] - (v[j-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
-                        
-                        coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
-                                  + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
-                        
-                        collisions = \
-                                   - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-                                   - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                    coll_drag = ( (v[j+1] - up[ix]) * fp[ix, jx+1] - (v[j-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
+                              + ( (v[j+1] - uh[ix]) * fh[ix, jx+1] - (v[j-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
+                    coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
+                              + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
                     
-                    # regularisation
-                    if self.regularisation != 0.:
-                        regularisation = \
-                                       + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fp[ix, jx] - fp[ix+1, jx] - fp[ix-1, jx] ) \
-                                       + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
                     
-                    # solution
                     y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv \
-                              + poisson \
-                              + collisions \
-                              + regularisation
+                              + result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                              - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
+                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                              + self.grid.ht * self.regularisation * self.grid.hx2_inv * ( 2. * fp[ix, jx] - fp[ix+1, jx] - fp[ix-1, jx] ) \
+                              + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
