@@ -9,8 +9,10 @@ import argparse, time
 
 from petsc4py import PETSc
 
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1TensorFast import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorPETSc import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorSciPy import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorSciPy import PETScVlasovSolver
 
 from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
 
@@ -164,7 +166,7 @@ if __name__ == '__main__':
     petscvp.run()
 
 #     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile_Tensor.prof")
-#       
+#        
 #     s = pstats.Stats("Profile_Tensor.prof")
 #     s.strip_dirs().sort_stats("time").print_stats()
 

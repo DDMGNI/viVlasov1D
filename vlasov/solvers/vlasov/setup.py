@@ -76,6 +76,15 @@ ext_modules = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
+        Extension("PETScVlasovPreconditioner",
+                  sources=["PETScVlasovPreconditioner.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
                
         Extension("PETScVlasovArakawaJ4",
                   sources=["PETScVlasovArakawaJ4.pyx"],
@@ -134,6 +143,24 @@ ext_modules = [
                   extra_link_args=LARGS
                  ),
                
+        Extension("PETScNLVlasovArakawaJ4TensorFast",
+                  sources=["PETScNLVlasovArakawaJ4TensorFast.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
+        Extension("PETScNLVlasovArakawaJ1TensorFast",
+                  sources=["PETScNLVlasovArakawaJ1TensorFast.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
         Extension("PETScNLVlasovArakawaJ4TensorPETSc",
                   sources=["PETScNLVlasovArakawaJ4TensorPETSc.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
