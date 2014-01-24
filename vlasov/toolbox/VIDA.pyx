@@ -11,7 +11,7 @@ from petsc4py.PETSc cimport DMDA, Vec
 
 cdef class VIDA(DMDA):
     
-    def reshape(self, vec not None, local=False):
+    cdef reshape(self, ndarray vec, bool local):
         if local:
             cstarts, csizes = self.getGhostCorners()
         else:
@@ -59,11 +59,11 @@ cdef class VIDA(DMDA):
 #         return vec.reshape(shape, order='f')
     
     
-    def getGlobalArray(self, Vec tvec not None):
-        return self.reshape(tvec.getArray())
+    cpdef getGlobalArray(self, Vec tvec):
+        return self.reshape(tvec.getArray(), local=False)
     
     
-    def getLocalArray(self, Vec gvec not None, Vec lvec not None):
+    cpdef getLocalArray(self, Vec gvec, Vec lvec):
         self.globalToLocal(gvec, lvec)
         
         return self.reshape(lvec.getArray(), local=True)
