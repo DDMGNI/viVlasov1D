@@ -7,8 +7,8 @@
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_200x401_dt1E-1_nu0_rk4.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_200x401_dt1E-1_nu0_rk4.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_shifted_512x1024_dt1E-1_nu0.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_shifted_512x1024_dt1E-1_nu0.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=twostream_200x401_dt1E-1_nu0_rk4
+RUNID=twostream_shifted_512x1024_dt1E-1_nu0
 
 
 module load intel/14.0
@@ -42,4 +42,7 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/mkl/lib/intel64/libm
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/mkl/lib/intel64/libmkl_intel_thread.so:$LD_PRELOAD
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
-mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split_rk4.py -c runs_tokp/$RUNID.cfg
+
+#mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split_pc_kinetic_tensor.py -c runs_tokp/$RUNID.cfg
+
+mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split.py -c runs_tokp/$RUNID.cfg
