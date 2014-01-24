@@ -6,15 +6,15 @@ from distutils.core      import setup
 from distutils.extension import Extension
 from Cython.Distutils    import build_ext
 
+import numpy
 import os
 from os.path import join, isdir
 
 INCLUDE_DIRS = []
 LIBRARY_DIRS = []
 LIBRARIES    = []
-FLAGS        = []
-#FLAGS        = ["-O3"]
-#FLAGS        = ["-O3","-avx"]
+CARGS        = ['-axavx']
+LARGS        = []
 
 # PETSc
 PETSC_DIR  = os.environ['PETSC_DIR']
@@ -32,7 +32,6 @@ else:
 LIBRARIES    += ['petsc']
 
 # NumPy
-import numpy
 INCLUDE_DIRS += [numpy.get_include()]
 
 # PETSc for Python
@@ -49,6 +48,23 @@ INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
 INCLUDE_DIRS += ['/opt/local/include']
 LIBRARY_DIRS += ['/opt/local/lib']
 
+# LAPACK
+if 'extra_compile_args' in numpy.__config__.lapack_opt_info:
+    CARGS += numpy.__config__.lapack_opt_info['extra_compile_args']
+
+if 'extra_link_args' in numpy.__config__.lapack_opt_info:
+    LARGS += numpy.__config__.lapack_opt_info['extra_link_args']
+
+if 'include_dirs' in numpy.__config__.lapack_opt_info:
+    INCLUDE_DIRS += numpy.__config__.lapack_opt_info['include_dirs']
+
+if 'library_dirs' in numpy.__config__.lapack_opt_info:
+    LIBRARY_DIRS += numpy.__config__.lapack_opt_info['library_dirs']
+
+if 'libraries' in numpy.__config__.lapack_opt_info:
+    LIBRARIES += numpy.__config__.lapack_opt_info['libraries']
+
+
 
 ext_modules = [
         Extension("PETScVlasovSolver",
@@ -57,7 +73,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
                
         Extension("PETScVlasovArakawaJ4",
@@ -66,7 +83,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ1",
@@ -75,7 +93,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         Extension("PETScNLVlasovArakawaJ2",
                   sources=["PETScNLVlasovArakawaJ2.pyx"],
@@ -83,7 +102,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         Extension("PETScNLVlasovArakawaJ4",
                   sources=["PETScNLVlasovArakawaJ4.pyx"],
@@ -91,7 +111,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ4kinetic",
@@ -100,7 +121,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         Extension("PETScNLVlasovArakawaJ4potential",
                   sources=["PETScNLVlasovArakawaJ4potential.pyx"],
@@ -108,7 +130,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
                
         Extension("PETScNLVlasovArakawaJ4TensorPETSc",
@@ -117,7 +140,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         Extension("PETScNLVlasovArakawaJ4TensorSciPy",
                   sources=["PETScNLVlasovArakawaJ4TensorSciPy.pyx"],
@@ -125,7 +149,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         
         Extension("PETScNLVlasovArakawaJ4RK2",
@@ -134,7 +159,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         Extension("PETScNLVlasovArakawaJ4RK4",
                   sources=["PETScNLVlasovArakawaJ4RK4.pyx"],
@@ -142,7 +168,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  ),
         
         Extension("PETScNLVlasovSimpson",
@@ -151,7 +178,8 @@ ext_modules = [
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=FLAGS
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
                  )
         
               ]

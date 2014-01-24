@@ -1,5 +1,5 @@
-'''
 # cython: profile=True
+'''
 Created on Apr 10, 2012
 
 @author: mkraus
@@ -71,6 +71,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                  stencil_width=2,
                                  stencil_type='box')
         
+        (self.dax_xs, self.dax_xe), (self.dax_ys, self.dax_ye) = self.dax.getRanges()
         
         # interim vectors
         self.B     = self.da1.createGlobalVec()
@@ -87,6 +88,32 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.Z     = self.dax.createGlobalVec()
         
         
+        # temporary arrays
+        (xs, xe), (ys, ye) = self.day.getRanges()
+        self.bsolver = npy.empty((xe-xs, self.grid.nv), dtype=npy.complex128)
+                                 
+        (xs, xe), (ys, ye) = self.dax.getRanges()
+        self.tfft    = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex128)
+        
+        
+        # FFTW arrays 
+        self.fftw_in   = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx), 16, 'complex128')
+        self.fftw_out  = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx), 16, 'complex128')
+        
+        self.ifftw_in  = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx), 16, 'complex128')
+        self.ifftw_out = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx), 16, 'complex128')
+        
+        # enable cache in pyFFTW for optimal performance
+        pyfftw.interfaces.cache.enable()
+        
+        # create pyFFTW plans
+        self.fftw_plan  = pyfftw.FFTW(self.fftw_in,  self.fftw_out,  axes=(1,), direction='FFTW_FORWARD')
+        self.ifftw_plan = pyfftw.FFTW(self.ifftw_in, self.ifftw_out, axes=(1,), direction='FFTW_BACKWARD')
+        
+        
+        # get local x ranges for solver
+        (xs, xe), (ys, ye) = self.day.getRanges()
+        
         # eigenvalues
         eigen = npy.empty(self.grid.nx, dtype=npy.complex128)
         
@@ -96,44 +123,42 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         eigen[:] = ifftshift(eigen)
         
-        
-        # prototype matrix
-        proto = self.formPreconditionerMatrix()
-        
-        
-        # identity matrix
-        identity = eye(self.grid.nv, format='csc', dtype=npy.complex128) * self.grid.ht_inv
-        
-        
-        # temporary arrays
-        (xs, xe), (ys, ye) = self.day.getRanges()
-        self.bsolver = npy.empty((xe-xs, self.grid.nv), dtype=npy.complex)
-                                 
-        (xs, xe), (ys, ye) = self.dax.getRanges()
-        self.tfft    = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex)
-                
-        self.fftw_in   = pyfftw.n_byte_align_empty((self.grid.nx, ye-ys), 16, 'complex128')
-        self.fftw_out  = pyfftw.n_byte_align_empty((self.grid.nx, ye-ys), 16, 'complex128')
-        
-        self.ifftw_in  = pyfftw.n_byte_align_empty((self.grid.nx, ye-ys), 16, 'complex128')
-        self.ifftw_out = pyfftw.n_byte_align_empty((self.grid.nx, ye-ys), 16, 'complex128')
-        
-        
-        # enable cache in pyfftw for optimal performance
-        pyfftw.interfaces.cache.enable()
-        
-        
-        # create pyFFTW plans
-        self.fftw_plan  = pyfftw.FFTW(self.fftw_in,  self.fftw_out,  axes=(0,), direction='FFTW_FORWARD')
-        self.ifftw_plan = pyfftw.FFTW(self.ifftw_in, self.ifftw_out, axes=(0,), direction='FFTW_BACKWARD')
-        
-        
-        # get local x ranges for solver
-        (xs, xe), (ys, ye) = self.day.getRanges()
-        
         # LU decompositions
-        self.solvers = [splu(identity + eigen[i+xs] * proto) for i in range(0, xe-xs)]
+        self.solvers = [splu(self.formSparsePreconditionerMatrix(eigen[i+xs])) for i in range(0, xe-xs)]
         
+        
+        # LAPACK parameters
+        self.M = self.grid.nv
+        self.N = self.grid.nv
+        self.KL = 1
+        self.KU = 1
+        self.NRHS = 1
+        self.LDA  = 4
+        self.LDB  = self.grid.nv
+        self.T = 'N'
+        
+        # matrices, rhs, pivots
+        self.matrices = npy.zeros((4, self.grid.nv, xe-xs), dtype=npy.cdouble, order='F')
+        self.rhs      = npy.empty((1, self.grid.nv, xe-xs), dtype=npy.cdouble, order='F')
+        self.pivots   = npy.empty((self.grid.nv, xe-xs), dtype=npy.int64, order='F')
+        
+        # build matrices
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Creating Preconditioner Matrices.")
+         
+        for i in range(0, xe-xs):
+            self.formBandedPreconditionerMatrix(self.matrices[:,:,i], eigen[i+xs])
+         
+        # LU decompositions
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("LU Decomposing Preconditioner Matrices.")
+         
+        for i in range(0, xe-xs):
+            if self.call_zgbtrf(self.matrices[:,:,i], self.pivots[:,i]) != 0:
+                print("   ERROR in LU Decomposition.")
+         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Preconditioner Initialisation done.")
         
     
     cpdef jacobian(self, Vec F, Vec Y):
@@ -146,40 +171,20 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.tensorProduct(self.B, Y)
         
 
-#     @cython.boundscheck(False)
-#     @cython.wraparound(False)
     cdef tensorProduct(self, Vec X, Vec Y):
         
-#         hdf5_viewer = PETSc.ViewerHDF5().create("tensor.hdf5",
-#                                                 mode=PETSc.Viewer.Mode.WRITE,
-#                                                 comm=PETSc.COMM_WORLD)
-#         
-#         hdf5_viewer.pushGroup("/")
-#         
-#         # write grid data to hdf5 file
-#         X.setName('X')
-#         Y.setName('Y')
-#         self.F.setName('F')
-#         self.Z.setName('Z')
-#         self.FfftR.setName('FfftR')
-#         self.FfftI.setName('FfftI')
-#         self.BfftR.setName('BfftR')
-#         self.BfftI.setName('BfftI')
-#         self.CfftR.setName('CfftR')
-#         self.CfftI.setName('CfftI')
-#         self.ZfftR.setName('ZfftR')
-#         self.ZfftI.setName('ZfftI')
-
-
         self.copy_da1_to_dax(X, self.F)                  # copy X(da1) to F(dax)
         
-        self.fftw(self.F, self.FfftR, self.FfftI)         # FFT F for each v
+        self.fftw(self.F, self.FfftR, self.FfftI)        # FFT F for each v
         
         self.copy_dax_to_day(self.FfftR, self.BfftR)     # copy F'(dax) to B'(day)
         self.copy_dax_to_day(self.FfftI, self.BfftI)     # copy F'(dax) to B'(day)
         
-        self.solve(self.BfftR, self.BfftI,
-                   self.CfftR, self.CfftI)               # solve AC'=B' for each x
+#         self.solve_scipy(self.BfftR, self.BfftI,
+#                          self.CfftR, self.CfftI)         # solve AC'=B' for each x
+        
+        self.solve_lapack(self.BfftR, self.BfftI,
+                          self.CfftR, self.CfftI)        # solve AC'=B' for each x
         
 #         self.BfftR.copy(self.CfftR)
 #         self.BfftI.copy(self.CfftI)
@@ -187,23 +192,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.copy_day_to_dax(self.CfftR, self.ZfftR)     # copy C'(day) to Z'(dax)
         self.copy_day_to_dax(self.CfftI, self.ZfftI)     # copy C'(day) to Z'(dax)
         
-        self.ifftw(self.ZfftR, self.ZfftI, self.Z)        # iFFT Z' for each v
+        self.ifftw(self.ZfftR, self.ZfftI, self.Z)       # iFFT Z' for each v
         
         self.copy_dax_to_da1(self.Z, Y)                  # copy Z(dax) to Y(da1)
-        
-    
-#         hdf5_viewer(X)
-#         hdf5_viewer(Y)
-#         hdf5_viewer(self.F)
-#         hdf5_viewer(self.Z)
-#         hdf5_viewer(self.FfftR)
-#         hdf5_viewer(self.FfftI)
-#         hdf5_viewer(self.BfftR)
-#         hdf5_viewer(self.BfftI)
-#         hdf5_viewer(self.CfftR)
-#         hdf5_viewer(self.CfftI)
-#         hdf5_viewer(self.ZfftR)
-#         hdf5_viewer(self.ZfftI)
         
     
     cdef copy_da1_to_dax(self, Vec X, Vec Y):
@@ -325,8 +316,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             scatter.destroy()
         
     
-#     @cython.boundscheck(False)
-#     @cython.wraparound(False)
     cdef fft(self, Vec X, Vec YR, Vec YI):
         # Fourier Transform for each v
         
@@ -350,29 +339,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         yr[:,:] = z.real
         yi[:,:] = z.imag
         
-#         for j in range(0, ye-ys):
-# #             z[:,j] = rfft(x[:,j])
-#         
-#         yr[:,:] = z.real
-#         yi[:,:] = z.imag
-        
-#         n1 = self.grid.nx
-#         n2 = int(n1/2)
-#         n3 = n2+1
-#         if n1 % 2 != 0:
-#             n2 += 1
-#     
-#         yr[0   , :] = z[0     , :]
-#         yr[1:n3, :] = z[1:n1:2, :]
-#         yi[1:n2, :] = z[2:n1:2, :]
-#     
-#         for i in range(1, n2):
-#             yr[-i,:] =  yr[i,:]
-#             yi[-i,:] = -yi[i,:]
-        
     
-#     @cython.boundscheck(False)
-#     @cython.wraparound(False)
     cdef ifft(self, Vec XR, Vec XI, Vec Y):
         # inverse Fourier Transform for each v
         
@@ -391,19 +358,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef npy.ndarray[npy.complex128_t, ndim=2] z = self.tfft
         
-#         n1 = self.grid.nx
-#         n2 = int(n1/2)
-#         n3 = n2+1
-#         if n1 % 2 != 0:
-#             n2 += 1
-#     
-#         z[0,      :] = xr[0,    :]
-#         z[1:n1:2, :] = xr[1:n3, :]
-#         z[2:n1:2, :] = xi[1:n2, :]
-        
-#         for j in range(0, ye-ys):
-#             y[:,j] = irfft(z[:,j])
-        
         z[:,:].real = xr
         z[:,:].imag = xi
         
@@ -413,43 +367,31 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     cdef fftw(self, Vec X, Vec YR, Vec YI):
         # Fourier Transform for each v
         
-#         cdef npy.uint64_t xe, xs, ye, ys
-#         
-#         (xs, xe), (ys, ye) = self.dax.getRanges()
-#         
-#         assert xs == 0
-#         assert xe == self.grid.nx
-        
-        cdef npy.ndarray[npy.float64_t, ndim=2] yr = self.dax.getGlobalArray(YR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] yi = self.dax.getGlobalArray(YI)
-        
+        shape = (self.dax_ye-self.dax_ys, self.dax_xe-self.dax_xs)
+         
+        cdef npy.ndarray[npy.float64_t, ndim=2] yr = YR.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] yi = YI.getArray().reshape(shape, order='c')
+
         cdef npy.ndarray[npy.complex128_t, ndim=2] x = self.fftw_in
         cdef npy.ndarray[npy.complex128_t, ndim=2] y = self.fftw_out
         
-        x[:,:].real = self.dax.getGlobalArray(X)
+        x[:,:].real = X.getArray().reshape(shape, order='c')
+#         x[:,:] = X.getArray().reshape(shape, order='c').astype(npy.float64).view(npy.complex128)
         
         self.fftw_plan()
-        
+
         yr[:,:] = y.real
         yi[:,:] = y.imag
         
-        
     
-#     @cython.boundscheck(False)
-#     @cython.wraparound(False)
     cdef ifftw(self, Vec XR, Vec XI, Vec Y):
         # inverse Fourier Transform for each v
         
-#         cdef npy.uint64_t xe, xs, ye, ys
-#         
-#         (xs, xe), (ys, ye) = self.dax.getRanges()
-#         
-#         assert xs == 0
-#         assert xe == self.grid.nx
-        
-        cdef npy.ndarray[npy.float64_t, ndim=2] xr = self.dax.getGlobalArray(XR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] xi = self.dax.getGlobalArray(XI)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.dax.getGlobalArray(Y)
+        shape = (self.dax_ye-self.dax_ys, self.dax_xe-self.dax_xs)
+         
+        cdef npy.ndarray[npy.float64_t, ndim=2] xr = XR.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] xi = XI.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] y  = Y.getArray().reshape(shape, order='c')
         
         cdef npy.ndarray[npy.complex128_t, ndim=2] x = self.ifftw_in
         cdef npy.ndarray[npy.complex128_t, ndim=2] z = self.ifftw_out
@@ -464,7 +406,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef solve(self, Vec XR, Vec XI, Vec YR, Vec YI):
+    cdef solve_scipy(self, Vec XR, Vec XI, Vec YR, Vec YI):
         # solve system for each x
         
         cdef npy.int64_t i, j
@@ -483,7 +425,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.ndarray[npy.complex128_t, ndim=2] b = self.bsolver
         cdef npy.ndarray[npy.complex128_t, ndim=1] c
         
-        
         b[:,:].real = xr
         b[:,:].imag = xi
         
@@ -493,8 +434,83 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
             yr[i,:] = c.real
             yi[i,:] = c.imag
         
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef solve_lapack(self, Vec XR, Vec XI, Vec YR, Vec YI):
+        # solve system for each x
+        
+        cdef npy.int64_t i, j
+        cdef npy.int64_t xe, xs, ye, ys
+        
+        (xs, xe), (ys, ye) = self.day.getRanges()
+        
+        assert ys == 0
+        assert ye == self.grid.nv
+        
+        shape = (ye-ys, xe-xs)
+         
+        cdef npy.ndarray[npy.float64_t, ndim=2] xr = XR.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] xi = XI.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] yr = YR.getArray().reshape(shape, order='c')
+        cdef npy.ndarray[npy.float64_t, ndim=2] yi = YI.getArray().reshape(shape, order='c')
+        
+        cdef npy.ndarray[npy.complex128_t, ndim=3] a = self.matrices
+        cdef npy.ndarray[npy.complex128_t, ndim=3] b = self.rhs
+        cdef npy.ndarray[npy.int64_t, ndim=2] p = self.pivots
+        
+        b[0,:,:].real = xr
+        b[0,:,:].imag = xi
+        
+        for i in range(0, xe-xs):
+            self.call_zgbtrs(a[:,:,i], b[:,:,i], p[:,i])
+        
+        yr[:,:] = b[0].real
+        yi[:,:] = b[0].imag
+        
     
-    cdef formPreconditionerMatrix(self):
+    cdef call_zgbtrf(self, npy.ndarray matrix, npy.ndarray pivots):
+        cdef int INFO = 0
+          
+        zgbtrf(&self.M, &self.N, &self.KL, &self.KU, <complex*>matrix.data, &self.LDA, <int*>pivots.data, &INFO)
+        
+        return INFO
+     
+ 
+    cdef call_zgbtrs(self, npy.ndarray[npy.complex128_t, ndim=2] matrix,
+                           npy.ndarray[npy.complex128_t, ndim=2] rhs,
+                           npy.ndarray[npy.int64_t, ndim=1] pivots):
+        
+        cdef int INFO = 0
+         
+        zgbtrs(&self.T, &self.N, &self.KL, &self.KU, &self.NRHS, <complex*>matrix.data, &self.LDA, <int*>pivots.data, <complex*>rhs.data, &self.LDB, &INFO)
+        
+        return INFO
+        
+    
+    cdef formSparsePreconditionerMatrix(self, npy.complex eigen):
+        cdef npy.int64_t j
+        
+        cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
+        
+        cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        
+        diagm = npy.zeros(self.grid.nv, dtype=npy.complex128)
+        diag  = npy.ones (self.grid.nv, dtype=npy.complex128)
+        diagp = npy.zeros(self.grid.nv, dtype=npy.complex128)
+        
+        for j in range(2, self.grid.nv-2):
+            diagm[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] - self.grid.hv2 ) * arak_fac_J1
+            diag [j] = eigen * 4.0 * self.grid.hv * v[j] * arak_fac_J1 + self.grid.ht_inv
+            diagp[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] + self.grid.hv2 ) * arak_fac_J1
+        
+        offsets   = [-1, 0, +1]
+        diagonals = [diagm[1:], diag, diagp[:-1]]
+        
+        return diags(diagonals, offsets, shape=(self.grid.nv, self.grid.nv), format='csc', dtype=npy.complex128)
+        
+    
+    cdef formBandedPreconditionerMatrix(self, npy.ndarray matrix, npy.complex eigen):
         cdef npy.int64_t j
         
         cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
@@ -502,19 +518,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
         
-        diagm = npy.zeros(self.grid.nv)
-        diag  = npy.ones (self.grid.nv)
-        diagp = npy.zeros(self.grid.nv)
+        diagm = npy.zeros(self.grid.nv, dtype=npy.cdouble)
+        diag  = npy.ones (self.grid.nv, dtype=npy.cdouble)
+        diagp = npy.zeros(self.grid.nv, dtype=npy.cdouble)
         
         for j in range(2, self.grid.nv-2):
-            diagm[j] = 0.5 * ( 2. * self.grid.hv * v[j] - self.grid.hv2 ) * arak_fac_J1
-            diag [j] = 4.0 * self.grid.hv * v[j] * arak_fac_J1
-            diagp[j] = 0.5 * ( 2. * self.grid.hv * v[j] + self.grid.hv2 ) * arak_fac_J1
+            diagm[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] - self.grid.hv2 ) * arak_fac_J1
+            diag [j] = eigen * 4.0 * self.grid.hv * v[j] * arak_fac_J1 + self.grid.ht_inv
+            diagp[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] + self.grid.hv2 ) * arak_fac_J1
         
-        offsets   = [-1, 0, +1]
-        diagonals = [diagm[1:], diag, diagp[:-1]]
-        
-        return diags(diagonals, offsets, shape=(self.grid.nv, self.grid.nv), format='csc', dtype=npy.complex128)
+        matrix[1, 1:  ] = diagp[:-1]
+        matrix[2,  :  ] = diag
+        matrix[3,  :-1] = diagm[1:]
         
     
     @cython.boundscheck(False)
