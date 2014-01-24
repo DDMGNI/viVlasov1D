@@ -110,7 +110,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
-        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_A)
+        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_matrix)
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')

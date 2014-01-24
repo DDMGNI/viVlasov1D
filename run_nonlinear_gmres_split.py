@@ -76,7 +76,7 @@ class petscVP1Dgmres(petscVP1Dbasesplit):
             
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
-        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_A)
+        self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_matrix)
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')
@@ -90,6 +90,14 @@ class petscVP1Dgmres(petscVP1Dbasesplit):
 #         self.vlasov_solver.update_delta(X)
         self.vlasov_solver.formJacobian(J)
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            mat_viewer = PETSc.Viewer().createDraw(size=(800,800), comm=PETSc.COMM_WORLD)
+            mat_viewer(self.J)
+             
+            print
+            input('Hit any key to continue.')
+            print
+
         if J != P:
             self.vlasov_solver.formJacobian(P)
         

@@ -5,10 +5,10 @@
 #$ -l h_rt=24:00:00
 #
 #$ -P  tokp
-#$ -pe impi_hydra 128 
+#$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_400x1601_dt1E-1_nu0.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_400x1601_dt1E-1_nu0.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_1024x4096_dt1E-1_nu0.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_1024x4096_dt1E-1_nu0.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=jeans_strong_400x1601_dt1E-1_nu0
+RUNID=jeans_strong_1024x4096_dt1E-1_nu0
 
 
 module load intel/14.0
