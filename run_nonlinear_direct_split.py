@@ -9,17 +9,17 @@ import argparse, time
 from petsc4py import PETSc
 from run_base_split import petscVP1Dbasesplit
 
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
+from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4       import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovSimpson         import PETScVlasovSolver
 
 # from vlasov.solvers.vlasov.PETScNLVlasovTriangle1       import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovTriangle2       import PETScVlasovSolver
+# from vlasov.solvers.vlasov.PETScNLVlasovTriangle2       import PETScVlasovSolver
 
 
-# solver_package = 'superlu_dist'
-solver_package = 'mumps'
+solver_package = 'superlu_dist'
+# solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
@@ -31,6 +31,14 @@ class petscVP1Dlu(petscVP1Dbasesplit):
     def updateVlasovJacobian(self, snes, X, J, P):
 #         self.vlasov_solver.update_delta(X)
         self.vlasov_solver.formJacobian(J)
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            mat_viewer = PETSc.Viewer().createDraw(size=(800,800), comm=PETSc.COMM_WORLD)
+            mat_viewer(self.J)
+             
+            print
+            input('Hit any key to continue.')
+            print
         
         if J != P:
             self.vlasov_solver.formJacobian(P)
@@ -79,7 +87,7 @@ class petscVP1Dlu(petscVP1Dbasesplit):
         
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
-        self.poisson_ksp.setOperators(self.poisson_A)
+        self.poisson_ksp.setOperators(self.poisson_matrix)
         self.poisson_ksp.setType('preonly')
         self.poisson_ksp.getPC().setType('lu')
         self.poisson_ksp.getPC().setFactorSolverPackage(solver_package)
