@@ -16,6 +16,15 @@ LIBRARIES    = []
 CARGS        = ['-axavx']
 LARGS        = []
 
+# FFTW
+FFTW_DIR  = os.environ['FFTW_HOME']
+
+INCLUDE_DIRS += [join(FFTW_DIR, 'include')]
+LIBRARY_DIRS += [join(FFTW_DIR, 'lib')]
+
+LIBRARIES    += ['fftw3']
+
+
 # PETSc
 PETSC_DIR  = os.environ['PETSC_DIR']
 PETSC_ARCH = os.environ.get('PETSC_ARCH', '')
