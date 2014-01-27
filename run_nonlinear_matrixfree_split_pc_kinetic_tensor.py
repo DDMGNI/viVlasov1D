@@ -166,7 +166,7 @@ if __name__ == '__main__':
     petscvp.run()
 
 #     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile_Tensor.prof")
-#        
+#         
 #     s = pstats.Stats("Profile_Tensor.prof")
 #     s.strip_dirs().sort_stats("time").print_stats()
 

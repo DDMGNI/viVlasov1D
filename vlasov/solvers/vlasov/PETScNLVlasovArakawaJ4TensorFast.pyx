@@ -1,4 +1,3 @@
-# cython: profile=True
 '''
 Created on Apr 10, 2012
 
@@ -94,8 +93,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
         # matrices, rhs, pivots
         self.matrices = npy.zeros((4, self.grid.nv, xe-xs), dtype=npy.cdouble, order='F')
-        self.rhs_arr  = npy.empty((1, self.grid.nv, xe-xs), dtype=npy.cdouble, order='F')
-        self.rhs      = self.rhs_arr
         self.pivots   = npy.empty((self.grid.nv, xe-xs), dtype=npy.int32, order='F')
         
         # build matrices
@@ -149,7 +146,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         # Be careful to allow for unaligned input/output arrays.
         fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
                              <double*>npy.PyArray_DATA(X.getArray()),
-                             <double complex*>npy.PyArray_DATA(Y.getArray()))
+                             <cdouble*>npy.PyArray_DATA(Y.getArray()))
 
 #         cdef void* fftw_planp  = self.fftw_plan.__plan
 #         cdef void* fftw_input  = npy.PyArray_DATA(X.getArray())
@@ -189,7 +186,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         # The FFTW plan is still setup using pyFFTW.
         # Be careful to allow for unaligned input/output arrays.
         fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
-                             <double complex*>npy.PyArray_DATA(X.getArray()),
+                             <cdouble*>npy.PyArray_DATA(X.getArray()),
                              <double*>npy.PyArray_DATA(Y.getArray()))
         
         Y.scale(1./float(self.grid.nx))

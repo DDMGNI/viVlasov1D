@@ -1,4 +1,3 @@
-# cython: profile=True
 '''
 Created on Apr 10, 2012
 
@@ -80,11 +79,26 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         self.Zfft = self.cax.createGlobalVec()
         
         
-        # create xy-yx scatter objects
+        # temporary variables for scatter objects
         cdef npy.uint64_t i, j, k
+        cdef npy.uint64_t xs1, xe1, ys1, ye1
         cdef npy.uint64_t xsx, xex, ysx, yex
         cdef npy.uint64_t ysy, yey, xsy, xey 
         
+        # create 1x-x1 scatter objects
+        (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
+        (xsx, xex), (ysx, yex) = self.dax.getRanges()
+        
+        self.d1Indices = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
+        self.dxIndices = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
+        
+        self.da1.getAO().app2petsc(self.dxIndices)
+        self.dax.getAO().app2petsc(self.d1Indices)
+        
+        self.d1xScatter = PETSc.Scatter().create(self.X, self.d1Indices, self.F, self.dxIndices)
+        self.dx1Scatter = PETSc.Scatter().create(self.Z, self.dxIndices, self.B, self.d1Indices)
+        
+        # create xy-yx scatter objects
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
         (ysy, yey), (xsy, xey) = self.cay.getRanges()
         
@@ -93,9 +107,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         assert xsx == 0
         assert xex == nx
-        
-        aox = self.cax.getAO()
-        aoy = self.cay.getAO()
         
         nindices = (yex-ysx)*nx*2
         
@@ -108,19 +119,26 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                     xindexlist[2*(j*nx + i) + k] = 2*(j*nx + i) + k
                     yindexlist[2*(j*nx + i) + k] = 2*(i*nv + j) + k
         
-        self.cxindices  = PETSc.IS().createGeneral(xindexlist)
-        self.cyindices  = PETSc.IS().createGeneral(yindexlist)
+        self.cxIndices  = PETSc.IS().createGeneral(xindexlist)
+        self.cyIndices  = PETSc.IS().createGeneral(yindexlist)
         
-        aox.app2petsc(self.cxindices)
-        aoy.app2petsc(self.cyindices)
+        self.cax.getAO().app2petsc(self.cxIndices)
+        self.cay.getAO().app2petsc(self.cyIndices)
     
-        self.xyScatter = PETSc.Scatter().create(self.Ffft, self.cxindices, self.Bfft, self.cyindices)
-        self.yxScatter = PETSc.Scatter().create(self.Bfft, self.cyindices, self.Zfft, self.cxindices)        
+        self.cxyScatter = PETSc.Scatter().create(self.Ffft, self.cxIndices, self.Bfft, self.cyIndices)
+        self.cyxScatter = PETSc.Scatter().create(self.Bfft, self.cyIndices, self.Zfft, self.cxIndices)        
         
         
     def __dealloc__(self):
-        self.xyScatter.destroy()
-        self.yxScatter.destroy()
+        self.d1xScatter.destroy()
+        self.dx1Scatter.destroy()
+        self.cxyScatter.destroy()
+        self.cyxScatter.destroy()
+        
+        self.d1Indices.destroy()
+        self.dxIndices.destroy()
+        self.cxIndices.destroy()
+        self.cyIndices.destroy()
         
         self.B.destroy()
         self.X.destroy()
@@ -179,20 +197,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             y[...] = x[...]
             
         else:
-            aox = self.dax.getAO()
-            ao1 = self.da1.getAO()
-            
-            xpindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
-            
-            aox.app2petsc(xpindices)
-            ao1.app2petsc(ypindices)
-            
-            scatter = PETSc.Scatter().create(X, ypindices, Y, xpindices)
-            
-            scatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-            
-            scatter.destroy()
+            self.d1xScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
          
         
         
@@ -209,28 +214,15 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             y[...] = x[...]
         
         else:
-            aox = self.dax.getAO()
-            ao1 = self.da1.getAO()
-            
-            xpindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
-            
-            aox.app2petsc(xpindices)
-            ao1.app2petsc(ypindices)
-            
-            scatter = PETSc.Scatter().create(X, xpindices, Y, ypindices)
-            
-            scatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-            
-            scatter.destroy()
+            self.dx1Scatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         
         
     cdef copy_cax_to_cay(self, Vec X, Vec Y):
-        self.xyScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        self.cxyScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         
     
     cdef copy_cay_to_cax(self, Vec X, Vec Y):
-        self.yxScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+        self.cyxScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         
 
     cdef fft (self, Vec X, Vec Y):

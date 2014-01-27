@@ -20,11 +20,15 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef VIDA cax
     cdef VIDA cay
     
-    cdef IS cxindices
-    cdef IS cyindices
+    cdef IS d1Indices
+    cdef IS dxIndices
+    cdef IS cxIndices
+    cdef IS cyIndices
     
-    cdef Scatter xyScatter
-    cdef Scatter yxScatter
+    cdef Scatter d1xScatter
+    cdef Scatter dx1Scatter
+    cdef Scatter cxyScatter
+    cdef Scatter cyxScatter
     
     cdef Vec B
     cdef Vec X

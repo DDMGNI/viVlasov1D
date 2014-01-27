@@ -24,9 +24,7 @@ from vlasov.solvers.vlasov.PETScVlasovPreconditioner cimport PETScVlasovPrecondi
 cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     cdef dcomplex[:,:,:] matrices
-    cdef dcomplex[:,:,:] rhs
     cdef int[:,:] pivots
-    cdef npy.ndarray rhs_arr
     
     cdef FFTW fftw_plan
     cdef FFTW ifftw_plan
@@ -52,12 +50,15 @@ cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int
 cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, double complex* A, int* LDA, int* IPIV, double complex* B, int* LDB, int* INFO)
 
 
+cdef extern from 'pyfftw_complex.h':
+    ctypedef double cdouble[2]
+
 cdef extern from 'fftw3.h':
     ctypedef struct fftw_plan_struct:
         pass
 
     ctypedef fftw_plan_struct* fftw_plan
 
-    void fftw_execute_dft_r2c(fftw_plan, double* _in, double complex* _out) nogil
-    void fftw_execute_dft_c2r(fftw_plan, double complex* _in, double* _out) nogil    
+    void fftw_execute_dft_r2c(fftw_plan, double* _in, cdouble* _out) nogil
+    void fftw_execute_dft_c2r(fftw_plan, cdouble* _in, double* _out) nogil    
 
