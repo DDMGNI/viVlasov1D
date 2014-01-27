@@ -11,7 +11,7 @@ cimport numpy as npy
 
 from scipy.sparse        import diags
 from scipy.sparse.linalg import splu
-from scipy.fftpack       import fft, ifft, fftshift, ifftshift
+from numpy.fft           import rfft, irfft, fftshift, ifftshift
 
 from petsc4py import PETSc
 
@@ -43,9 +43,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
         
         # temporary arrays
-        (xs, xe), (ys, ye) = self.day.getRanges()
-        self.bsolver = npy.empty((xe-xs, self.grid.nv), dtype=npy.complex128)
-                                 
         (xs, xe), (ys, ye) = self.dax.getRanges()
         self.tfft    = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex128)
         
@@ -66,83 +63,70 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         self.solvers = [splu(self.formSparsePreconditionerMatrix(eigen[i+xs])) for i in range(0, xe-xs)]
         
         
-    cdef fft(self, Vec X, Vec YR, Vec YI):
+    cdef fft(self, Vec X, Vec Y):
         # Fourier Transform for each v
         
-        cdef npy.uint64_t i, j
-        cdef npy.uint64_t n1, n2, n3
         cdef npy.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
+        dshape = (ye-ys, xe-xs)
+        
+        (xs, xe), (ys, ye) = self.cax.getRanges()
+        
         assert xs == 0
-        assert xe == self.grid.nx
+        assert xe == self.grid.nx//2+1
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] x  = self.dax.getGlobalArray(X)
-        cdef npy.ndarray[npy.float64_t, ndim=2] yr = self.dax.getGlobalArray(YR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] yi = self.dax.getGlobalArray(YI)
+        cdef npy.ndarray[npy.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
+        cdef npy.ndarray[npy.complex128_t, ndim=2] y
         
-        cdef npy.ndarray[npy.complex128_t, ndim=2] z
+        y = rfft(x, axis=1)
         
-        z = fft(x, axis=0)
-        
-        yr[:,:] = z.real
-        yi[:,:] = z.imag
-        
+        (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(Y.getArray()))[...] = y
+
     
-    cdef ifft(self, Vec XR, Vec XI, Vec Y):
+    cdef ifft(self, Vec X, Vec Y):
         # inverse Fourier Transform for each v
         
-        cdef npy.uint64_t i, j
-        cdef npy.uint64_t n1, n2, n3
         cdef npy.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
+        dshape = (ye-ys, xe-xs)
+        
+        (xs, xe), (ys, ye) = self.cax.getRanges()
+        
         assert xs == 0
-        assert xe == self.grid.nx
+        assert xe == self.grid.nx//2+1
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] xr = self.dax.getGlobalArray(XR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] xi = self.dax.getGlobalArray(XI)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.dax.getGlobalArray(Y)
+        cdef npy.ndarray[npy.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
+        cdef npy.ndarray[npy.complex128_t, ndim=2] x = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
+        x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(X.getArray()))
         
-        cdef npy.ndarray[npy.complex128_t, ndim=2] z = self.tfft
-        
-        z[:,:].real = xr
-        z[:,:].imag = xi
-        
-        y[:,:] = ifft(z, axis=0).real
+        y[:,:] = irfft(x, axis=1)
         
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef solve(self, Vec XR, Vec XI, Vec YR, Vec YI):
+    cdef solve(self, Vec X):
         # solve system for each x
         
         cdef npy.int64_t i, j
         cdef npy.int64_t xe, xs, ye, ys
         
-        (xs, xe), (ys, ye) = self.day.getRanges()
+        (ys, ye), (xs, xe) = self.cay.getRanges()
         
         assert ys == 0
         assert ye == self.grid.nv
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] xr = self.day.getGlobalArray(XR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] xi = self.day.getGlobalArray(XI)
-        cdef npy.ndarray[npy.float64_t, ndim=2] yr = self.day.getGlobalArray(YR)
-        cdef npy.ndarray[npy.float64_t, ndim=2] yi = self.day.getGlobalArray(YI)
-        
-        cdef npy.ndarray[npy.complex128_t, ndim=2] b = self.bsolver
-        cdef npy.ndarray[npy.complex128_t, ndim=1] c
-        
-        b[:,:].real = xr
-        b[:,:].imag = xi
+        cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty(((xe-xs),(ye-ys)), dtype=npy.complex128)
+        cdef npy.ndarray[npy.complex128_t, ndim=2] x = npy.empty(((xe-xs),(ye-ys)), dtype=npy.complex128) 
+        x[...] = (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))
         
         for i in range(0, xe-xs):
-            c = self.solvers[i].solve(b[i,:])
+            y[i,:] = self.solvers[i].solve(x[i,:])
             
-            yr[i,:] = c.real
-            yi[i,:] = c.imag
+        (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))[...] = y
         
 
     cdef formSparsePreconditionerMatrix(self, npy.complex eigen):
@@ -174,42 +158,38 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
-        cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions = 0.
-        cdef npy.float64_t regularisation = 0.
-        
-        self.get_data_arrays()
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
+        cdef double coll_drag, coll_diff
+        cdef double collisions     = 0.
+        cdef double regularisation = 0.
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        cdef double[:,:] fd    = self.da1.getLocalArray(F, self.localFd)
+        cdef double[:,:] y     = self.da1.getGlobalArray(Y)
+        cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
-                                                                + 0.5 * (self.h2p + self.h2h)
-        
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
-        cdef npy.ndarray[npy.float64_t, ndim=1] u     = self.up
-        cdef npy.ndarray[npy.float64_t, ndim=1] a     = self.ap
+        cdef double[:] v = self.grid.v
+        cdef double[:] u = self.Up.getArray()
+        cdef double[:] a = self.Ap.getArray()
         
         
-        for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
-            iy = i-xs
-            
-            # Vlasov equation
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
 
-                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                    # Dirichlet Boundary Conditions
-                    y[iy, jy] = fd[ix, jx]
-                    
-                else:
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy] = fd[self.grid.stencil:xe-xs+self.grid.stencil, jx]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
+            
                     # Arakawa's J1
                     jpp_J1 = (fd[ix+1, jx  ] - fd[ix-1, jx  ]) * (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) \
                            - (fd[ix,   jx+1] - fd[ix,   jx-1]) * (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ])
@@ -241,7 +221,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
                     # collision operator
@@ -252,7 +232,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                         
                         collisions = \
                               - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv
                     
                     # regularisation
                     if self.regularisation != 0.:
@@ -274,46 +254,46 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
-        cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions = 0.
-        cdef npy.float64_t regularisation = 0.
-        
-        self.get_data_arrays()
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
+        cdef double coll_drag, coll_diff
+        cdef double collisions     = 0.
+        cdef double regularisation = 0.
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        self.Fave.set(0.)
+        self.Fave.axpy(0.5, self.Fh)
+        self.Fave.axpy(0.5, F)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
-        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
-                                                                + 0.5 * (self.h2p + self.h2h)
+        cdef double[:,:] y     = self.da1.getGlobalArray(Y)
+        cdef double[:,:] fp    = self.da1.getLocalArray(F, self.localFp)
+        cdef double[:,:] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
+        cdef double[:,:] f_ave = self.da1.getLocalArray(self.Fave, self.localFave)
+        cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
-        cdef npy.ndarray[npy.float64_t, ndim=1] up    = self.up
-        cdef npy.ndarray[npy.float64_t, ndim=1] ap    = self.ap
-        cdef npy.ndarray[npy.float64_t, ndim=1] uh    = self.uh
-        cdef npy.ndarray[npy.float64_t, ndim=1] ah    = self.ah
+        cdef double[:] v  = self.grid.v
+        cdef double[:] up = self.Up.getArray()
+        cdef double[:] uh = self.Uh.getArray()
+        cdef double[:] ap = self.Ap.getArray()
+        cdef double[:] ah = self.Ah.getArray()
         
         
-        for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
-            iy = i-xs
-            
-            # Vlasov equation
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
 
-                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                    # Dirichlet Boundary Conditions
-                    y[iy, jy] = fp[ix, jx]
-                    
-                else:
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy] = fp[self.grid.stencil:xe-xs+self.grid.stencil, jx]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
+            
                     # Arakawa's J1
                     jpp_J1 = (f_ave[ix+1, jx  ] - f_ave[ix-1, jx  ]) * (h_ave[ix,   jx+1] - h_ave[ix,   jx-1]) \
                            - (f_ave[ix,   jx+1] - f_ave[ix,   jx-1]) * (h_ave[ix+1, jx  ] - h_ave[ix-1, jx  ])

@@ -6,6 +6,8 @@ Created on Jul 10, 2012
 
 cimport numpy as npy
 
+ctypedef npy.complex128_t dcomplex
+
 from petsc4py.PETSc cimport Mat, Vec
 
 from pyfftw.pyfftw          cimport FFTW
@@ -20,7 +22,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     cdef list solvers
     
-    cdef npy.ndarray bsolver
     cdef npy.ndarray tfft
     
     cdef formSparsePreconditionerMatrix(self, npy.complex eigen)

@@ -20,18 +20,48 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     finite-difference time-derivative and Arakawa's J4
     discretisation of the Poisson brackets (J4=2J1-J2).
     '''
+
+    def __init__(self,
+                 VIDA da1  not None,
+                 Grid grid not None,
+                 Vec H0  not None,
+                 Vec H1p not None,
+                 Vec H1h not None,
+                 Vec H2p not None,
+                 Vec H2h not None,
+                 npy.float64_t charge=-1.,
+                 npy.float64_t coll_freq=0.,
+                 npy.float64_t coll_diff=1.,
+                 npy.float64_t coll_drag=1.,
+                 npy.float64_t regularisation=0.):
+        '''
+        Constructor
+        '''
+        
+        super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
+        
+        # create local vectors
+        self.localH0  = da1.createLocalVec()
+        self.localH1p = da1.createLocalVec()
+        self.localH1h = da1.createLocalVec()
+        self.localH2p = da1.createLocalVec()
+        self.localH2h = da1.createLocalVec()
+
+
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
-        cdef npy.int64_t i, j, ix
+        cdef npy.int64_t i, j, ix, jx
         cdef npy.int64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        self.get_data_arrays()
+        cdef npy.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef npy.ndarray[double, ndim=2] h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        cdef npy.ndarray[double, ndim=2] h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] hh = self.h0 + self.h1h + self.h2h
+        cdef double[:,:] hh = h0 + h1h + h2h
         
         
 #         cdef npy.float64_t time_fac    = 0.
@@ -121,38 +151,37 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        
-        self.get_data_arrays()
-#         self.get_data_arrays_jacobian()
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        cdef double[:,:] fd    = self.da1.getLocalArray(F, self.localFd)
+        cdef double[:,:] y     = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] hh = self.h0 + self.h1h + self.h2h
+        cdef npy.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef npy.ndarray[double, ndim=2] h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        cdef npy.ndarray[double, ndim=2] h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
         
-        for i in range(xs, xe):
-            ix = i-xs+2
-            iy = i-xs
-            
-            # Vlasov equation
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+        cdef double[:,:] hh = h0 + h1h + h2h
+        
 
-                if j <= 1 or j >= self.grid.nv-2:
-                    # Dirichlet Boundary Conditions
-                    y[iy, jy] = fd[ix, jx]
-                    
-                else:
-                    ### TODO ###
-                    ### collision operator not complete ###
-                    ### TODO ###
-                    
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
+
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy] = fd[self.grid.stencil:xe-xs+self.grid.stencil, jx]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
+            
+                    # Arakawa's J1
                     jpp_J1 = (fd[ix+1, jx  ] - fd[ix-1, jx  ]) * (hh[ix,   jx+1] - hh[ix,   jx-1]) \
                            - (fd[ix,   jx+1] - fd[ix,   jx-1]) * (hh[ix+1, jx  ] - hh[ix-1, jx  ])
                     
@@ -166,6 +195,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                            - fd[ix-1, jx+1] * (hh[ix,   jx+1] - hh[ix-1, jx  ]) \
                            + fd[ix+1, jx-1] * (hh[ix+1, jx  ] - hh[ix,   jx-1])
                     
+                    # Arakawa's J2
                     jcc_J2 = (fd[ix+1, jx+1] - fd[ix-1, jx-1]) * (hh[ix-1, jx+1] - hh[ix+1, jx-1]) \
                            - (fd[ix-1, jx+1] - fd[ix+1, jx-1]) * (hh[ix+1, jx+1] - hh[ix-1, jx-1])
                     
@@ -182,10 +212,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-         
-         
+                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
+                    
+                    # solution
                     y[iy, jy] = fd[ix, jx] * self.grid.ht_inv \
-                             + 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
+                              + poisson
     
     
     
@@ -196,40 +227,45 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        
-        self.get_data_arrays()
-#         self.get_data_arrays_function()
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        cdef double[:,:] y     = self.da1.getGlobalArray(Y)
+        cdef double[:,:] fp    = self.da1.getLocalArray(F, self.localFp)
+        cdef double[:,:] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fh = self.fh
-        cdef npy.ndarray[npy.float64_t, ndim=2] hp = self.h0 + self.h1p + self.h2p
-        cdef npy.ndarray[npy.float64_t, ndim=2] hh = self.h0 + self.h1h + self.h2h
+        cdef npy.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef npy.ndarray[double, ndim=2] h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
+        cdef npy.ndarray[double, ndim=2] h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+        cdef npy.ndarray[double, ndim=2] h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
+        cdef npy.ndarray[double, ndim=2] h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        
+        cdef double[:,:] hp = h0 + h1p + h2p
+        cdef double[:,:] hh = h0 + h1h + h2h
         
         
-        for i in range(xs, xe):
-            ix = i-xs+2
-            iy = i-xs
-            
-            # Vlasov equation
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
 
-                if j <= 1 or j >= self.grid.nv-2:
-                    # Dirichlet Boundary Conditions
-                    y[iy, jy] = fp[ix, jx]
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy] = fp[self.grid.stencil:xe-xs+self.grid.stencil, jx]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
                     
-                else:
+                    # time derivative
                     y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv
                     
-
+                    
+                    # Arakawa's J1 (fp,hh)
                     jpp_J1 = (fp[ix+1, jx  ] - fp[ix-1, jx  ]) * (hh[ix,   jx+1] - hh[ix,   jx-1]) \
                            - (fp[ix,   jx+1] - fp[ix,   jx-1]) * (hh[ix+1, jx  ] - hh[ix-1, jx  ])
                     
@@ -243,6 +279,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                            - fp[ix-1, jx+1] * (hh[ix,   jx+1] - hh[ix-1, jx  ]) \
                            + fp[ix+1, jx-1] * (hh[ix+1, jx  ] - hh[ix,   jx-1])
                     
+                    # Arakawa's J2 (fp,hh)
                     jcc_J2 = (fp[ix+1, jx+1] - fp[ix-1, jx-1]) * (hh[ix-1, jx+1] - hh[ix+1, jx-1]) \
                            - (fp[ix-1, jx+1] - fp[ix+1, jx-1]) * (hh[ix+1, jx+1] - hh[ix-1, jx-1])
                     
@@ -260,9 +297,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
                     
+                    # Arakawa's J4 (fp,hh)
                     y[iy, jy] += 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
+                    # Arakawa's J1 (fh,hp)
                     jpp_J1 = (fh[ix+1, jx  ] - fh[ix-1, jx  ]) * (hp[ix,   jx+1] - hp[ix,   jx-1]) \
                            - (fh[ix,   jx+1] - fh[ix,   jx-1]) * (hp[ix+1, jx  ] - hp[ix-1, jx  ])                    
                     
@@ -276,6 +315,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                            - fh[ix-1, jx+1] * (hp[ix,   jx+1] - hp[ix-1, jx  ]) \
                            + fh[ix+1, jx-1] * (hp[ix+1, jx  ] - hp[ix,   jx-1])
                     
+                    # Arakawa's J2 (fh,hp)
                     jcc_J2 = (fh[ix+1, jx+1] - fh[ix-1, jx-1]) * (hp[ix-1, jx+1] - hp[ix+1, jx-1]) \
                            - (fh[ix-1, jx+1] - fh[ix+1, jx-1]) * (hp[ix+1, jx+1] - hp[ix-1, jx-1])
                     
@@ -293,4 +333,5 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
                     
+                    # Arakawa's J4 (fh,hp)
                     y[iy, jy] += 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv

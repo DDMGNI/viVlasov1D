@@ -11,7 +11,3 @@ from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     pass
-
-#     cdef function(self, Vec Y)
-#     cdef jacobian(self, Vec Y)
-    

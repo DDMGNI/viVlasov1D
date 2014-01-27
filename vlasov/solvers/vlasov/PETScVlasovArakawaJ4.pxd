@@ -6,12 +6,16 @@ Created on Jul 10, 2012
 
 from petsc4py.PETSc cimport Mat, Vec
 
+from vlasov.toolbox.Grid    cimport Grid
+from vlasov.toolbox.VIDA    cimport VIDA
+
 from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
-    pass
 
-#     cdef function(self, Vec Y)
-#     cdef jacobian(self, Vec Y)
-    
+    cdef Vec localH0
+    cdef Vec localH1p
+    cdef Vec localH1h
+    cdef Vec localH2p
+    cdef Vec localH2h

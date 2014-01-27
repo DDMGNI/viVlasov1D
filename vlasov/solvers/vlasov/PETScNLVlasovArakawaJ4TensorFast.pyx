@@ -132,13 +132,12 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
 #          
 #         cshape = (ye-ys, xe-xs)
 #           
+#         cdef npy.ndarray[npy.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
 #         cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
-#         cdef npy.ndarray[npy.float64_t, ndim=2] x = X.getArray().reshape(dshape, order='c')
 #          
 #         self.fftw_plan(input_array=x, output_array=y)
 #  
-#         cdef npy.ndarray[npy.float64_t,    ndim=1] ty = Y.getArray()
-#         (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(ty))[...] = self.fftw_out
+#         (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(Y.getArray()))[...] = y
         
         # This code calls directly into FFTW passing the array
         # buffers of the input and output vectors.
@@ -173,11 +172,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
 #              
 #         cshape = (ye-ys, xe-xs)
 #               
-#         cdef npy.ndarray[npy.float64_t,    ndim=1] tx = X.getArray()
+#         cdef npy.ndarray[npy.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
 #         cdef npy.ndarray[npy.complex128_t, ndim=2] x  = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
-#         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(tx))
-#           
-#         cdef npy.ndarray[npy.float64_t, ndim=2]    y = Y.getArray().reshape(dshape, order='c')
+#         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(X.getArray()))
 #              
 #         self.ifftw_plan(input_array=x, output_array=y)
         

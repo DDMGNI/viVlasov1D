@@ -186,7 +186,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
                     # collision operator
