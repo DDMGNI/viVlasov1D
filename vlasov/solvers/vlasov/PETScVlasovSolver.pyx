@@ -1,3 +1,4 @@
+# cython: profile=True
 '''
 Created on June 05, 2013
 
@@ -66,6 +67,10 @@ cdef class PETScVlasovSolverBase(object):
         self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
         
+        # averages
+        self.Fave = self.da1.createGlobalVec()
+        self.Have = self.da1.createGlobalVec()
+        
         # moments
         self.Np  = None
         self.Up  = None
@@ -78,15 +83,33 @@ cdef class PETScVlasovSolverBase(object):
         self.Ah  = None
         
         # create local vectors
-        self.localH0  = da1.createLocalVec()
-        self.localH1p = da1.createLocalVec()
-        self.localH1h = da1.createLocalVec()
-        self.localH2p = da1.createLocalVec()
-        self.localH2h = da1.createLocalVec()
+#         self.localH0  = da1.createLocalVec()
+#         self.localH1p = da1.createLocalVec()
+#         self.localH1h = da1.createLocalVec()
+#         self.localH2p = da1.createLocalVec()
+#         self.localH2h = da1.createLocalVec()
 
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
         self.localFd  = da1.createLocalVec()
+        
+        self.localFave = self.da1.createLocalVec()
+        self.localHave = self.da1.createLocalVec()
+        
+        
+    def __dealloc__(self):
+        self.Fp.destroy()
+        self.Fh.destroy()
+    
+        self.Fave.destroy()
+        self.Have.destroy()
+        
+        self.localFp.destroy()
+        self.localFh.destroy()
+        self.localFd.destroy()
+        
+        self.localFave.destroy()
+        self.localHave.destroy()
         
     
     def set_moments(self, Vec Np, Vec Up, Vec Ep, Vec Ap, Vec Nh, Vec Uh, Vec Eh, Vec Ah):
@@ -106,6 +129,12 @@ cdef class PETScVlasovSolverBase(object):
     
     def update_previous(self, Vec F):
         F.copy(self.Fp)
+        
+        self.H0.copy(self.Have)
+        self.Have.axpy(.5, self.H1p)
+        self.Have.axpy(.5, self.H1h)
+        self.Have.axpy(.5, self.H2p)
+        self.Have.axpy(.5, self.H2h)
         
     
     cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
@@ -128,30 +157,30 @@ cdef class PETScVlasovSolverBase(object):
         self.function(X, Y)
         
     
-    cdef get_data_arrays(self):
-        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
-        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-        self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
-        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
-        
-        self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
-        self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
-        
-        self.np  = self.Np.getArray()
-        self.up  = self.Up.getArray()
-        self.ep  = self.Ep.getArray()
-        self.ap  = self.Ap.getArray()
-        
-        self.nh  = self.Nh.getArray()
-        self.uh  = self.Uh.getArray()
-        self.eh  = self.Eh.getArray()
-        self.ah  = self.Ah.getArray()
-
-
-    cdef get_data_arrays_jacobian(self):
-        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
-        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-        self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
-        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+#     cdef get_data_arrays(self):
+#         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+#         self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
+#         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+#         self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
+#         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+#         
+#         self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
+#         self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
+#         
+#         self.np  = self.Np.getArray()
+#         self.up  = self.Up.getArray()
+#         self.ep  = self.Ep.getArray()
+#         self.ap  = self.Ap.getArray()
+#         
+#         self.nh  = self.Nh.getArray()
+#         self.uh  = self.Uh.getArray()
+#         self.eh  = self.Eh.getArray()
+#         self.ah  = self.Ah.getArray()
+# 
+# 
+#     cdef get_data_arrays_jacobian(self):
+#         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
+#         self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
+#         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
+#         self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
+#         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)

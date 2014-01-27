@@ -17,9 +17,14 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef VIDA dax
     cdef VIDA day
     
+    cdef VIDA cax
+    cdef VIDA cay
+    
     cdef Vec B
     cdef Vec X
     cdef Vec F
+    cdef Vec Z
+    
     cdef Vec FfftR
     cdef Vec FfftI
     cdef Vec BfftR
@@ -28,7 +33,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef Vec CfftI
     cdef Vec ZfftR
     cdef Vec ZfftI
-    cdef Vec Z
+    
     
     cpdef jacobian(self, Vec F, Vec Y)
     cpdef function(self, Vec F, Vec Y)
@@ -37,8 +42,9 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     
     cdef copy_da1_to_dax(self, Vec X, Vec Y)
     cdef copy_dax_to_da1(self, Vec X, Vec Y)
-    cdef copy_dax_to_day(self, Vec X, Vec Y)
-    cdef copy_day_to_dax(self, Vec X, Vec Y)
+    
+    cdef copy_cax_to_cay(self, Vec X, Vec Y)
+    cdef copy_cay_to_cax(self, Vec X, Vec Y)
     
     cdef fft (self, Vec X, Vec YR, Vec YI)
     cdef ifft(self, Vec XR, Vec XI, Vec Y)

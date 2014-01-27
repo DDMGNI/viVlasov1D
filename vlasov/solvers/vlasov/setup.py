@@ -13,16 +13,17 @@ from os.path import join, isdir
 INCLUDE_DIRS = []
 LIBRARY_DIRS = []
 LIBRARIES    = []
-CARGS        = ['-axavx']
+CARGS        = ['-axavx', '-std=c99']
 LARGS        = []
 
 # FFTW
 FFTW_DIR  = os.environ['FFTW_HOME']
 
-INCLUDE_DIRS += [join(FFTW_DIR, 'include')]
-LIBRARY_DIRS += [join(FFTW_DIR, 'lib')]
-
-LIBRARIES    += ['fftw3']
+if FFTW_DIR:
+    INCLUDE_DIRS += [join(FFTW_DIR, 'include')]
+    LIBRARY_DIRS += [join(FFTW_DIR, 'lib')]
+    
+    LIBRARIES    += ['fftw3']
 
 
 # PETSc
@@ -170,15 +171,15 @@ ext_modules = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
-        Extension("PETScNLVlasovArakawaJ4TensorPETSc",
-                  sources=["PETScNLVlasovArakawaJ4TensorPETSc.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
-                  libraries=LIBRARIES,
-                  library_dirs=LIBRARY_DIRS,
-                  runtime_library_dirs=LIBRARY_DIRS,
-                  extra_compile_args=CARGS,
-                  extra_link_args=LARGS
-                 ),
+#         Extension("PETScNLVlasovArakawaJ4TensorPETSc",
+#                   sources=["PETScNLVlasovArakawaJ4TensorPETSc.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS,
+#                   extra_compile_args=CARGS,
+#                   extra_link_args=LARGS
+#                  ),
         Extension("PETScNLVlasovArakawaJ4TensorSciPy",
                   sources=["PETScNLVlasovArakawaJ4TensorSciPy.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],

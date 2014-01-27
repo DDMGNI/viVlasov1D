@@ -6,6 +6,12 @@ Created on Jul 10, 2012
 
 cimport numpy as npy
 
+from libc.stdint cimport intptr_t
+
+ctypedef npy.complex128_t dcomplex
+ctypedef double cdouble[2]
+
+
 from petsc4py.PETSc         cimport Vec
 
 from pyfftw.pyfftw          cimport FFTW
@@ -18,10 +24,20 @@ from vlasov.solvers.vlasov.PETScVlasovPreconditioner cimport PETScVlasovPrecondi
 
 cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
-    cdef npy.ndarray matrices
-    cdef npy.ndarray rhs
-    cdef npy.ndarray pivots
+    cdef dcomplex[:,:,:] matrices
+    cdef dcomplex[:,:,:] rhs
+    cdef int[:,:] pivots
+    cdef npy.ndarray rhs_arr
     
+    
+#     cdef dcomplex[:,:] fftw_in
+#     cdef dcomplex[:,:] fftw_out
+#     cdef dcomplex[:,:] ifftw_in
+#     cdef dcomplex[:,:] ifftw_out
+#     cdef cdouble[:,:] fftw_in
+#     cdef cdouble[:,:] fftw_out
+#     cdef cdouble[:,:] ifftw_in
+#     cdef cdouble[:,:] ifftw_out
     cdef npy.ndarray fftw_in
     cdef npy.ndarray fftw_out
     cdef npy.ndarray ifftw_in
@@ -41,14 +57,13 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef char T
     
     
-    cdef call_zgbtrf(self, npy.ndarray A, npy.ndarray IPIV)
+    cdef call_zgbtrf(self, dcomplex[:,:] matrix, int[:] pivots)
+    cdef call_zgbtrs(self, dcomplex[:,:] matrix, dcomplex[:,:] rhs, int[:] pivots)    
     
-    cdef call_zgbtrs(self, npy.ndarray[npy.complex128_t, ndim=2] matrix,
-                           npy.ndarray[npy.complex128_t, ndim=2] rhs,
-                           npy.ndarray[npy.int64_t, ndim=1] pivots)    
-    
-    cdef formBandedPreconditionerMatrix(self, npy.ndarray matrix, npy.complex eigen)
+    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, npy.complex eigen)
     
 
 cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int* LDA, int* IPIV, int* INFO)
 cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, double complex* A, int* LDA, int* IPIV, double complex* B, int* LDB, int* INFO)
+# cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, cdouble* A, int* LDA, int* IPIV, int* INFO)
+# cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, cdouble* A, int* LDA, int* IPIV, cdouble* B, int* LDB, int* INFO)
