@@ -14,13 +14,6 @@ from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
-    cdef VIDA dax
-    cdef VIDA day
-
-    cdef Vec X
-    cdef Vec B
-    cdef Vec F
-    
     cdef dict xvecs
     cdef dict yvecs
     cdef dict pmats

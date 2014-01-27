@@ -9,7 +9,6 @@ cimport numpy as npy
 from libc.stdint cimport intptr_t
 
 ctypedef npy.complex128_t dcomplex
-ctypedef double cdouble[2]
 
 
 from petsc4py.PETSc         cimport Vec
@@ -29,20 +28,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef int[:,:] pivots
     cdef npy.ndarray rhs_arr
     
-    
-#     cdef dcomplex[:,:] fftw_in
-#     cdef dcomplex[:,:] fftw_out
-#     cdef dcomplex[:,:] ifftw_in
-#     cdef dcomplex[:,:] ifftw_out
-#     cdef cdouble[:,:] fftw_in
-#     cdef cdouble[:,:] fftw_out
-#     cdef cdouble[:,:] ifftw_in
-#     cdef cdouble[:,:] ifftw_out
-    cdef npy.ndarray fftw_in
-    cdef npy.ndarray fftw_out
-    cdef npy.ndarray ifftw_in
-    cdef npy.ndarray ifftw_out
-    
     cdef FFTW fftw_plan
     cdef FFTW ifftw_plan
     
@@ -58,12 +43,21 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     
     cdef call_zgbtrf(self, dcomplex[:,:] matrix, int[:] pivots)
-    cdef call_zgbtrs(self, dcomplex[:,:] matrix, dcomplex[:,:] rhs, int[:] pivots)    
+    cdef call_zgbtrs(self, dcomplex[:,:] matrix, dcomplex[:] rhs, int[:] pivots)    
     
     cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, npy.complex eigen)
     
 
 cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int* LDA, int* IPIV, int* INFO)
 cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, double complex* A, int* LDA, int* IPIV, double complex* B, int* LDB, int* INFO)
-# cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, cdouble* A, int* LDA, int* IPIV, int* INFO)
-# cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, cdouble* A, int* LDA, int* IPIV, cdouble* B, int* LDB, int* INFO)
+
+
+cdef extern from 'fftw3.h':
+    ctypedef struct fftw_plan_struct:
+        pass
+
+    ctypedef fftw_plan_struct* fftw_plan
+
+    void fftw_execute_dft_r2c(fftw_plan, double* _in, double complex* _out)
+    void fftw_execute_dft_c2r(fftw_plan, double complex* _in, double* _out)    
+
