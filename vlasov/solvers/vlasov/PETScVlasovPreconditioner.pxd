@@ -25,14 +25,10 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef Vec F
     cdef Vec Z
     
-    cdef Vec FfftR
-    cdef Vec FfftI
-    cdef Vec BfftR
-    cdef Vec BfftI
-    cdef Vec CfftR
-    cdef Vec CfftI
-    cdef Vec ZfftR
-    cdef Vec ZfftI
+    cdef Vec Ffft
+    cdef Vec Bfft
+    cdef Vec Cfft
+    cdef Vec Zfft
     
     
     cpdef jacobian(self, Vec F, Vec Y)
@@ -46,10 +42,10 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef copy_cax_to_cay(self, Vec X, Vec Y)
     cdef copy_cay_to_cax(self, Vec X, Vec Y)
     
-    cdef fft (self, Vec X, Vec YR, Vec YI)
-    cdef ifft(self, Vec XR, Vec XI, Vec Y)
+    cdef fft (self, Vec X, Vec Y)
+    cdef ifft(self, Vec X, Vec Y)
 
-    cdef solve(self, Vec XR, Vec XI, Vec YR, Vec YI)
+    cdef solve(self, Vec X, Vec Y)
     
     cdef jacobianSolver(self, Vec F, Vec Y)
     cdef functionSolver(self, Vec F, Vec Y)

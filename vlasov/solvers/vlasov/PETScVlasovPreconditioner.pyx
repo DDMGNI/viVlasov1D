@@ -54,14 +54,14 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                                  stencil_width=2,
                                  stencil_type='box')
         
-        self.cax = VIDA().create(dim=2, dof=1,
+        self.cax = VIDA().create(dim=2, dof=2,
                                  sizes=[int(self.grid.nx/2)+1, self.grid.nv],
                                  proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                  boundary_type=['periodic', 'ghosted'],
                                  stencil_width=2,
                                  stencil_type='box')
         
-        self.cay = VIDA().create(dim=2, dof=1,
+        self.cay = VIDA().create(dim=2, dof=2,
                                  sizes=[int(self.grid.nx/2)+1, self.grid.nv],
                                  proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
                                  boundary_type=['periodic', 'ghosted'],
@@ -70,19 +70,15 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         
         # interim vectors
-        self.B     = self.da1.createGlobalVec()
-        self.X     = self.da1.createGlobalVec()
-        self.F     = self.dax.createGlobalVec()
-        self.Z     = self.dax.createGlobalVec()
+        self.B    = self.da1.createGlobalVec()
+        self.X    = self.da1.createGlobalVec()
+        self.F    = self.dax.createGlobalVec()
+        self.Z    = self.dax.createGlobalVec()
         
-        self.FfftR = self.cax.createGlobalVec()
-        self.FfftI = self.cax.createGlobalVec()
-        self.BfftR = self.cay.createGlobalVec()
-        self.BfftI = self.cay.createGlobalVec()
-        self.CfftR = self.cay.createGlobalVec()
-        self.CfftI = self.cay.createGlobalVec()
-        self.ZfftR = self.cax.createGlobalVec()
-        self.ZfftI = self.cax.createGlobalVec()
+        self.Ffft = self.cax.createGlobalVec()
+        self.Bfft = self.cay.createGlobalVec()
+        self.Cfft = self.cay.createGlobalVec()
+        self.Zfft = self.cax.createGlobalVec()
         
         
     def __dealloc__(self):
@@ -91,14 +87,10 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         self.F.destroy()
         self.Z.destroy()
         
-        self.FfftR.destroy()
-        self.FfftI.destroy()
-        self.BfftR.destroy()
-        self.BfftI.destroy()
-        self.CfftR.destroy()
-        self.CfftI.destroy()
-        self.ZfftR.destroy()
-        self.ZfftI.destroy()
+        self.Ffft.destroy()
+        self.Bfft.destroy()
+        self.Cfft.destroy()
+        self.Zfft.destroy()
         
         self.dax.destroy()
         self.day.destroy()
@@ -122,18 +114,15 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         self.copy_da1_to_dax(X, self.F)                  # copy X(da1) to F(dax)
         
-        self.fft(self.F, self.FfftR, self.FfftI)         # FFT F for each v
+        self.fft(self.F, self.Ffft)                      # FFT F for each v
         
-        self.copy_cax_to_cay(self.FfftR, self.BfftR)     # copy F'(dax) to B'(day)
-        self.copy_cax_to_cay(self.FfftI, self.BfftI)     # copy F'(dax) to B'(day)
+        self.copy_cax_to_cay(self.Ffft, self.Bfft)       # copy F'(dax) to B'(day)
         
-        self.solve(self.BfftR, self.BfftI,
-                   self.CfftR, self.CfftI)               # solve AC'=B' for each x
+        self.solve(self.Bfft, self.Cfft)                 # solve AC'=B' for each x
         
-        self.copy_cay_to_cax(self.CfftR, self.ZfftR)     # copy C'(day) to Z'(dax)
-        self.copy_cay_to_cax(self.CfftI, self.ZfftI)     # copy C'(day) to Z'(dax)
+        self.copy_cay_to_cax(self.Cfft, self.Zfft)       # copy C'(day) to Z'(dax)
         
-        self.ifft(self.ZfftR, self.ZfftI, self.Z)        # iFFT Z' for each v
+        self.ifft(self.Zfft, self.Z)                     # iFFT Z' for each v
         
         self.copy_dax_to_da1(self.Z, Y)                  # copy Z(dax) to Y(da1)
         
@@ -142,12 +131,12 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] x
-        cdef npy.ndarray[npy.float64_t, ndim=2] y
+        cdef npy.ndarray[npy.float64_t, ndim=1] x
+        cdef npy.ndarray[npy.float64_t, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
-            x = self.da1.getGlobalArray(X)
-            y = self.dax.getGlobalArray(Y)
+            x = X.getArray()
+            y = Y.getArray()
             y[...] = x[...]
             
         else:
@@ -173,12 +162,12 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] x
-        cdef npy.ndarray[npy.float64_t, ndim=2] y
+        cdef npy.ndarray[npy.float64_t, ndim=1] x
+        cdef npy.ndarray[npy.float64_t, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
-            x = self.dax.getGlobalArray(X)
-            y = self.da1.getGlobalArray(Y)
+            x = X.getArray()
+            y = Y.getArray()
             y[...] = x[...]
         
         else:
@@ -203,21 +192,21 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
         (xsy, xey), (ysy, yey) = self.cay.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] x
-        cdef npy.ndarray[npy.float64_t, ndim=2] y
+        cdef npy.ndarray[npy.float64_t, ndim=1] x
+        cdef npy.ndarray[npy.float64_t, ndim=1] y
         
         if xsy == xsx and xey == xex and ysy == ysx and yey == yex:
-            x = self.cax.getGlobalArray(X)
-            y = self.cay.getGlobalArray(Y)
+            x = X.getArray()
+            y = Y.getArray()
             y[...] = x[...]
             
         else:
             aox = self.cax.getAO()
             aoy = self.cay.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
-            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
+            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
             
             aox.app2petsc(xpindices)
             aoy.app2petsc(ypindices)
@@ -233,21 +222,21 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
         (xsy, xey), (ysy, yey) = self.cay.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] x
-        cdef npy.ndarray[npy.float64_t, ndim=2] y
+        cdef npy.ndarray[npy.float64_t, ndim=1] x
+        cdef npy.ndarray[npy.float64_t, ndim=1] y
         
         if xsy == xsx and xey == xex and ysy == ysx and yey == yex:
-            x = self.cay.getGlobalArray(X)
-            y = self.cax.getGlobalArray(Y)
+            x = X.getArray()
+            y = Y.getArray()
             y[...] = x[...]
             
         else:
             aox = self.cax.getAO()
             aoy = self.cay.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
-            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx), ysx*(xex-xsx), 1)
+            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
             
             aox.app2petsc(xpindices)
             aoy.app2petsc(ypindices)
@@ -259,13 +248,13 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             scatter.destroy()
         
 
-    cdef fft (self, Vec X, Vec YR, Vec YI):
+    cdef fft (self, Vec X, Vec Y):
         print("ERROR: function not implemented.")
 
-    cdef ifft(self, Vec XR, Vec XI, Vec Y):
+    cdef ifft(self, Vec X, Vec Y):
         print("ERROR: function not implemented.")
 
-    cdef solve(self, Vec XR, Vec XI, Vec YR, Vec YI):
+    cdef solve(self, Vec X, Vec Y):
         print("ERROR: function not implemented.")
 
     cdef jacobianSolver(self, Vec F, Vec Y):
