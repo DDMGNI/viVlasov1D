@@ -62,7 +62,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                                  stencil_type='box')
         
         self.cay = VIDA().create(dim=2, dof=2,
-                                 sizes=[int(self.grid.nx/2)+1, self.grid.nv],
+                                 sizes=[self.grid.nv, int(self.grid.nx/2)+1],
                                  proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
                                  boundary_type=['periodic', 'ghosted'],
                                  stencil_width=2,
@@ -143,7 +143,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             aox = self.dax.getAO()
             ao1 = self.da1.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             xpindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             ypindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             
@@ -174,7 +173,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             aox = self.dax.getAO()
             ao1 = self.da1.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             xpindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             ypindices  = PETSc.IS().createStride((yex-ysx)*self.grid.nx, ysx*self.grid.nx, 1)
             
@@ -190,7 +188,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
     cdef copy_cax_to_cay(self, Vec X, Vec Y):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
-        (xsy, xey), (ysy, yey) = self.cay.getRanges()
+        (ysy, yey), (xsy, xey) = self.cay.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=1] x
         cdef npy.ndarray[npy.float64_t, ndim=1] y
@@ -204,9 +202,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             aox = self.cax.getAO()
             aoy = self.cay.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
             xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            ypindices  = PETSc.IS().createStride((yey-ysy)*(xey-xsy)*2, ysy*(xey-xsy)*2, 1)
             
             aox.app2petsc(xpindices)
             aoy.app2petsc(ypindices)
@@ -220,7 +217,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     
     cdef copy_cay_to_cax(self, Vec X, Vec Y):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
-        (xsy, xey), (ysy, yey) = self.cay.getRanges()
+        (ysy, yey), (xsy, xey) = self.cay.getRanges()
         
         cdef npy.ndarray[npy.float64_t, ndim=1] x
         cdef npy.ndarray[npy.float64_t, ndim=1] y
@@ -234,9 +231,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
             aox = self.cax.getAO()
             aoy = self.cay.getAO()
             
-            appindices = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
             xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
-            ypindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
+            ypindices  = PETSc.IS().createStride((yey-ysy)*(xey-xsy)*2, ysy*(xey-xsy)*2, 1)
             
             aox.app2petsc(xpindices)
             aoy.app2petsc(ypindices)
