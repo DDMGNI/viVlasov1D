@@ -4,7 +4,7 @@ Created on Jul 10, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-from petsc4py.PETSc cimport Vec
+from petsc4py.PETSc cimport IS, Scatter, Vec
 
 from vlasov.toolbox.Grid    cimport Grid
 from vlasov.toolbox.VIDA    cimport VIDA
@@ -20,6 +20,12 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef VIDA cax
     cdef VIDA cay
     
+    cdef IS cxindices
+    cdef IS cyindices
+    
+    cdef Scatter xyScatter
+    cdef Scatter yxScatter
+    
     cdef Vec B
     cdef Vec X
     cdef Vec F
@@ -27,7 +33,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     
     cdef Vec Ffft
     cdef Vec Bfft
-    cdef Vec Cfft
     cdef Vec Zfft
     
     
@@ -45,7 +50,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef fft (self, Vec X, Vec Y)
     cdef ifft(self, Vec X, Vec Y)
 
-    cdef solve(self, Vec X, Vec Y)
+    cdef solve(self, Vec X)
     
     cdef jacobianSolver(self, Vec F, Vec Y)
     cdef functionSolver(self, Vec F, Vec Y)

@@ -63,7 +63,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         self.cay = VIDA().create(dim=2, dof=2,
                                  sizes=[self.grid.nv, int(self.grid.nx/2)+1],
-                                 proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
+                                 proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                  boundary_type=['periodic', 'ghosted'],
                                  stencil_width=2,
                                  stencil_type='box')
@@ -77,11 +77,51 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         self.Ffft = self.cax.createGlobalVec()
         self.Bfft = self.cay.createGlobalVec()
-        self.Cfft = self.cay.createGlobalVec()
         self.Zfft = self.cax.createGlobalVec()
         
         
+        # create xy-yx scatter objects
+        cdef npy.uint64_t i, j, k
+        cdef npy.uint64_t xsx, xex, ysx, yex
+        cdef npy.uint64_t ysy, yey, xsy, xey 
+        
+        (xsx, xex), (ysx, yex) = self.cax.getRanges()
+        (ysy, yey), (xsy, xey) = self.cay.getRanges()
+        
+        cdef npy.uint64_t nx = int(self.grid.nx/2)+1
+        cdef npy.uint64_t nv = self.grid.nv
+        
+        assert xsx == 0
+        assert xex == nx
+        
+        aox = self.cax.getAO()
+        aoy = self.cay.getAO()
+        
+        nindices = (yex-ysx)*nx*2
+        
+        xindexlist = npy.empty(nindices, dtype=npy.int32)
+        yindexlist = npy.empty(nindices, dtype=npy.int32)
+        
+        for i in range(xsx, xex):
+            for j in range(ysx, yex):
+                for k in range(0,2):
+                    xindexlist[2*(j*nx + i) + k] = 2*(j*nx + i) + k
+                    yindexlist[2*(j*nx + i) + k] = 2*(i*nv + j) + k
+        
+        self.cxindices  = PETSc.IS().createGeneral(xindexlist)
+        self.cyindices  = PETSc.IS().createGeneral(yindexlist)
+        
+        aox.app2petsc(self.cxindices)
+        aoy.app2petsc(self.cyindices)
+    
+        self.xyScatter = PETSc.Scatter().create(self.Ffft, self.cxindices, self.Bfft, self.cyindices)
+        self.yxScatter = PETSc.Scatter().create(self.Bfft, self.cyindices, self.Zfft, self.cxindices)        
+        
+        
     def __dealloc__(self):
+        self.xyScatter.destroy()
+        self.yxScatter.destroy()
+        
         self.B.destroy()
         self.X.destroy()
         self.F.destroy()
@@ -89,7 +129,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         self.Ffft.destroy()
         self.Bfft.destroy()
-        self.Cfft.destroy()
         self.Zfft.destroy()
         
         self.dax.destroy()
@@ -118,9 +157,9 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         self.copy_cax_to_cay(self.Ffft, self.Bfft)       # copy F'(dax) to B'(day)
         
-        self.solve(self.Bfft, self.Cfft)                 # solve AC'=B' for each x
+        self.solve(self.Bfft)                            # solve AC'=B' for each x where C' is saved in B'
         
-        self.copy_cay_to_cax(self.Cfft, self.Zfft)       # copy C'(day) to Z'(dax)
+        self.copy_cay_to_cax(self.Bfft, self.Zfft)       # copy B'(day) to Z'(dax)
         
         self.ifft(self.Zfft, self.Z)                     # iFFT Z' for each v
         
@@ -187,61 +226,11 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         
     cdef copy_cax_to_cay(self, Vec X, Vec Y):
-        (xsx, xex), (ysx, yex) = self.cax.getRanges()
-        (ysy, yey), (xsy, xey) = self.cay.getRanges()
-        
-        cdef npy.ndarray[npy.float64_t, ndim=1] x
-        cdef npy.ndarray[npy.float64_t, ndim=1] y
-        
-        if xsy == xsx and xey == xex and ysy == ysx and yey == yex:
-            x = X.getArray()
-            y = Y.getArray()
-            y[...] = x[...]
-            
-        else:
-            aox = self.cax.getAO()
-            aoy = self.cay.getAO()
-            
-            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
-            ypindices  = PETSc.IS().createStride((yey-ysy)*(xey-xsy)*2, ysy*(xey-xsy)*2, 1)
-            
-            aox.app2petsc(xpindices)
-            aoy.app2petsc(ypindices)
-        
-            scatter = PETSc.Scatter().create(X, xpindices, Y, ypindices)
-            
-            scatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-            
-            scatter.destroy()
+        self.xyScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         
     
     cdef copy_cay_to_cax(self, Vec X, Vec Y):
-        (xsx, xex), (ysx, yex) = self.cax.getRanges()
-        (ysy, yey), (xsy, xey) = self.cay.getRanges()
-        
-        cdef npy.ndarray[npy.float64_t, ndim=1] x
-        cdef npy.ndarray[npy.float64_t, ndim=1] y
-        
-        if xsy == xsx and xey == xex and ysy == ysx and yey == yex:
-            x = X.getArray()
-            y = Y.getArray()
-            y[...] = x[...]
-            
-        else:
-            aox = self.cax.getAO()
-            aoy = self.cay.getAO()
-            
-            xpindices  = PETSc.IS().createStride((yex-ysx)*(xex-xsx)*2, ysx*(xex-xsx)*2, 1)
-            ypindices  = PETSc.IS().createStride((yey-ysy)*(xey-xsy)*2, ysy*(xey-xsy)*2, 1)
-            
-            aox.app2petsc(xpindices)
-            aoy.app2petsc(ypindices)
-        
-            scatter = PETSc.Scatter().create(X, ypindices, Y, xpindices)
-            
-            scatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
-            
-            scatter.destroy()
+        self.yxScatter.scatter(X, Y, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         
 
     cdef fft (self, Vec X, Vec Y):
@@ -250,7 +239,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef ifft(self, Vec X, Vec Y):
         print("ERROR: function not implemented.")
 
-    cdef solve(self, Vec X, Vec Y):
+    cdef solve(self, Vec X):
         print("ERROR: function not implemented.")
 
     cdef jacobianSolver(self, Vec F, Vec Y):

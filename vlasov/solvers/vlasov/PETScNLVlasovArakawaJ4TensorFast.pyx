@@ -186,7 +186,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef solve(self, Vec X, Vec Y):
+    cdef solve(self, Vec X):
         # solve system for each x
         
         cdef npy.int64_t i, j
@@ -197,26 +197,15 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         assert ys == 0
         assert ye == self.grid.nv
         
-        cdef npy.ndarray[npy.float64_t,    ndim=1] tx = X.getArray()
-        cdef npy.ndarray[npy.float64_t,    ndim=1] ty = Y.getArray()
-         
-        cdef dcomplex[::1,:] cx = (<dcomplex[:(xe-xs):1,:(ye-ys)]> npy.PyArray_DATA(tx))
-        
-        cdef npy.ndarray[npy.complex128_t, ndim=3] x_arr = self.rhs_arr
-        
-        cdef dcomplex[:,:] x = x_arr[0,:,:] 
-        x[...] = cx[...].T
+        cdef dcomplex[:,:] cx = (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))
         
         for i in range(0, xe-xs):
-            self.call_zgbtrs(self.matrices[:,:,i], x[:,i], self.pivots[:,i])
-        
-        (<dcomplex[:(xe-xs):1,:(ye-ys)]> npy.PyArray_DATA(ty))[:] = self.rhs_arr[0,:,:].T
-#         ty[...] = tx[...]
+            self.call_zgbtrs(self.matrices[:,:,i], cx[i,:], self.pivots[:,i])
         
     
     cdef call_zgbtrf(self, dcomplex[:,:] matrix, int[:] pivots):
         cdef int INFO = 0
-          
+        
         zgbtrf(&self.M, &self.N, &self.KL, &self.KU, &matrix[0,0], &self.LDA, &pivots[0], &INFO)
         
         return INFO
