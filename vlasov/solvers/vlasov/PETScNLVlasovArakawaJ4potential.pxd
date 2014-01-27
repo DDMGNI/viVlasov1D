@@ -6,12 +6,8 @@ Created on Jul 10, 2012
 
 from petsc4py.PETSc cimport Mat, Vec
 
-from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
+cimport vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4
 
 
-cdef class PETScVlasovSolverPotential(PETScVlasovSolverBase):
+cdef class PETScVlasovSolverPotential(vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4.PETScVlasovSolver):
     pass
-
-#     cdef function(self, Vec Y)
-#     cdef jacobian(self, Vec Y)
-    

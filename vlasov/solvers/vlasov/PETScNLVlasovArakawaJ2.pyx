@@ -29,10 +29,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        self.get_data_arrays()
-        
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
-                                                                + 0.5 * (self.h2p + self.h2h)
+        cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
         
 #         cdef npy.float64_t time_fac    = 0.
