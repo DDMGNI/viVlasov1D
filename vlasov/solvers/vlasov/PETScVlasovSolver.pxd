@@ -51,38 +51,12 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec Eh
     cdef Vec Ah
     
-#     cdef Vec localH0
-#     cdef Vec localH1p
-#     cdef Vec localH1h
-#     cdef Vec localH2p
-#     cdef Vec localH2h
-    
     cdef Vec localFave
     cdef Vec localHave
     
     cdef Vec localFp
     cdef Vec localFh
     cdef Vec localFd
-    
-#     cdef npy.ndarray h0
-#     cdef npy.ndarray h1p
-#     cdef npy.ndarray h1h
-#     cdef npy.ndarray h2p
-#     cdef npy.ndarray h2h
-#     
-#     cdef npy.ndarray fp
-#     cdef npy.ndarray fh
-#     cdef npy.ndarray fd
-#     
-#     cdef npy.ndarray np
-#     cdef npy.ndarray up
-#     cdef npy.ndarray ep
-#     cdef npy.ndarray ap
-#     
-#     cdef npy.ndarray nh
-#     cdef npy.ndarray uh
-#     cdef npy.ndarray eh
-#     cdef npy.ndarray ah
     
     
     cpdef mult(self, Mat mat, Vec X, Vec Y)
@@ -91,7 +65,3 @@ cdef class PETScVlasovSolverBase(object):
     
     cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y)
     cpdef function_mult(self, Vec X, Vec Y)
-    
-#     cdef get_data_arrays(self)
-#     cdef get_data_arrays_jacobian(self)
-#     cdef get_data_arrays_function(self)

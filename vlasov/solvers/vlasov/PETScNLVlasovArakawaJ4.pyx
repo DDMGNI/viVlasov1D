@@ -130,7 +130,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef double collisions     = 0.
         cdef double regularisation = 0.
         
-        
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef double[:,:] fd    = self.da1.getLocalArray(F, self.localFd)

@@ -82,12 +82,6 @@ cdef class PETScVlasovSolverBase(object):
         self.Ah  = None
         
         # create local vectors
-#         self.localH0  = da1.createLocalVec()
-#         self.localH1p = da1.createLocalVec()
-#         self.localH1h = da1.createLocalVec()
-#         self.localH2p = da1.createLocalVec()
-#         self.localH2h = da1.createLocalVec()
-
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
         self.localFd  = da1.createLocalVec()
@@ -155,31 +149,3 @@ cdef class PETScVlasovSolverBase(object):
     cpdef function_mult(self, Vec X, Vec Y):
         self.function(X, Y)
         
-    
-#     cdef get_data_arrays(self):
-#         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-#         self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
-#         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-#         self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
-#         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
-#         
-#         self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
-#         self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
-#         
-#         self.np  = self.Np.getArray()
-#         self.up  = self.Up.getArray()
-#         self.ep  = self.Ep.getArray()
-#         self.ap  = self.Ap.getArray()
-#         
-#         self.nh  = self.Nh.getArray()
-#         self.uh  = self.Uh.getArray()
-#         self.eh  = self.Eh.getArray()
-#         self.ah  = self.Ah.getArray()
-# 
-# 
-#     cdef get_data_arrays_jacobian(self):
-#         self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-#         self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
-#         self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-#         self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
-#         self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)

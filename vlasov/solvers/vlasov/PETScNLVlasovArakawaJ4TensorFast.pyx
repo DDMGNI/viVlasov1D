@@ -274,7 +274,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         cdef double collisions     = 0.
         cdef double regularisation = 0.
         
-        
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef double[:,:] fd    = self.da1.getLocalArray(F, self.localFd)
@@ -331,7 +330,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                     result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
                     result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                     result_J4 = 2. * result_J1 - result_J2
-                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv \
+                    poisson   = 0.5 * result_J4 * self.grid.hx_inv * self.grid.hv_inv
                     
                     
                     # collision operator
@@ -342,7 +341,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                         
                         collisions = \
                               - 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv \
+                              - 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv
                     
                     # regularisation
                     if self.regularisation != 0.:
