@@ -15,7 +15,7 @@ from os.path import join, isdir
 INCLUDE_DIRS = []
 LIBRARY_DIRS = []
 LIBRARIES    = []
-CARGS        = ['-axavx', '-std=c99']
+CARGS        = ['-O3','-axavx', '-std=c99']
 LARGS        = []
 
 # FFTW

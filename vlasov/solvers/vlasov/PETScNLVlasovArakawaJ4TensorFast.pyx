@@ -267,12 +267,12 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
-        cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions     = 0.
-        cdef npy.float64_t regularisation = 0.
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
+        cdef double coll_drag, coll_diff
+        cdef double collisions     = 0.
+        cdef double regularisation = 0.
         
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -364,12 +364,12 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4, poisson
-        cdef npy.float64_t coll_drag, coll_diff
-        cdef npy.float64_t collisions = 0.
-        cdef npy.float64_t regularisation = 0.
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
+        cdef double coll_drag, coll_diff
+        cdef double collisions     = 0.
+        cdef double regularisation = 0.
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
