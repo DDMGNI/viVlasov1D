@@ -58,6 +58,6 @@ cdef extern from 'fftw3.h':
 
     ctypedef fftw_plan_struct* fftw_plan
 
-    void fftw_execute_dft_r2c(fftw_plan, double* _in, double complex* _out)
-    void fftw_execute_dft_c2r(fftw_plan, double complex* _in, double* _out)    
+    void fftw_execute_dft_r2c(fftw_plan, double* _in, double complex* _out) nogil
+    void fftw_execute_dft_c2r(fftw_plan, double complex* _in, double* _out) nogil    
 

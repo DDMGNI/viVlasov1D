@@ -55,14 +55,14 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                                  stencil_type='box')
         
         self.cax = VIDA().create(dim=2, dof=2,
-                                 sizes=[int(self.grid.nx/2)+1, self.grid.nv],
+                                 sizes=[self.grid.nx//2+1, self.grid.nv],
                                  proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                  boundary_type=['periodic', 'ghosted'],
                                  stencil_width=2,
                                  stencil_type='box')
         
         self.cay = VIDA().create(dim=2, dof=2,
-                                 sizes=[self.grid.nv, int(self.grid.nx/2)+1],
+                                 sizes=[self.grid.nv, self.grid.nx//2+1],
                                  proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                  boundary_type=['periodic', 'ghosted'],
                                  stencil_width=2,
@@ -88,7 +88,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
         (ysy, yey), (xsy, xey) = self.cay.getRanges()
         
-        cdef npy.uint64_t nx = int(self.grid.nx/2)+1
+        cdef npy.uint64_t nx = self.grid.nx//2+1
         cdef npy.uint64_t nv = self.grid.nv
         
         assert xsx == 0

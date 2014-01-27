@@ -56,16 +56,16 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
         # FFTW arrays 
         fftw_in   = npy.empty((ye-ys, self.grid.nx),          dtype=npy.float64, order='c')
-        fftw_out  = npy.empty((ye-ys, int(self.grid.nx/2)+1), dtype=npy.cdouble, order='c')
-        ifftw_in  = npy.empty((ye-ys, int(self.grid.nx/2)+1), dtype=npy.cdouble, order='c')
+        fftw_out  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.cdouble, order='c')
+        ifftw_in  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.cdouble, order='c')
         ifftw_out = npy.empty((ye-ys, self.grid.nx),          dtype=npy.float64, order='c')
         
         # enable cache in pyFFTW for optimal performance
         pyfftw.interfaces.cache.enable()
         
         # create pyFFTW plans
-        self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED',))
-        self.ifftw_plan = pyfftw.FFTW(ifftw_in, ifftw_out, axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_UNALIGNED',))
+        self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
+        self.ifftw_plan = pyfftw.FFTW(ifftw_in, ifftw_out, axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
         
         
         # eigenvalues
@@ -135,7 +135,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
 #          
 #         cshape = (ye-ys, xe-xs)
 #           
-#         cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty((ye-ys, int(self.grid.nx/2)+1), dtype=npy.complex128, order='c')
+#         cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
 #         cdef npy.ndarray[npy.float64_t, ndim=2] x = X.getArray().reshape(dshape, order='c')
 #          
 #         self.fftw_plan(input_array=x, output_array=y)
@@ -150,6 +150,16 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
                              <double*>npy.PyArray_DATA(X.getArray()),
                              <double complex*>npy.PyArray_DATA(Y.getArray()))
+
+#         cdef void* fftw_planp  = self.fftw_plan.__plan
+#         cdef void* fftw_input  = npy.PyArray_DATA(X.getArray())
+#         cdef void* fftw_output = npy.PyArray_DATA(Y.getArray())
+#         
+#         with nogil:
+#             fftw_execute_dft_r2c(<fftw_plan>fftw_planp,
+#                                  <double*>fftw_input,
+#                                  <double complex*>fftw_output)
+
         
 
     
@@ -158,31 +168,42 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
 #         # This code uses some complicated casts to call
 #         # the pyFFTW wrapper around FFTW.
-        (xs, xe), (ys, ye) = self.dax.getRanges()
-             
-        dshape = (ye-ys, xe-xs)
-              
-        (xs, xe), (ys, ye) = self.cax.getRanges()
-             
-        cshape = (ye-ys, xe-xs)
-              
-        cdef npy.ndarray[npy.float64_t,    ndim=1] tx = X.getArray()
-        cdef npy.ndarray[npy.complex128_t, ndim=2] x  = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
-        x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(tx))
-          
-        cdef npy.ndarray[npy.float64_t, ndim=2]    y = Y.getArray().reshape(dshape, order='c')
-             
-        self.ifftw_plan(input_array=x, output_array=y)
+#         (xs, xe), (ys, ye) = self.dax.getRanges()
+#              
+#         dshape = (ye-ys, xe-xs)
+#               
+#         (xs, xe), (ys, ye) = self.cax.getRanges()
+#              
+#         cshape = (ye-ys, xe-xs)
+#               
+#         cdef npy.ndarray[npy.float64_t,    ndim=1] tx = X.getArray()
+#         cdef npy.ndarray[npy.complex128_t, ndim=2] x  = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
+#         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(tx))
+#           
+#         cdef npy.ndarray[npy.float64_t, ndim=2]    y = Y.getArray().reshape(dshape, order='c')
+#              
+#         self.ifftw_plan(input_array=x, output_array=y)
         
         # This code calls directly into FFTW passing the array
         # buffers of the input and output vectors.
         # The FFTW plan is still setup using pyFFTW.
         # Be careful to allow for unaligned input/output arrays.
-#         fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
-#                              <double complex*>npy.PyArray_DATA(X.getArray()),
-#                              <double*>npy.PyArray_DATA(Y.getArray()))
+        fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
+                             <double complex*>npy.PyArray_DATA(X.getArray()),
+                             <double*>npy.PyArray_DATA(Y.getArray()))
         
+        Y.scale(1./float(self.grid.nx))
         
+#         cdef void* ifftw_planp  = self.ifftw_plan.__plan
+#         cdef void* ifftw_input  = npy.PyArray_DATA(X.getArray())
+#         cdef void* ifftw_output = npy.PyArray_DATA(Y.getArray())
+#         
+#         with nogil:
+#             fftw_execute_dft_c2r(<fftw_plan>ifftw_planp,
+#                                  <double complex*>ifftw_input,
+#                                  <double*>ifftw_output)
+
+
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
