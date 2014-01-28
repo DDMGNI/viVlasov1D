@@ -34,11 +34,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H12 not None,
                  Vec H21 not None,
                  Vec H22 not None,
-                 np.float64_t charge=-1.,
-                 np.float64_t coll_freq=0.,
-                 np.float64_t coll_diff=1.,
-                 np.float64_t coll_drag=1.,
-                 np.float64_t regularisation=0.):
+                 double charge=-1.,
+                 double coll_freq=0.,
+                 double coll_diff=1.,
+                 double coll_drag=1.,
+                 double regularisation=0.):
         '''
         Constructor
         '''

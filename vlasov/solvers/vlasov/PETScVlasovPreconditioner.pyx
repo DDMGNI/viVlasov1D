@@ -27,11 +27,11 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 np.float64_t charge=-1.,
-                 np.float64_t coll_freq=0.,
-                 np.float64_t coll_diff=1.,
-                 np.float64_t coll_drag=1.,
-                 np.float64_t regularisation=0.):
+                 double charge=-1.,
+                 double coll_freq=0.,
+                 double coll_diff=1.,
+                 double coll_drag=1.,
+                 double regularisation=0.):
         '''
         Constructor
         '''
@@ -190,8 +190,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=1] x
-        cdef np.ndarray[np.float64_t, ndim=1] y
+        cdef np.ndarray[double, ndim=1] x
+        cdef np.ndarray[double, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()
@@ -207,8 +207,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=1] x
-        cdef np.ndarray[np.float64_t, ndim=1] y
+        cdef np.ndarray[double, ndim=1] x
+        cdef np.ndarray[double, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()

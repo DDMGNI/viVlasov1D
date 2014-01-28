@@ -33,18 +33,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
         
-#         cdef np.float64_t time_fac      = 0.
-#         cdef np.float64_t arak_fac_J1   = 0.
-#         cdef np.float64_t arak_fac_J2   = 0.
-#         cdef np.float64_t coll_drag_fac = 0.
-#         cdef np.float64_t coll_diff_fac = 0.
+#         cdef double time_fac      = 0.
+#         cdef double arak_fac_J1   = 0.
+#         cdef double arak_fac_J2   = 0.
+#         cdef double coll_drag_fac = 0.
+#         cdef double coll_diff_fac = 0.
         
-        cdef np.float64_t time_fac      = 1.0  / self.grid.ht
-        cdef np.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
-        cdef np.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
+        cdef double time_fac      = 1.0  / self.grid.ht
+        cdef double arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+        cdef double arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef np.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
-        cdef np.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
+        cdef double coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef double coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
         
         
         A.zeroEntries()

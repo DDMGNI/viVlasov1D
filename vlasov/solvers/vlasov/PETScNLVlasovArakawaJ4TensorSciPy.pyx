@@ -31,11 +31,11 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 np.float64_t charge=-1.,
-                 np.float64_t coll_freq=0.,
-                 np.float64_t coll_diff=1.,
-                 np.float64_t coll_drag=1.,
-                 np.float64_t regularisation=0.):
+                 double charge=-1.,
+                 double coll_freq=0.,
+                 double coll_diff=1.,
+                 double coll_drag=1.,
+                 double regularisation=0.):
         '''
         Constructor
         '''
@@ -77,7 +77,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         assert xs == 0
         assert xe == self.grid.nx//2+1
         
-        cdef np.ndarray[np.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
+        cdef np.ndarray[double,    ndim=2] x = X.getArray().reshape(dshape, order='c')
         cdef np.ndarray[np.complex128_t, ndim=2] y
         
         y = rfft(x, axis=1)
@@ -99,7 +99,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         assert xs == 0
         assert xe == self.grid.nx//2+1
         
-        cdef np.ndarray[np.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
+        cdef np.ndarray[double,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
         cdef np.ndarray[np.complex128_t, ndim=2] x = np.empty(((ye-ys),(xe-xs)), dtype=np.complex128) 
         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> np.PyArray_DATA(X.getArray()))
         
@@ -132,9 +132,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef formSparsePreconditionerMatrix(self, np.complex eigen):
         cdef int j
         
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[double, ndim=1] v = self.grid.v
         
-        cdef np.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        cdef double arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
         diagm = np.zeros(self.grid.nv, dtype=np.complex128)
         diag  = np.ones (self.grid.nv, dtype=np.complex128)

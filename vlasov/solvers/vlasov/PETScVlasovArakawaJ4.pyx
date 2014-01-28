@@ -29,11 +29,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 np.float64_t charge=-1.,
-                 np.float64_t coll_freq=0.,
-                 np.float64_t coll_diff=1.,
-                 np.float64_t coll_drag=1.,
-                 np.float64_t regularisation=0.):
+                 double charge=-1.,
+                 double coll_freq=0.,
+                 double coll_diff=1.,
+                 double coll_drag=1.,
+                 double regularisation=0.):
         '''
         Constructor
         '''
@@ -64,18 +64,18 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef double[:,:] hh = h0 + h1h + h2h
         
         
-#         cdef np.float64_t time_fac    = 0.
-#         cdef np.float64_t arak_fac_J1 = 0.
-#         cdef np.float64_t arak_fac_J2 = 0.
-#         cdef np.float64_t coll1_fac   = 0.
-#         cdef np.float64_t coll2_fac   = 0.
+#         cdef double time_fac    = 0.
+#         cdef double arak_fac_J1 = 0.
+#         cdef double arak_fac_J2 = 0.
+#         cdef double coll1_fac   = 0.
+#         cdef double coll2_fac   = 0.
         
-        cdef np.float64_t time_fac    = 1.0  / self.grid.ht
-        cdef np.float64_t arak_fac_J1 = + 1.0 / (12. * self.grid.hx * self.grid.hv)
-        cdef np.float64_t arak_fac_J2 = - 0.5 / (24. * self.grid.hx * self.grid.hv)
+        cdef double time_fac    = 1.0  / self.grid.ht
+        cdef double arak_fac_J1 = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+        cdef double arak_fac_J2 = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef np.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.grid.hv
-        cdef np.float64_t coll2_fac   = - 0.5 * self.nu * self.grid.hv2_inv
+        cdef double coll1_fac   = - 0.5 * self.nu * 0.5 / self.grid.hv
+        cdef double coll2_fac   = - 0.5 * self.nu * self.grid.hv2_inv
         
         
         A.zeroEntries()
