@@ -88,18 +88,18 @@ cdef class PETScVlasovSolverBase(object):
         
         
     def __dealloc__(self):
-        self.Fp.destroy()
-        self.Fh.destroy()
-    
-        self.Fave.destroy()
-        self.Have.destroy()
-        
         self.localFp.destroy()
         self.localFh.destroy()
         self.localFd.destroy()
         
         self.localFave.destroy()
         self.localHave.destroy()
+        
+        self.Fp.destroy()
+        self.Fh.destroy()
+    
+        self.Fave.destroy()
+        self.Have.destroy()
         
     
     def set_moments(self, Vec Np, Vec Up, Vec Ep, Vec Ap, Vec Nh, Vec Uh, Vec Eh, Vec Ah):

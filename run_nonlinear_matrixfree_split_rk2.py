@@ -23,7 +23,7 @@ class petscVP1Dmatrixfree(petscVP1DbasesplitRK2):
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
-        OptDB = PETSc.Options()
+#         OptDB = PETSc.Options()
         
 #         OptDB.setValue('snes_ls', 'basic')
 
@@ -60,10 +60,11 @@ class petscVP1Dmatrixfree(petscVP1DbasesplitRK2):
         self.snes.getKSP().getPC().setType('none')
         
         
+        # create Poisson matrix and object
+        self.poisson_matrix = self.dax.createMat()
+        self.poisson_matrix.setUp()
+        self.poisson_matrix.setNullSpace(self.p_nullspace)
         
-        del self.poisson_ksp
-        del self.poisson_solver
-            
         self.poisson_solver = PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
         self.poisson_solver.formMat(self.poisson_matrix)
         
@@ -71,30 +72,44 @@ class petscVP1Dmatrixfree(petscVP1DbasesplitRK2):
                                                    context=self.poisson_solver,
                                                    comm=PETSc.COMM_WORLD)
         self.poisson_mf.setUp()
-           
-           
-        OptDB.setValue('ksp_rtol', 1E-13)
-            
+        
+        
+        # create linear Poisson solver
         self.poisson_ksp = PETSc.KSP().create()
         self.poisson_ksp.setFromOptions()
+        self.poisson_ksp.setTolerances(rtol=1E-13)
         self.poisson_ksp.setOperators(self.poisson_mf, self.poisson_matrix)
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')
         self.poisson_ksp.getPC().setType('hypre')
             
-        OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
-        
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Run script initialisation done.")
             print("")
         
     
+    def __enter__(self):
+        return self
+    
+    
+    def __exit__(self,ext_type,exc_value,traceback):
+        self.poisson_ksp.destroy()
+        self.snes.destroy()
+        
+        self.poisson_mf.destroy()
+        self.Jmf.destroy()
+        
+        del self.poisson_solver
+        del self.vlasov_solver
+        
+        super().destroy()
+
+    
     def updateVlasovJacobian(self, snes, X, J, P):
         if J != P:
             self.vlasov_solver.formJacobian(P)
-        
     
     
     def run(self):
@@ -159,6 +174,9 @@ class petscVP1Dmatrixfree(petscVP1DbasesplitRK2):
             # save to hdf5
             self.save_to_hdf5(itime)
         
+        # flush all data
+        self.hdf5_viewer.flush()
+        
 
 
 if __name__ == '__main__':
@@ -170,6 +188,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dmatrixfree(args.c, args.i)
-    petscvp.run()
+    with petscVP1Dmatrixfree(args.c, args.i) as petscvp:
+        petscvp.run()
     

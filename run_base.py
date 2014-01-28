@@ -449,10 +449,20 @@ class petscVP1Dbase():
     
     
     def __del__(self):
+        self.destroy()
+    
+    
+    def destroy(self):
+        
+        del self.arakawa_rk4
+        del self.arakawa_gear
+        del self.arakawa_symplectic
         
         del self.toolbox
         
         self.hdf5_viewer.destroy()
+        
+        self.p_nullspace.destroy()
         
         self.h0.destroy()
         self.h1c.destroy()
@@ -562,10 +572,10 @@ class petscVP1Dbase():
         
         
         if destroy:
-            del poisson_ksp
-            del poisson_solver
-            
+            poisson_ksp.destroy()
             poisson_matrix.destroy()
+            
+            del poisson_solver
         
         
         if output:

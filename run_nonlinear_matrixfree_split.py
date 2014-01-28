@@ -31,7 +31,6 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
 
-
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
@@ -73,8 +72,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.snes.getKSP().getPC().setType('none')
         
         
-        
-        # create Poisson object
+        # create Poisson matrix and object
         self.poisson_matrix = self.dax.createMat()
         self.poisson_matrix.setUp()
         self.poisson_matrix.setNullSpace(self.p_nullspace)
@@ -104,9 +102,13 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             print("")
     
     
-    def __del__(self):
-        del self.poisson_ksp
-        del self.snes
+    def __enter__(self):
+        return self
+    
+    
+    def __exit__(self,ext_type,exc_value,traceback):
+        self.poisson_ksp.destroy()
+        self.snes.destroy()
         
         self.poisson_mf.destroy()
         self.Jmf.destroy()
@@ -114,12 +116,12 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         del self.poisson_solver
         del self.vlasov_solver
         
-            
+        super().destroy()
+        
     
     def updateVlasovJacobian(self, snes, X, J, P):
         if J != P:
             self.vlasov_solver.formJacobian(P)
-        
     
     
     def run(self):
@@ -175,6 +177,8 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             # save to hdf5
             self.save_to_hdf5(itime)
         
+        # flush all data
+        self.hdf5_viewer.flush()
 
 
 if __name__ == '__main__':
@@ -186,11 +190,11 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dmatrixfree(args.c, args.i)
-    petscvp.run()
+    with petscVP1Dmatrixfree(args.c, args.i) as petscvp:
+        petscvp.run()
     
 #     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile.prof")
 #       
 #     s = pstats.Stats("Profile.prof")
 #     s.strip_dirs().sort_stats("time").print_stats()
-
+    
