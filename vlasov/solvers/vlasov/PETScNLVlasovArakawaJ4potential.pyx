@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 

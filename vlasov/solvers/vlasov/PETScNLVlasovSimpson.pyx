@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -24,9 +24,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double bracket, bracket11, bracket12, bracket21, bracket22
         cdef double coll_drag, coll_diff
@@ -140,9 +140,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double bracket, bracket11, bracket12, bracket21, bracket22
         cdef double coll_drag, coll_diff

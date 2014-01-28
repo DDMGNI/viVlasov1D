@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -34,11 +34,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H12 not None,
                  Vec H21 not None,
                  Vec H22 not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
+                 np.float64_t regularisation=0.):
         '''
         Constructor
         '''
@@ -66,8 +66,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         # create temporary array
         K = self.da2.createGlobalVec()
-        self.f_arr = npy.empty_like(self.da2.getLocalArray(K, self.localK))
-        self.h_arr = npy.empty_like(self.da2.getLocalArray(K, self.localK))
+        self.f_arr = np.empty_like(self.da2.getLocalArray(K, self.localK))
+        self.h_arr = np.empty_like(self.da2.getLocalArray(K, self.localK))
         K.destroy()
         
         self.f = self.f_arr
@@ -75,17 +75,17 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         # Runge-Kutta factors
         self.a11 = 0.25
-        self.a12 = 0.25 - 0.5 / npy.sqrt(3.) 
-        self.a21 = 0.25 + 0.5 / npy.sqrt(3.) 
+        self.a12 = 0.25 - 0.5 / np.sqrt(3.) 
+        self.a21 = 0.25 + 0.5 / np.sqrt(3.) 
         self.a22 = 0.25
         
     
     cpdef update_previous4(self):
-        cdef npy.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
-        cdef npy.ndarray[double, ndim=2] h11 = self.da1.getLocalArray(self.H11, self.localH11)
-        cdef npy.ndarray[double, ndim=2] h12 = self.da1.getLocalArray(self.H12, self.localH12)
-        cdef npy.ndarray[double, ndim=2] h21 = self.da1.getLocalArray(self.H21, self.localH21)
-        cdef npy.ndarray[double, ndim=2] h22 = self.da1.getLocalArray(self.H22, self.localH22)
+        cdef np.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef np.ndarray[double, ndim=2] h11 = self.da1.getLocalArray(self.H11, self.localH11)
+        cdef np.ndarray[double, ndim=2] h12 = self.da1.getLocalArray(self.H12, self.localH12)
+        cdef np.ndarray[double, ndim=2] h21 = self.da1.getLocalArray(self.H21, self.localH21)
+        cdef np.ndarray[double, ndim=2] h22 = self.da1.getLocalArray(self.H22, self.localH22)
         
         self.h_arr[:,:,0] = h0[:,:] + h11[:,:] + h21[:,:]  
         self.h_arr[:,:,1] = h0[:,:] + h12[:,:] + h22[:,:]  
@@ -95,15 +95,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec K, Vec Y):
-        cdef npy.int64_t a, i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t a, i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
         cdef double result_J1, result_J2, result_J4, poisson
         
-        cdef npy.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
+        cdef np.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
         
         self.f_arr[:,:,0] = self.grid.ht * self.a11 * k_arr[:,:,0] + self.grid.ht * self.a12 * k_arr[:,:,1]
         self.f_arr[:,:,1] = self.grid.ht * self.a21 * k_arr[:,:,0] + self.grid.ht * self.a22 * k_arr[:,:,1]
@@ -170,16 +170,16 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec K, Vec Y):
-        cdef npy.int64_t a, i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t a, i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
         cdef double result_J1, result_J2, result_J4, poisson
         
-        cdef npy.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
-        cdef npy.ndarray[double, ndim=2] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
+        cdef np.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
+        cdef np.ndarray[double, ndim=2] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
         
         self.f_arr[:,:,0] = fh[:,:] + self.grid.ht * self.a11 * k_arr[:,:,0] + self.grid.ht * self.a12 * k_arr[:,:,1]
         self.f_arr[:,:,1] = fh[:,:] + self.grid.ht * self.a21 * k_arr[:,:,0] + self.grid.ht * self.a22 * k_arr[:,:,1]

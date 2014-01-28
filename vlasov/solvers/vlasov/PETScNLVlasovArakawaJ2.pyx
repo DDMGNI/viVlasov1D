@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -24,25 +24,25 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
-        cdef npy.int64_t i, j, ix, jx
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j, ix, jx
+        cdef np.int64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
         
-#         cdef npy.float64_t time_fac    = 0.
-#         cdef npy.float64_t arak_fac_J1 = 0.
-#         cdef npy.float64_t arak_fac_J2 = 0.
-#         cdef npy.float64_t coll1_fac   = 0.
-#         cdef npy.float64_t coll2_fac   = 0.
+#         cdef np.float64_t time_fac    = 0.
+#         cdef np.float64_t arak_fac_J1 = 0.
+#         cdef np.float64_t arak_fac_J2 = 0.
+#         cdef np.float64_t coll1_fac   = 0.
+#         cdef np.float64_t coll2_fac   = 0.
         
-        cdef npy.float64_t time_fac    = 1.0  / self.grid.ht
-        cdef npy.float64_t arak_fac_J2 = 0.5 / (24. * self.grid.hx * self.grid.hv)
+        cdef np.float64_t time_fac    = 1.0  / self.grid.ht
+        cdef np.float64_t arak_fac_J2 = 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
-        cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
+        cdef np.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef np.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
         
         
         A.zeroEntries()
@@ -106,9 +106,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -187,9 +187,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

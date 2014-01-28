@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -31,11 +31,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H2h not None,
                  Vec H11 not None,
                  Vec H21 not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
+                 np.float64_t regularisation=0.):
         '''
         Constructor
         '''
@@ -63,9 +63,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec K, Vec Y):
-        cdef npy.int64_t a, i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t a, i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -138,9 +138,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec K, Vec Y):
-        cdef npy.int64_t a, i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t a, i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         self.Fh.copy(self.Fave)
         self.Fave.axpy(0.5 * self.grid.ht, K)

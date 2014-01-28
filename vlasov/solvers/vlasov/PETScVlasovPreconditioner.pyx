@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -27,11 +27,11 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
+                 np.float64_t regularisation=0.):
         '''
         Constructor
         '''
@@ -80,10 +80,10 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         
         # temporary variables for scatter objects
-        cdef npy.uint64_t i, j, k, l
-        cdef npy.uint64_t xs1, xe1, ys1, ye1
-        cdef npy.uint64_t xsx, xex, ysx, yex
-        cdef npy.uint64_t ysy, yey, xsy, xey 
+        cdef np.uint64_t i, j, k, l
+        cdef np.uint64_t xs1, xe1, ys1, ye1
+        cdef np.uint64_t xsx, xex, ysx, yex
+        cdef np.uint64_t ysy, yey, xsy, xey 
         
         # create 1x-x1 scatter objects
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
@@ -102,16 +102,16 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.cax.getRanges()
         (ysy, yey), (xsy, xey) = self.cay.getRanges()
         
-        cdef npy.uint64_t nx = self.grid.nx//2+1
-        cdef npy.uint64_t nv = self.grid.nv
+        cdef np.uint64_t nx = self.grid.nx//2+1
+        cdef np.uint64_t nv = self.grid.nv
         
         assert xsx == 0
         assert xex == nx
         
         nindices = (yex-ysx)*nx*2
         
-        cdef int[:] xindexlist = npy.empty(nindices, dtype=npy.int32)
-        cdef int[:] yindexlist = npy.empty(nindices, dtype=npy.int32)
+        cdef int[:] xindexlist = np.empty(nindices, dtype=np.int32)
+        cdef int[:] yindexlist = np.empty(nindices, dtype=np.int32)
         
         l = 0
         for i in range(xsx, xex):
@@ -190,8 +190,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] x
-        cdef npy.ndarray[npy.float64_t, ndim=1] y
+        cdef np.ndarray[np.float64_t, ndim=1] x
+        cdef np.ndarray[np.float64_t, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()
@@ -207,8 +207,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] x
-        cdef npy.ndarray[npy.float64_t, ndim=1] y
+        cdef np.ndarray[np.float64_t, ndim=1] x
+        cdef np.ndarray[np.float64_t, ndim=1] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()

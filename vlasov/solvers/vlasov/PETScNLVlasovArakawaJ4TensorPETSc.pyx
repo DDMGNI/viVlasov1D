@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from petsc4py import PETSc
 
@@ -31,10 +31,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
                  regularisation=0.):
         '''
         Constructor
@@ -68,11 +68,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         
         # eigenvectors
-        lambdas = npy.empty(self.nx, dtype=npy.complex128)
+        lambdas = np.empty(self.nx, dtype=np.complex128)
         
         for i in range(0, self.grid.nx):
-            lambdas[i] = npy.exp(2.j * npy.pi * float(i) / self.grid.nx) \
-                       - npy.exp(2.j * npy.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
+            lambdas[i] = np.exp(2.j * np.pi * float(i) / self.grid.nx) \
+                       - np.exp(2.j * np.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
         
         
         # prototype matrix
@@ -143,26 +143,26 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
         
         
-#         cdef npy.int64_t i, j
-#         cdef npy.int64_t ix, iy, jx, jy
-#         cdef npy.int64_t xe, xs, ye, ys
+#         cdef np.int64_t i, j
+#         cdef np.int64_t ix, iy, jx, jy
+#         cdef np.int64_t xe, xs, ye, ys
 #         
 #         
-#         cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-#         cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-#         cdef npy.float64_t result_J1, result_J2, result_J4
-#         cdef npy.float64_t coll_drag, coll_diff
+#         cdef np.float64_t jpp_J1, jpc_J1, jcp_J1
+#         cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
+#         cdef np.float64_t result_J1, result_J2, result_J4
+#         cdef np.float64_t coll_drag, coll_diff
 #         
 #         self.get_data_arrays()
 #         
 #         (xs, xe), (ys, ye) = self.da1.getRanges()
 #         
-#         cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
-#         cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+#         cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
+#         cdef np.ndarray[np.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
 #         
-#         cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
-#         cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-#         cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
+#         cdef np.ndarray[np.float64_t, ndim=2] fh    = self.fh
+#         cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
+#         cdef np.ndarray[np.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
 #                                                                 + 0.5 * (self.h2p + self.h2h)
 #         
 #         
@@ -180,15 +180,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formPreconditionerMatrix(self, Mat A):
-        cdef npy.int64_t i, j
+        cdef np.int64_t i, j
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
         
-        cdef npy.float64_t arak_fac_J1   = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        cdef np.float64_t arak_fac_J1   = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
-#         cdef npy.float64_t time_fac      = 1.0  / self.grid.ht
-#         cdef npy.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
-#         cdef npy.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
+#         cdef np.float64_t time_fac      = 1.0  / self.grid.ht
+#         cdef np.float64_t arak_fac_J1   = + 1.0 / (12. * self.grid.hx * self.grid.hv)
+#         cdef np.float64_t arak_fac_J2   = - 0.5 / (24. * self.grid.hx * self.grid.hv)
         
         
         A.zeroEntries()
@@ -232,28 +232,28 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobianArakawaJ4(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        cdef npy.float64_t coll_drag, coll_diff
+        cdef np.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef np.float64_t result_J1, result_J2, result_J4
+        cdef np.float64_t coll_drag, coll_diff
         
         self.get_data_arrays()
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=2] fd = self.da1.getLocalArray(F, self.localFd)
+        cdef np.ndarray[np.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
-        cdef npy.ndarray[npy.float64_t, ndim=1] u     = self.up
-        cdef npy.ndarray[npy.float64_t, ndim=1] a     = self.ap
+        cdef np.ndarray[np.float64_t, ndim=1] v     = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=1] u     = self.up
+        cdef np.ndarray[np.float64_t, ndim=1] a     = self.ap
         
         
         for i in range(xs, xe):
@@ -320,32 +320,32 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def functionArakawaJ4(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        cdef npy.float64_t coll_drag, coll_diff
+        cdef np.float64_t jpp_J1, jpc_J1, jcp_J1
+        cdef np.float64_t jcc_J2, jpc_J2, jcp_J2
+        cdef np.float64_t result_J1, result_J2, result_J4
+        cdef np.float64_t coll_drag, coll_diff
         
         self.get_data_arrays()
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
-        cdef npy.ndarray[npy.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=2] fp = self.da1.getLocalArray(F, self.localFp)
+        cdef np.ndarray[np.float64_t, ndim=2] y  = self.da1.getGlobalArray(Y)
         
-        cdef npy.ndarray[npy.float64_t, ndim=2] fh    = self.fh
-        cdef npy.ndarray[npy.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
-        cdef npy.ndarray[npy.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
+        cdef np.ndarray[np.float64_t, ndim=2] fh    = self.fh
+        cdef np.ndarray[np.float64_t, ndim=2] f_ave = 0.5 * (fp + fh)
+        cdef np.ndarray[np.float64_t, ndim=2] h_ave = self.h0 + 0.5 * (self.h1p + self.h1h) \
                                                                 + 0.5 * (self.h2p + self.h2h)
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v     = self.grid.v
-        cdef npy.ndarray[npy.float64_t, ndim=1] up    = self.up
-        cdef npy.ndarray[npy.float64_t, ndim=1] ap    = self.ap
-        cdef npy.ndarray[npy.float64_t, ndim=1] uh    = self.uh
-        cdef npy.ndarray[npy.float64_t, ndim=1] ah    = self.ah
+        cdef np.ndarray[np.float64_t, ndim=1] v     = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=1] up    = self.up
+        cdef np.ndarray[np.float64_t, ndim=1] ap    = self.ap
+        cdef np.ndarray[np.float64_t, ndim=1] uh    = self.uh
+        cdef np.ndarray[np.float64_t, ndim=1] ah    = self.ah
         
         
         for i in range(xs, xe):

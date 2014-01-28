@@ -6,8 +6,8 @@ Created on Apr 10, 2012
 
 cimport cython
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from scipy.sparse        import diags
 from scipy.sparse.linalg import splu
@@ -31,11 +31,11 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
+                 np.float64_t regularisation=0.):
         '''
         Constructor
         '''
@@ -44,18 +44,18 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
         # temporary arrays
         (xs, xe), (ys, ye) = self.dax.getRanges()
-        self.tfft    = npy.empty((self.grid.nx, ye-ys), dtype=npy.complex128)
+        self.tfft    = np.empty((self.grid.nx, ye-ys), dtype=np.complex128)
         
         
         # get local x ranges for solver
         (xs, xe), (ys, ye) = self.day.getRanges()
         
         # eigenvalues
-        eigen = npy.empty(self.grid.nx, dtype=npy.complex128)
+        eigen = np.empty(self.grid.nx, dtype=np.complex128)
         
         for i in range(0, self.grid.nx):
-            eigen[i] = npy.exp(2.j * npy.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
-                     - npy.exp(2.j * npy.pi * float(i) / self.grid.nx)
+            eigen[i] = np.exp(2.j * np.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
+                     - np.exp(2.j * np.pi * float(i) / self.grid.nx)
         
         eigen[:] = ifftshift(eigen)
         
@@ -66,7 +66,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef fft(self, Vec X, Vec Y):
         # Fourier Transform for each v
         
-        cdef npy.uint64_t xe, xs, ye, ys
+        cdef np.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
@@ -77,18 +77,18 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         assert xs == 0
         assert xe == self.grid.nx//2+1
         
-        cdef npy.ndarray[npy.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
-        cdef npy.ndarray[npy.complex128_t, ndim=2] y
+        cdef np.ndarray[np.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
+        cdef np.ndarray[np.complex128_t, ndim=2] y
         
         y = rfft(x, axis=1)
         
-        (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(Y.getArray()))[...] = y
+        (<dcomplex[:(ye-ys),:(xe-xs)]> np.PyArray_DATA(Y.getArray()))[...] = y
 
     
     cdef ifft(self, Vec X, Vec Y):
         # inverse Fourier Transform for each v
         
-        cdef npy.uint64_t xe, xs, ye, ys
+        cdef np.uint64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
@@ -99,9 +99,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         assert xs == 0
         assert xe == self.grid.nx//2+1
         
-        cdef npy.ndarray[npy.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
-        cdef npy.ndarray[npy.complex128_t, ndim=2] x = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
-        x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(X.getArray()))
+        cdef np.ndarray[np.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
+        cdef np.ndarray[np.complex128_t, ndim=2] x = np.empty(((ye-ys),(xe-xs)), dtype=np.complex128) 
+        x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> np.PyArray_DATA(X.getArray()))
         
         y[:,:] = irfft(x, axis=1)
         
@@ -111,34 +111,34 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef solve(self, Vec X):
         # solve system for each x
         
-        cdef npy.int64_t i, j
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t xe, xs, ye, ys
         
         (ys, ye), (xs, xe) = self.cay.getRanges()
         
         assert ys == 0
         assert ye == self.grid.nv
         
-        cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty(((xe-xs),(ye-ys)), dtype=npy.complex128)
-        cdef npy.ndarray[npy.complex128_t, ndim=2] x = npy.empty(((xe-xs),(ye-ys)), dtype=npy.complex128) 
-        x[...] = (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))
+        cdef np.ndarray[np.complex128_t, ndim=2] y = np.empty(((xe-xs),(ye-ys)), dtype=np.complex128)
+        cdef np.ndarray[np.complex128_t, ndim=2] x = np.empty(((xe-xs),(ye-ys)), dtype=np.complex128) 
+        x[...] = (<dcomplex[:(xe-xs),:(ye-ys)]> np.PyArray_DATA(X.getArray()))
         
         for i in range(0, xe-xs):
             y[i,:] = self.solvers[i].solve(x[i,:])
             
-        (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))[...] = y
+        (<dcomplex[:(xe-xs),:(ye-ys)]> np.PyArray_DATA(X.getArray()))[...] = y
         
 
-    cdef formSparsePreconditionerMatrix(self, npy.complex eigen):
-        cdef npy.int64_t j
+    cdef formSparsePreconditionerMatrix(self, np.complex eigen):
+        cdef np.int64_t j
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
         
-        cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        cdef np.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
-        diagm = npy.zeros(self.grid.nv, dtype=npy.complex128)
-        diag  = npy.ones (self.grid.nv, dtype=npy.complex128)
-        diagp = npy.zeros(self.grid.nv, dtype=npy.complex128)
+        diagm = np.zeros(self.grid.nv, dtype=np.complex128)
+        diag  = np.ones (self.grid.nv, dtype=np.complex128)
+        diagp = np.zeros(self.grid.nv, dtype=np.complex128)
         
         for j in range(2, self.grid.nv-2):
             diagm[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] - self.grid.hv2 ) * arak_fac_J1
@@ -148,15 +148,15 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         offsets   = [-1, 0, +1]
         diagonals = [diagm[1:], diag, diagp[:-1]]
         
-        return diags(diagonals, offsets, shape=(self.grid.nv, self.grid.nv), format='csc', dtype=npy.complex128)
+        return diags(diagonals, offsets, shape=(self.grid.nv, self.grid.nv), format='csc', dtype=np.complex128)
         
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef jacobianSolver(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -250,9 +250,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef functionSolver(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

@@ -7,8 +7,8 @@ Created on Apr 10, 2012
 cimport cython
 import pyfftw
 
-import  numpy as npy
-cimport numpy as npy
+import  numpy as np
+cimport numpy as np
 
 from scipy.sparse        import diags, eye
 from scipy.sparse.linalg import splu
@@ -34,11 +34,11 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 np.float64_t charge=-1.,
+                 np.float64_t coll_freq=0.,
+                 np.float64_t coll_diff=1.,
+                 np.float64_t coll_drag=1.,
+                 np.float64_t regularisation=0.):
         '''
         Constructor
         '''
@@ -57,10 +57,10 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
             print("Creating FFTW objects.")
         
         # FFTW arrays 
-        fftw_in   = npy.empty((ye-ys, self.grid.nx),      dtype=npy.float64,    order='c')
-        fftw_out  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
-        ifftw_in  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
-        ifftw_out = npy.empty((ye-ys, self.grid.nx),      dtype=npy.float64,    order='c')
+        fftw_in   = np.empty((ye-ys, self.grid.nx),      dtype=np.float64,    order='c')
+        fftw_out  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
+        ifftw_in  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
+        ifftw_out = np.empty((ye-ys, self.grid.nx),      dtype=np.float64,    order='c')
         
         # create pyFFTW plans
         self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
@@ -71,11 +71,11 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
             print("Computing eigenvalues.")
         
         # eigenvalues
-        eigen = npy.empty(self.grid.nx, dtype=npy.complex128)
+        eigen = np.empty(self.grid.nx, dtype=np.complex128)
         
         for i in range(0, self.grid.nx):
-            eigen[i] = npy.exp(2.j * npy.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
-                     - npy.exp(2.j * npy.pi * float(i) / self.grid.nx)
+            eigen[i] = np.exp(2.j * np.pi * float(i) / self.grid.nx * (self.grid.nx-1)) \
+                     - np.exp(2.j * np.pi * float(i) / self.grid.nx)
         
         eigen[:] = ifftshift(eigen)
         
@@ -95,8 +95,8 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         (ys, ye), (xs, xe) = self.cay.getRanges()
         
         # matrices, rhs, pivots
-        self.matrices = npy.zeros((4, self.grid.nv, xe-xs), dtype=npy.cdouble, order='F')
-        self.pivots   = npy.empty((self.grid.nv, xe-xs), dtype=npy.int32, order='F')
+        self.matrices = np.zeros((4, self.grid.nv, xe-xs), dtype=np.cdouble, order='F')
+        self.pivots   = np.empty((self.grid.nv, xe-xs), dtype=np.int32, order='F')
         
         # build matrices
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -136,24 +136,24 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
 #          
 #         cshape = (ye-ys, xe-xs)
 #           
-#         cdef npy.ndarray[npy.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
-#         cdef npy.ndarray[npy.complex128_t, ndim=2] y = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
+#         cdef np.ndarray[np.float64_t,    ndim=2] x = X.getArray().reshape(dshape, order='c')
+#         cdef np.ndarray[np.complex128_t, ndim=2] y = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
 #          
 #         self.fftw_plan(input_array=x, output_array=y)
 #  
-#         (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(Y.getArray()))[...] = y
+#         (<dcomplex[:(ye-ys),:(xe-xs)]> np.PyArray_DATA(Y.getArray()))[...] = y
         
         # This code calls directly into FFTW passing the array
         # buffers of the input and output vectors.
         # The FFTW plan is still setup using pyFFTW.
         # Be careful to allow for unaligned input/output arrays.
         fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
-                             <double*>npy.PyArray_DATA(X.getArray()),
-                             <cdouble*>npy.PyArray_DATA(Y.getArray()))
+                             <double*>np.PyArray_DATA(X.getArray()),
+                             <cdouble*>np.PyArray_DATA(Y.getArray()))
 
 #         cdef void* fftw_planp  = self.fftw_plan.__plan
-#         cdef void* fftw_input  = npy.PyArray_DATA(X.getArray())
-#         cdef void* fftw_output = npy.PyArray_DATA(Y.getArray())
+#         cdef void* fftw_input  = np.PyArray_DATA(X.getArray())
+#         cdef void* fftw_output = np.PyArray_DATA(Y.getArray())
 #         
 #         with nogil:
 #             fftw_execute_dft_r2c(<fftw_plan>fftw_planp,
@@ -176,9 +176,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
 #              
 #         cshape = (ye-ys, xe-xs)
 #               
-#         cdef npy.ndarray[npy.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
-#         cdef npy.ndarray[npy.complex128_t, ndim=2] x  = npy.empty(((ye-ys),(xe-xs)), dtype=npy.complex128) 
-#         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> npy.PyArray_DATA(X.getArray()))
+#         cdef np.ndarray[np.float64_t,    ndim=2] y = Y.getArray().reshape(dshape, order='c')
+#         cdef np.ndarray[np.complex128_t, ndim=2] x  = np.empty(((ye-ys),(xe-xs)), dtype=np.complex128) 
+#         x[...] = (<dcomplex[:(ye-ys),:(xe-xs)]> np.PyArray_DATA(X.getArray()))
 #              
 #         self.ifftw_plan(input_array=x, output_array=y)
         
@@ -187,14 +187,14 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         # The FFTW plan is still setup using pyFFTW.
         # Be careful to allow for unaligned input/output arrays.
         fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
-                             <cdouble*>npy.PyArray_DATA(X.getArray()),
-                             <double*>npy.PyArray_DATA(Y.getArray()))
+                             <cdouble*>np.PyArray_DATA(X.getArray()),
+                             <double*>np.PyArray_DATA(Y.getArray()))
         
         Y.scale(1./float(self.grid.nx))
         
 #         cdef void* ifftw_planp  = self.ifftw_plan.__plan
-#         cdef void* ifftw_input  = npy.PyArray_DATA(X.getArray())
-#         cdef void* ifftw_output = npy.PyArray_DATA(Y.getArray())
+#         cdef void* ifftw_input  = np.PyArray_DATA(X.getArray())
+#         cdef void* ifftw_output = np.PyArray_DATA(Y.getArray())
 #         
 #         with nogil:
 #             fftw_execute_dft_c2r(<fftw_plan>ifftw_planp,
@@ -208,15 +208,15 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef solve(self, Vec X):
         # solve system for each x
         
-        cdef npy.int64_t i, j
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t xe, xs, ye, ys
         
         (ys, ye), (xs, xe) = self.cay.getRanges()
         
         assert ys == 0
         assert ye == self.grid.nv
         
-        cdef dcomplex[:,:] cx = (<dcomplex[:(xe-xs),:(ye-ys)]> npy.PyArray_DATA(X.getArray()))
+        cdef dcomplex[:,:] cx = (<dcomplex[:(xe-xs),:(ye-ys)]> np.PyArray_DATA(X.getArray()))
         
         for i in range(0, xe-xs):
             self.call_zgbtrs(self.matrices[:,:,i], cx[i,:], self.pivots[:,i])
@@ -239,17 +239,17 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         return INFO
         
     
-    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, npy.complex eigen):
-        cdef npy.int64_t j
+    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen):
+        cdef np.int64_t j
         
-        cdef npy.ndarray[npy.float64_t, ndim=1] v = self.grid.v
+        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
         
-        cdef npy.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
+        cdef np.float64_t arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
         
-        cdef dcomplex[:] diagm = npy.zeros(self.grid.nv, dtype=npy.cdouble)
-        cdef dcomplex[:] diag  = npy.ones (self.grid.nv, dtype=npy.cdouble)
-        cdef dcomplex[:] diagp = npy.zeros(self.grid.nv, dtype=npy.cdouble)
+        cdef dcomplex[:] diagm = np.zeros(self.grid.nv, dtype=np.cdouble)
+        cdef dcomplex[:] diag  = np.ones (self.grid.nv, dtype=np.cdouble)
+        cdef dcomplex[:] diagp = np.zeros(self.grid.nv, dtype=np.cdouble)
         
         for j in range(2, self.grid.nv-2):
             diagm[j] = eigen * 0.5 * ( 2. * self.grid.hv * v[j] - self.grid.hv2 ) * arak_fac_J1
@@ -264,9 +264,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef jacobianSolver(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -360,9 +360,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef functionSolver(self, Vec F, Vec Y):
-        cdef npy.int64_t i, j
-        cdef npy.int64_t ix, iy, jx, jy
-        cdef npy.int64_t xe, xs, ye, ys
+        cdef np.int64_t i, j
+        cdef np.int64_t ix, iy, jx, jy
+        cdef np.int64_t xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

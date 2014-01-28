@@ -6,9 +6,6 @@ Created on June 05, 2013
 
 cimport cython
 
-import  numpy as np
-cimport numpy as np
-
 from petsc4py import PETSc
 
 
@@ -28,11 +25,11 @@ cdef class PETScVlasovSolverBase(object):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
-                 npy.float64_t charge=-1.,
-                 npy.float64_t coll_freq=0.,
-                 npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.,
-                 npy.float64_t regularisation=0.):
+                 double charge=-1.,
+                 double coll_freq=0.,
+                 double coll_diff=1.,
+                 double coll_drag=1.,
+                 double regularisation=0.):
         '''
         Constructor
         '''
