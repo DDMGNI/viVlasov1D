@@ -466,6 +466,9 @@ class petscVP1Dbase():
         
         self.hdf5_viewer.pushGroup("/")
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Saving initial data to HDF5.")
+        
         # write grid data to hdf5 file
         coords_x.setName('x')
         coords_v.setName('v')
@@ -482,6 +485,7 @@ class petscVP1Dbase():
         self.save_hdf5_vectors()
         
         if PETSc.COMM_WORLD.getRank() == 0:
+            print("run_base.py: initialisation done.")
             print("")
     
     

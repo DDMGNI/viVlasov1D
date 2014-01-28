@@ -53,6 +53,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         # get local x ranges for FFT
         (xs, xe), (ys, ye) = self.dax.getRanges()
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Creating FFTW objects.")
+        
         # FFTW arrays 
         fftw_in   = npy.empty((ye-ys, self.grid.nx),          dtype=npy.float64, order='c')
         fftw_out  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.cdouble, order='c')
@@ -66,6 +69,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
         self.ifftw_plan = pyfftw.FFTW(ifftw_in, ifftw_out, axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
         
+        
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Computing eigenvalues.")
         
         # eigenvalues
         eigen = npy.empty(self.grid.nx, dtype=npy.complex128)
@@ -112,6 +118,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
          
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Preconditioner Initialisation done.")
+            print("")
     
     
 #     def __dealloc__(self):

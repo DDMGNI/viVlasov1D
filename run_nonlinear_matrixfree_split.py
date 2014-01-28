@@ -46,6 +46,9 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
 #         OptDB.setValue('log_summary', '')
         
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Creating solver objects.")
+    
         # create solver objects
         self.vlasov_solver = PETScVlasovSolver(self.da1, self.grid,
                                                self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
@@ -95,6 +98,10 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
             
         OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Run script initialisation done.")
+            print("")
+    
         
     
     def updateVlasovJacobian(self, snes, X, J, P):
