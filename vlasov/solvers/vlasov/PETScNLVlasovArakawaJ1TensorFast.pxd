@@ -4,7 +4,7 @@ Created on Jul 10, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-cimport numpy as npy
+cimport numpy as np
 
 from petsc4py.PETSc         cimport Vec
 

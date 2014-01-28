@@ -24,7 +24,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
-        cdef npy.int64_t i, j, ix
+        cdef npy.int64_t i, j, ix, jx
         cdef npy.int64_t xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()

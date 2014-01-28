@@ -4,7 +4,7 @@ Created on Jul 10, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-cimport numpy as npy
+cimport numpy as np
 
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
@@ -21,8 +21,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     cdef double a21
     cdef double a22
     
-    cdef npy.ndarray f_arr
-    cdef npy.ndarray h_arr
+    cdef np.ndarray f_arr
+    cdef np.ndarray h_arr
     
     cdef double[:,:,:] f
     cdef double[:,:,:] h

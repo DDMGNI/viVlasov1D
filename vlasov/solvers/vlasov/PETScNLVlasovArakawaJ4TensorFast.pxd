@@ -4,11 +4,11 @@ Created on Jul 10, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-cimport numpy as npy
+cimport numpy as np
 
 from libc.stdint cimport intptr_t
 
-ctypedef npy.complex128_t dcomplex
+ctypedef np.complex128_t dcomplex
 
 
 from petsc4py.PETSc         cimport Vec
@@ -43,7 +43,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef call_zgbtrf(self, dcomplex[:,:] matrix, int[:] pivots)
     cdef call_zgbtrs(self, dcomplex[:,:] matrix, dcomplex[:] rhs, int[:] pivots)    
     
-    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, npy.complex eigen)
+    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen)
     
 
 cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int* LDA, int* IPIV, int* INFO)

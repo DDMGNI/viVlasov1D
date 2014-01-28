@@ -4,7 +4,7 @@ Created on June 05, 2013
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-cimport numpy as npy
+cimport numpy as np
 
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
@@ -14,11 +14,11 @@ from vlasov.toolbox.VIDA    cimport VIDA
 
 cdef class PETScVlasovSolverBase(object):
 
-    cdef npy.float64_t charge
-    cdef npy.float64_t nu
-    cdef npy.float64_t coll_diff
-    cdef npy.float64_t coll_drag
-    cdef npy.float64_t regularisation
+    cdef np.float64_t charge
+    cdef np.float64_t nu
+    cdef np.float64_t coll_diff
+    cdef np.float64_t coll_drag
+    cdef np.float64_t regularisation
     
     cdef VIDA da1
     cdef Grid grid

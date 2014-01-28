@@ -4,9 +4,9 @@ Created on Jul 10, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-cimport numpy as npy
+cimport numpy as np
 
-ctypedef npy.complex128_t dcomplex
+ctypedef np.complex128_t dcomplex
 
 from petsc4py.PETSc cimport Mat, Vec
 
@@ -22,6 +22,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     cdef list solvers
     
-    cdef npy.ndarray tfft
+    cdef np.ndarray tfft
     
-    cdef formSparsePreconditionerMatrix(self, npy.complex eigen)
+    cdef formSparsePreconditionerMatrix(self, np.complex eigen)
