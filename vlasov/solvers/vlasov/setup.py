@@ -5,7 +5,16 @@
 from vlasov.setup_inc import *
 
 
-ext_modules = [
+# extensions = [Extension("*", ["*.pyx"],
+#                   include_dirs=INCLUDE_DIRS + [os.curdir],
+#                   libraries=LIBRARIES,
+#                   library_dirs=LIBRARY_DIRS,
+#                   runtime_library_dirs=LIBRARY_DIRS,
+#                   extra_compile_args=CARGS,
+#                   extra_link_args=LARGS),
+#               ]
+                
+extensions = [
         Extension("PETScVlasovSolver",
                   sources=["PETScVlasovSolver.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -100,15 +109,6 @@ ext_modules = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
-#         Extension("PETScNLVlasovArakawaJ4TensorPETSc",
-#                   sources=["PETScNLVlasovArakawaJ4TensorPETSc.pyx"],
-#                   include_dirs=INCLUDE_DIRS + [os.curdir],
-#                   libraries=LIBRARIES,
-#                   library_dirs=LIBRARY_DIRS,
-#                   runtime_library_dirs=LIBRARY_DIRS,
-#                   extra_compile_args=CARGS,
-#                   extra_link_args=LARGS
-#                  ),
         Extension("PETScNLVlasovArakawaJ4TensorSciPy",
                   sources=["PETScNLVlasovArakawaJ4TensorSciPy.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
@@ -151,7 +151,8 @@ ext_modules = [
               ]
                 
 setup(
-    name = 'PETSc Vlasov Solver',
+    name = 'PETSc Vlasov Solvers',
     cmdclass = {'build_ext': build_ext},
-    ext_modules = ext_modules
+    ext_modules = extensions,
+#     ext_modules = cythonize(extensions),
 )

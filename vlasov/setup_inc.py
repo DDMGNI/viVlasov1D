@@ -6,6 +6,7 @@ Created on 27.01.2014
 
 from distutils.core      import setup
 from Cython.Distutils    import build_ext, Extension
+from Cython.Build        import cythonize
 
 import numpy
 import os
