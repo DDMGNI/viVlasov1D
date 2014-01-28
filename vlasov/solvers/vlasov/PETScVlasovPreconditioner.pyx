@@ -80,7 +80,7 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         
         # temporary variables for scatter objects
-        cdef npy.uint64_t i, j, k
+        cdef npy.uint64_t i, j, k, l
         cdef npy.uint64_t xs1, xe1, ys1, ye1
         cdef npy.uint64_t xsx, xex, ysx, yex
         cdef npy.uint64_t ysy, yey, xsy, xey 
@@ -113,11 +113,13 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         xindexlist = npy.empty(nindices, dtype=npy.int32)
         yindexlist = npy.empty(nindices, dtype=npy.int32)
         
+        l = 0
         for i in range(xsx, xex):
             for j in range(ysx, yex):
                 for k in range(0,2):
-                    xindexlist[2*(j*nx + i) + k] = 2*(j*nx + i) + k
-                    yindexlist[2*(j*nx + i) + k] = 2*(i*nv + j) + k
+                    xindexlist[l] = 2*(j*nx + i) + k
+                    yindexlist[l] = 2*(i*nv + j) + k
+                    l += 1
         
         self.cxIndices  = PETSc.IS().createGeneral(xindexlist)
         self.cyIndices  = PETSc.IS().createGeneral(yindexlist)
