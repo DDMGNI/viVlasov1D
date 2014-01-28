@@ -14,7 +14,7 @@ import argparse
 import h5py
 
 from vlasov.core import DistributionFunction, Grid, Hamiltonian, Potential
-from vlasov.plot import PlotEnergy
+from vlasov.plot import PlotTimetraces
 
 
 class timetraces(object):
@@ -60,7 +60,7 @@ class timetraces(object):
         self.distribution.read_from_hdf5(0)
         self.hamiltonian.read_from_hdf5(0)
         
-        self.plot = PlotEnergy(self.grid, self.distribution, self.hamiltonian, self.potential, first, last, vMax)
+        self.plot = PlotTimetraces(self.grid, self.distribution, self.hamiltonian, self.potential, first, last, vMax)
         
     
     def __del__(self):

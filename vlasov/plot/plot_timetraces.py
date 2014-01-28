@@ -14,7 +14,7 @@ from matplotlib import cm, colors, gridspec
 from matplotlib.ticker import ScalarFormatter, MaxNLocator
 
 
-class PlotEnergy(object):
+class PlotTimetraces(object):
     '''
     classdocs
     '''
