@@ -41,8 +41,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.float64_t time_fac    = 1.0  / self.grid.ht
         cdef npy.float64_t arak_fac_J2 = 0.5 / (24. * self.grid.hx * self.grid.hv)
         
-        cdef npy.float64_t coll1_fac   = - 0.5 * self.nu * 0.5 / self.grid.hv
-        cdef npy.float64_t coll2_fac   = - 0.5 * self.nu * self.grid.hv2_inv
+        cdef npy.float64_t coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef npy.float64_t coll_diff_fac = - 0.5 * self.nu * self.coll_diff * self.grid.hv2_inv
         
         
         A.zeroEntries()

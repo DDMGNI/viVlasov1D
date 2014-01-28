@@ -68,7 +68,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
-                    
                     for index, value in [
                             ((i-2, j  ), - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
                             ((i-1, j-1), - (h_ave[ix-1, jx  ] - h_ave[ix,   jx-1]) * arak_fac_J1 \
