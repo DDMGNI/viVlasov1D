@@ -43,7 +43,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef call_zgbtrf(self, dcomplex[:,:] matrix, int[:] pivots)
     cdef call_zgbtrs(self, dcomplex[:,:] matrix, dcomplex[:] rhs, int[:] pivots)    
     
-    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen)
+    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, dcomplex eigen)
     
 
 cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int* LDA, int* IPIV, int* INFO)

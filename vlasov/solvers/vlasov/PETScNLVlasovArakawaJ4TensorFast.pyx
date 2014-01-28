@@ -239,7 +239,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         return INFO
         
     
-    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen):
+    cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, dcomplex eigen):
         cdef int j
         
         cdef double[:] v = self.grid.v
