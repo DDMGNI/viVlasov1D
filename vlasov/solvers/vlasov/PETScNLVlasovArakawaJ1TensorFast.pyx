@@ -20,9 +20,9 @@ cdef class PETScVlasovSolver(vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorF
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef jacobianSolver(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -101,9 +101,9 @@ cdef class PETScVlasovSolver(vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorF
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef functionSolver(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

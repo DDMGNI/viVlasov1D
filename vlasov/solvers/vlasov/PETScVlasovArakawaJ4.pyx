@@ -52,8 +52,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formJacobian(self, Mat A):
-        cdef np.int64_t i, j, ix, jx
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -147,9 +147,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -223,9 +223,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

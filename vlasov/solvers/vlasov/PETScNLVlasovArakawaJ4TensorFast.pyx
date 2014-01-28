@@ -208,8 +208,8 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef solve(self, Vec X):
         # solve system for each x
         
-        cdef np.int64_t i, j
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int xe, xs, ye, ys
         
         (ys, ye), (xs, xe) = self.cay.getRanges()
         
@@ -240,7 +240,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
     
     cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen):
-        cdef np.int64_t j
+        cdef int j
         
         cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
         
@@ -264,9 +264,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef jacobianSolver(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
@@ -360,9 +360,9 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef functionSolver(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2

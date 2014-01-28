@@ -24,9 +24,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def jacobian(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double bracket, bracket11, bracket12, bracket21, bracket22
         cdef double coll_drag, coll_diff
@@ -140,9 +140,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function(self, Vec F, Vec Y):
-        cdef np.int64_t i, j
-        cdef np.int64_t ix, iy, jx, jy
-        cdef np.int64_t xe, xs, ye, ys
+        cdef int i, j
+        cdef int ix, iy, jx, jy
+        cdef int xe, xs, ye, ys
         
         cdef double bracket, bracket11, bracket12, bracket21, bracket22
         cdef double coll_drag, coll_diff
