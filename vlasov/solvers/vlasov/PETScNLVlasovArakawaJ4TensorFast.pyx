@@ -57,10 +57,10 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
             print("Creating FFTW objects.")
         
         # FFTW arrays 
-        fftw_in   = npy.empty((ye-ys, self.grid.nx),          dtype=npy.float64, order='c')
-        fftw_out  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.cdouble, order='c')
-        ifftw_in  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.cdouble, order='c')
-        ifftw_out = npy.empty((ye-ys, self.grid.nx),          dtype=npy.float64, order='c')
+        fftw_in   = npy.empty((ye-ys, self.grid.nx),      dtype=npy.float64,    order='c')
+        fftw_out  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
+        ifftw_in  = npy.empty((ye-ys, self.grid.nx//2+1), dtype=npy.complex128, order='c')
+        ifftw_out = npy.empty((ye-ys, self.grid.nx),      dtype=npy.float64,    order='c')
         
         # enable cache in pyFFTW for optimal performance
         pyfftw.interfaces.cache.enable()
