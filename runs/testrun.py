@@ -46,5 +46,6 @@ def distribution(x, v):
 #    f[:,1] = 1.
 #    f[:,2] = 0.
     
-    return x+np.abs(v)
+#     return x+np.abs(v)
+    return x+1E-3
 
