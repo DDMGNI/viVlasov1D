@@ -16,16 +16,14 @@ from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
-    cdef Vec F1
-    
     cdef Vec H11
     cdef Vec H21
     
-    cdef Vec localK1
-    cdef Vec localF1
+    cdef Vec localK
     
     cdef Vec localH11
     cdef Vec localH21
+    
+    
+    cpdef update_previous2(self)
 
-
-    cpdef update_previous2(self, Vec F1, Vec P1int, Vec P1ext)

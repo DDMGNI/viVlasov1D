@@ -29,6 +29,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
+                 Vec H11 not None,
+                 Vec H21 not None,
                  npy.float64_t charge=-1.,
                  npy.float64_t coll_freq=0.,
                  npy.float64_t coll_diff=1.,
@@ -42,26 +44,17 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
         
         # create global data arrays
-        self.F1  = self.da1.createGlobalVec()
-        
-        self.H11 = self.da1.createGlobalVec()
-        self.H21 = self.da1.createGlobalVec()
+        self.H11 = H11
+        self.H21 = H21
         
         # create local data arrays
-        self.localK1  = self.da1.createLocalVec()
-        self.localF1  = self.da1.createLocalVec()
+        self.localK   = self.da1.createLocalVec()
 
         self.localH11 = self.da1.createLocalVec()
         self.localH21 = self.da1.createLocalVec()
 
         
-    
-    cpdef update_previous2(self, Vec F1, Vec P1int, Vec P1ext):
-        F1.copy(self.F1)
-        
-        self.toolbox.potential_to_hamiltonian(P1int, self.H11)
-        self.toolbox.potential_to_hamiltonian(P1ext, self.H21)
-        
+    cpdef update_previous2(self):
         self.H0.copy(self.Have)
         self.Have.axpy(1., self.H11)
         self.Have.axpy(1., self.H21)
@@ -69,7 +62,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec K1, Vec Y):
+    def jacobian(self, Vec K, Vec Y):
         cdef npy.int64_t a, i, j
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
@@ -79,12 +72,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef double result_J1, result_J2, result_J4, poisson
         
         
-        K1.copy(self.F1)
-        self.F1.scale(0.5 * self.grid.ht)
+        K.copy(self.Fave)
+        self.Fave.scale(0.5 * self.grid.ht)
         
         cdef double[:,:] h = self.da1.getLocalArray(self.Have, self.localHave)
-        cdef double[:,:] f = self.da1.getLocalArray(self.F1, self.localF1)
-        cdef double[:,:] k = self.da1.getLocalArray(K1, self.localK1)
+        cdef double[:,:] f = self.da1.getLocalArray(self.Fave, self.localFave)
+        cdef double[:,:] k = self.da1.getLocalArray(K, self.localK)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
         
         
@@ -144,17 +137,17 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec K1, Vec Y):
+    def function(self, Vec K, Vec Y):
         cdef npy.int64_t a, i, j
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
         self.Fh.copy(self.Fave)
-        self.Fave.axpy(0.5 * self.grid.ht, K1)
+        self.Fave.axpy(0.5 * self.grid.ht, K)
         
         cdef double[:,:] h = self.da1.getLocalArray(self.Have, self.localHave)
         cdef double[:,:] f = self.da1.getLocalArray(self.Fave, self.localFave)
-        cdef double[:,:] k = self.da1.getLocalArray(K1, self.localK1)
+        cdef double[:,:] k = self.da1.getLocalArray(K, self.localK)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
         
         

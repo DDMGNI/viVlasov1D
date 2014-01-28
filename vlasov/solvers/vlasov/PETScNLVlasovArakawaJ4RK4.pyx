@@ -21,109 +21,76 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     discretisation of the Poisson brackets (J4=2J1-J2).
     '''
     
-    def __init__(self, VIDA da2, VIDA da1, VIDA dax, Vec H0,
-                 npy.ndarray[npy.float64_t, ndim=1] v,
-                 npy.uint64_t nx, npy.uint64_t nv,
-                 npy.float64_t ht, npy.float64_t hx, npy.float64_t hv,
-                 npy.float64_t charge,
+    def __init__(self,
+                 VIDA da2  not None,
+                 VIDA da1  not None,
+                 Grid grid not None,
+                 Vec H0  not None,
+                 Vec H1p not None,
+                 Vec H1h not None,
+                 Vec H2p not None,
+                 Vec H2h not None,
+                 Vec H11 not None,
+                 Vec H12 not None,
+                 Vec H21 not None,
+                 Vec H22 not None,
+                 npy.float64_t charge=-1.,
                  npy.float64_t coll_freq=0.,
                  npy.float64_t coll_diff=1.,
-                 npy.float64_t coll_drag=1.):
+                 npy.float64_t coll_drag=1.,
+                 npy.float64_t regularisation=0.):
         '''
         Constructor
         '''
         
         # initialise parent class
-        super().__init__(da1, dax, H0, v, nx, nv, ht, hx, hv, charge, coll_freq, coll_diff, coll_drag, regularisation=0.)
+        super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
         
         # distributed array
         self.da2 = da2
         
-        # k vector
-        self.localK = self.da2.createLocalVec()
-        
-        # create global data arrays
-        self.H11 = self.da1.createGlobalVec()
-        self.H12 = self.da1.createGlobalVec()
-        self.H21 = self.da1.createGlobalVec()
-        self.H22 = self.da1.createGlobalVec()
-        
-        self.F1  = self.da1.createGlobalVec()
-        self.F2  = self.da1.createGlobalVec()
-        self.P1  = self.dax.createGlobalVec()
-        self.P2  = self.dax.createGlobalVec()
+        # Hamiltonians
+        self.H11  = H11
+        self.H12  = H12
+        self.H21  = H21
+        self.H22  = H22
         
         # create local data arrays
-        self.localH11 = self.da1.createLocalVec()
-        self.localH12 = self.da1.createLocalVec()
-        self.localH21 = self.da1.createLocalVec()
-        self.localH22 = self.da1.createLocalVec()
+        self.localK    = self.da2.createLocalVec()
 
-        self.localF1  = self.da1.createLocalVec()
-        self.localF2  = self.da1.createLocalVec()
-        self.localP1  = self.dax.createLocalVec()
-        self.localP2  = self.dax.createLocalVec()
-
+        self.localH0   = self.da1.createLocalVec()
+        self.localH11  = self.da1.createLocalVec()
+        self.localH12  = self.da1.createLocalVec()
+        self.localH21  = self.da1.createLocalVec()
+        self.localH22  = self.da1.createLocalVec()
+        
+        # create temporary array
+        K = self.da2.createGlobalVec()
+        self.f_arr = npy.empty_like(self.da2.getLocalArray(K, self.localK))
+        self.h_arr = npy.empty_like(self.da2.getLocalArray(K, self.localK))
+        K.destroy()
+        
+        self.f = self.f_arr
+        self.h = self.h_arr
         
         # Runge-Kutta factors
         self.a11 = 0.25
         self.a12 = 0.25 - 0.5 / npy.sqrt(3.) 
         self.a21 = 0.25 + 0.5 / npy.sqrt(3.) 
         self.a22 = 0.25
-#         self.a11 = 0.
-#         self.a12 = 0. 
-#         self.a21 = 0.5 
-#         self.a22 = 0.5
-#         self.a11 = 0.
-#         self.a12 = 0.
-#         self.a21 = 0.5
-#         self.a22 = 0.
         
     
-    cpdef update_previous4(self, Vec F1, Vec F2, Vec P1, Vec P2, Vec Pext1, Vec Pext2, Vec N, Vec U, Vec E):
-        F1.copy(self.F1)
-        F2.copy(self.F2)
-        P1.copy(self.P1)
-        P2.copy(self.P2)
-        N.copy(self.Np)
-        U.copy(self.Up)
-        E.copy(self.Ep)
+    cpdef update_previous4(self):
+        cdef npy.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
+        cdef npy.ndarray[double, ndim=2] h11 = self.da1.getLocalArray(self.H11, self.localH11)
+        cdef npy.ndarray[double, ndim=2] h12 = self.da1.getLocalArray(self.H12, self.localH12)
+        cdef npy.ndarray[double, ndim=2] h21 = self.da1.getLocalArray(self.H21, self.localH21)
+        cdef npy.ndarray[double, ndim=2] h22 = self.da1.getLocalArray(self.H22, self.localH22)
         
-        self.toolbox.compute_collision_factor(self.Np,  self.Up, self.Ep, self.Ap)
-        self.toolbox.potential_to_hamiltonian(self.P1, self.H11)
-        self.toolbox.potential_to_hamiltonian(self.P2, self.H12)
-        self.toolbox.potential_to_hamiltonian(Pext1,   self.H21)
-        self.toolbox.potential_to_hamiltonian(Pext2,   self.H22)
+        self.h_arr[:,:,0] = h0[:,:] + h11[:,:] + h21[:,:]  
+        self.h_arr[:,:,1] = h0[:,:] + h12[:,:] + h22[:,:]  
         
         
-    cdef get_data_arrays(self):
-        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
-        
-        self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
-        self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
-        self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
-        self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
-        
-        self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
-        self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
-        self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
-        self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
-        self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
-        self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
-        
-        self.h11 = self.da1.getLocalArray(self.H11, self.localH11)
-        self.h12 = self.da1.getLocalArray(self.H12, self.localH12)
-        self.h21 = self.da1.getLocalArray(self.H21, self.localH21)
-        self.h22 = self.da1.getLocalArray(self.H22, self.localH22)
-        
-        self.f1  = self.da1.getLocalArray(self.F1,  self.localF1)
-        self.f2  = self.da1.getLocalArray(self.F2,  self.localF2)
-        self.p1  = self.dax.getLocalArray(self.P1,  self.localP1)
-        self.p2  = self.dax.getLocalArray(self.P2,  self.localP2)
-
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -132,88 +99,71 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        cdef npy.float64_t coll_drag, coll_diff
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
         
-        self.get_data_arrays()
+        cdef npy.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
+        
+        self.f_arr[:,:,0] = self.grid.ht * self.a11 * k_arr[:,:,0] + self.grid.ht * self.a12 * k_arr[:,:,1]
+        self.f_arr[:,:,1] = self.grid.ht * self.a21 * k_arr[:,:,0] + self.grid.ht * self.a22 * k_arr[:,:,1]
+        
+        cdef double[:,:,:] k = k_arr
+        cdef double[:,:,:] y = self.da2.getGlobalArray(Y)
+        
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=3] k = self.da2.getLocalArray(K, self.localK)
-        cdef npy.ndarray[npy.float64_t, ndim=3] y = self.da2.getGlobalArray(Y)
-        
-        cdef npy.ndarray[npy.float64_t, ndim=3] f = npy.empty_like(k)
-        cdef npy.ndarray[npy.float64_t, ndim=3] h = npy.empty_like(k)
-         
-        f[:,:,0] = self.grid.ht * self.a11 * k[:,:,0] + self.grid.ht * self.a12 * k[:,:,1]
-        f[:,:,1] = self.grid.ht * self.a21 * k[:,:,0] + self.grid.ht * self.a22 * k[:,:,1]
-        
-        h[:,:,0] = self.h0 + self.h11 + self.h21
-        h[:,:,1] = self.h0 + self.h12 + self.h22
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
 
-#         cdef npy.ndarray[npy.float64_t, ndim=1] v = self.v
-#         cdef npy.ndarray[npy.float64_t, ndim=1] u = self.up
-#         cdef npy.ndarray[npy.float64_t, ndim=1] a = self.ap
-        
-        
-        for a in range(0,2):
-            for i in range(xs, xe):
-                ix = i-xs+self.da2.getStencilWidth()
-                iy = i-xs
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy, 0:2] = k[self.grid.stencil:xe-xs+self.grid.stencil, jx, 0:2]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
             
-                for j in range(ys, ye):
-                    jx = j-ys+self.grid.stencil
-                    jy = j-ys
-
-                    if j < self.da2.getStencilWidth() or j >= self.grid.nv-self.da2.getStencilWidth():
-                        # Dirichlet Boundary Conditions
-                        y[iy, j, a] = k[ix,j,a]
-                        
-                    else:
+                    for a in range(0,2):
                         # Araaawa's J1
-                        jpp_J1 = (f[ix+1, j  ,a] - f[ix-1, j  ,a]) * (h[ix,   j+1,a] - h[ix,   j-1,a]) \
-                               - (f[ix,   j+1,a] - f[ix,   j-1,a]) * (h[ix+1, j  ,a] - h[ix-1, j  ,a])
+                        jpp_J1 = (self.f[ix+1, jx,   a] - self.f[ix-1, jx,   a]) * (self.h[ix,   jx+1, a] - self.h[ix,   jx-1, a]) \
+                               - (self.f[ix,   jx+1, a] - self.f[ix,   jx-1, a]) * (self.h[ix+1, jx,   a] - self.h[ix-1, jx,   a])
                         
-                        jpc_J1 = f[ix+1, j  ,a] * (h[ix+1, j+1,a] - h[ix+1, j-1,a]) \
-                               - f[ix-1, j  ,a] * (h[ix-1, j+1,a] - h[ix-1, j-1,a]) \
-                               - f[ix,   j+1,a] * (h[ix+1, j+1,a] - h[ix-1, j+1,a]) \
-                               + f[ix,   j-1,a] * (h[ix+1, j-1,a] - h[ix-1, j-1,a])
+                        jpc_J1 = self.f[ix+1, jx,   a] * (self.h[ix+1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - self.f[ix-1, jx,   a] * (self.h[ix-1, jx+1, a] - self.h[ix-1, jx-1, a]) \
+                               - self.f[ix,   jx+1, a] * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx+1, a]) \
+                               + self.f[ix,   jx-1, a] * (self.h[ix+1, jx-1, a] - self.h[ix-1, jx-1, a])
                         
-                        jcp_J1 = f[ix+1, j+1,a] * (h[ix,   j+1,a] - h[ix+1, j  ,a]) \
-                               - f[ix-1, j-1,a] * (h[ix-1, j  ,a] - h[ix,   j-1,a]) \
-                               - f[ix-1, j+1,a] * (h[ix,   j+1,a] - h[ix-1, j  ,a]) \
-                               + f[ix+1, j-1,a] * (h[ix+1, j  ,a] - h[ix,   j-1,a])
+                        jcp_J1 = self.f[ix+1, jx+1, a] * (self.h[ix,   jx+1, a] - self.h[ix+1, jx,   a]) \
+                               - self.f[ix-1, jx-1, a] * (self.h[ix-1, jx,   a] - self.h[ix,   jx-1, a]) \
+                               - self.f[ix-1, jx+1, a] * (self.h[ix,   jx+1, a] - self.h[ix-1, jx,   a]) \
+                               + self.f[ix+1, jx-1, a] * (self.h[ix+1, jx,   a] - self.h[ix,   jx-1, a])
                         
                         # Araaawa's J2
-                        jcc_J2 = (f[ix+1, j+1,a] - f[ix-1, j-1,a]) * (h[ix-1, j+1,a] - h[ix+1, j-1,a]) \
-                               - (f[ix-1, j+1,a] - f[ix+1, j-1,a]) * (h[ix+1, j+1,a] - h[ix-1, j-1,a])
+                        jcc_J2 = (self.f[ix+1, jx+1, a] - self.f[ix-1, jx-1, a]) * (self.h[ix-1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - (self.f[ix-1, jx+1, a] - self.f[ix+1, jx-1, a]) * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx-1, a])
                         
-                        jpc_J2 = f[ix+2, j  ,a] * (h[ix+1, j+1,a] - h[ix+1, j-1,a]) \
-                               - f[ix-2, j  ,a] * (h[ix-1, j+1,a] - h[ix-1, j-1,a]) \
-                               - f[ix,   j+2,a] * (h[ix+1, j+1,a] - h[ix-1, j+1,a]) \
-                               + f[ix,   j-2,a] * (h[ix+1, j-1,a] - h[ix-1, j-1,a])
+                        jpc_J2 = self.f[ix+2, jx,   a] * (self.h[ix+1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - self.f[ix-2, jx,   a] * (self.h[ix-1, jx+1, a] - self.h[ix-1, jx-1, a]) \
+                               - self.f[ix,   jx+2, a] * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx+1, a]) \
+                               + self.f[ix,   jx-2, a] * (self.h[ix+1, jx-1, a] - self.h[ix-1, jx-1, a])
                         
-                        jcp_J2 = f[ix+1, j+1,a] * (h[ix,   j+2,a] - h[ix+2, j  ,a]) \
-                               - f[ix-1, j-1,a] * (h[ix-2, j  ,a] - h[ix,   j-2,a]) \
-                               - f[ix-1, j+1,a] * (h[ix,   j+2,a] - h[ix-2, j  ,a]) \
-                               + f[ix+1, j-1,a] * (h[ix+2, j  ,a] - h[ix,   j-2,a])
+                        jcp_J2 = self.f[ix+1, jx+1, a] * (self.h[ix,   jx+2, a] - self.h[ix+2, jx,   a]) \
+                               - self.f[ix-1, jx-1, a] * (self.h[ix-2, jx,   a] - self.h[ix,   jx-2, a]) \
+                               - self.f[ix-1, jx+1, a] * (self.h[ix,   jx+2, a] - self.h[ix-2, jx,   a]) \
+                               + self.f[ix+1, jx-1, a] * (self.h[ix+2, jx,   a] - self.h[ix,   jx-2, a])
                         
-                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12. * self.grid.hx_inv * self.grid.hv_inv
-                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24. * self.grid.hx_inv * self.grid.hv_inv
+                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                         result_J4 = 2. * result_J1 - result_J2
+                        poisson   = result_J4 * self.grid.hx_inv * self.grid.hv_inv
                         
-                        
-                        # collision operator
-#                         coll_drag = ( (v[jx+1] - u[ix]) * fd[ix, jx+1] - (v[jx-1] - u[ix]) * fd[ix, jx-1] ) * a[ix]
-#                         coll_diff = ( fd[ix, jx+1] - 2. * fd[ix, jx] + fd[ix, jx-1] )
-                        coll_drag = 0.0
-                        coll_diff = 0.0
-             
-                        y[iy, j, a] = k[ix, j, a] + result_J4 # \
-#                                     + 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-#                                     + 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv
+                        # solution
+                        y[iy, jy, a] = k[ix, jx, a] + poisson
     
     
     
@@ -224,91 +174,69 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef npy.int64_t ix, iy, jx, jy
         cdef npy.int64_t xe, xs, ye, ys
         
-        cdef npy.float64_t jpp_J1, jpc_J1, jcp_J1
-        cdef npy.float64_t jcc_J2, jpc_J2, jcp_J2
-        cdef npy.float64_t result_J1, result_J2, result_J4
-        cdef npy.float64_t coll_drag, coll_diff
+        cdef double jpp_J1, jpc_J1, jcp_J1
+        cdef double jcc_J2, jpc_J2, jcp_J2
+        cdef double result_J1, result_J2, result_J4, poisson
         
-        self.get_data_arrays()
+        cdef npy.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
+        cdef npy.ndarray[double, ndim=2] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
+        
+        self.f_arr[:,:,0] = fh[:,:] + self.grid.ht * self.a11 * k_arr[:,:,0] + self.grid.ht * self.a12 * k_arr[:,:,1]
+        self.f_arr[:,:,1] = fh[:,:] + self.grid.ht * self.a21 * k_arr[:,:,0] + self.grid.ht * self.a22 * k_arr[:,:,1]
+        
+        cdef double[:,:,:] k = k_arr
+        cdef double[:,:,:] y = self.da2.getGlobalArray(Y)
+
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef npy.ndarray[npy.float64_t, ndim=3] k = self.da2.getLocalArray(K, self.localK)
-        cdef npy.ndarray[npy.float64_t, ndim=3] y = self.da2.getGlobalArray(Y)
-        
-        cdef npy.ndarray[npy.float64_t, ndim=3] f = npy.empty_like(k)
-        cdef npy.ndarray[npy.float64_t, ndim=3] h = npy.empty_like(k)
-         
-        f[:,:,0] = self.fh[:,:] + self.grid.ht * self.a11 * k[:,:,0] + self.grid.ht * self.a12 * k[:,:,1]
-        f[:,:,1] = self.fh[:,:] + self.grid.ht * self.a21 * k[:,:,0] + self.grid.ht * self.a22 * k[:,:,1]
-        
-        h[:,:,0] = self.h0 + self.h11 + self.h21
-        h[:,:,1] = self.h0 + self.h12 + self.h22
-        
-#         cdef npy.ndarray[npy.float64_t, ndim=1] v  = self.v
-#         cdef npy.ndarray[npy.float64_t, ndim=1] up = self.up
-#         cdef npy.ndarray[npy.float64_t, ndim=1] ap = self.ap
-#         cdef npy.ndarray[npy.float64_t, ndim=1] uh = self.uh
-#         cdef npy.ndarray[npy.float64_t, ndim=1] ah = self.ah
-        
-        
-        for a in range(0,2):
-            for i in range(xs, xe):
-                ix = i-xs+self.da2.getStencilWidth()
-                iy = i-xs
-                
-                # Vlasov equation
-                for j in range(ys, ye):
-                    jx = j-ys+self.grid.stencil
-                    jy = j-ys
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
 
-                    if j < self.da2.getStencilWidth() or j >= self.grid.nv-self.da2.getStencilWidth():
-                        # Dirichlet Boundary Conditions
-                        y[iy, j, a] = k[ix,j,a]
-                        
-                    else:
+            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                # Dirichlet Boundary Conditions
+                y[0:xe-xs, jy, 0:2] = k[self.grid.stencil:xe-xs+self.grid.stencil, jx, 0:2]
+                
+            else:
+                # Vlasov equation
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
+            
+                    for a in range(0,2):
                         # Araaawa's J1
-                        jpp_J1 = (f[ix+1, j  ,a] - f[ix-1, j  ,a]) * (h[ix,   j+1,a] - h[ix,   j-1,a]) \
-                               - (f[ix,   j+1,a] - f[ix,   j-1,a]) * (h[ix+1, j  ,a] - h[ix-1, j  ,a])
+                        jpp_J1 = (self.f[ix+1, jx,   a] - self.f[ix-1, jx,   a]) * (self.h[ix,   jx+1, a] - self.h[ix,   jx-1, a]) \
+                               - (self.f[ix,   jx+1, a] - self.f[ix,   jx-1, a]) * (self.h[ix+1, jx,   a] - self.h[ix-1, jx,   a])
                         
-                        jpc_J1 = f[ix+1, j  ,a] * (h[ix+1, j+1,a] - h[ix+1, j-1,a]) \
-                               - f[ix-1, j  ,a] * (h[ix-1, j+1,a] - h[ix-1, j-1,a]) \
-                               - f[ix,   j+1,a] * (h[ix+1, j+1,a] - h[ix-1, j+1,a]) \
-                               + f[ix,   j-1,a] * (h[ix+1, j-1,a] - h[ix-1, j-1,a])
+                        jpc_J1 = self.f[ix+1, jx,   a] * (self.h[ix+1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - self.f[ix-1, jx,   a] * (self.h[ix-1, jx+1, a] - self.h[ix-1, jx-1, a]) \
+                               - self.f[ix,   jx+1, a] * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx+1, a]) \
+                               + self.f[ix,   jx-1, a] * (self.h[ix+1, jx-1, a] - self.h[ix-1, jx-1, a])
                         
-                        jcp_J1 = f[ix+1, j+1,a] * (h[ix,   j+1,a] - h[ix+1, j  ,a]) \
-                               - f[ix-1, j-1,a] * (h[ix-1, j  ,a] - h[ix,   j-1,a]) \
-                               - f[ix-1, j+1,a] * (h[ix,   j+1,a] - h[ix-1, j  ,a]) \
-                               + f[ix+1, j-1,a] * (h[ix+1, j  ,a] - h[ix,   j-1,a])
+                        jcp_J1 = self.f[ix+1, jx+1, a] * (self.h[ix,   jx+1, a] - self.h[ix+1, jx,   a]) \
+                               - self.f[ix-1, jx-1, a] * (self.h[ix-1, jx,   a] - self.h[ix,   jx-1, a]) \
+                               - self.f[ix-1, jx+1, a] * (self.h[ix,   jx+1, a] - self.h[ix-1, jx,   a]) \
+                               + self.f[ix+1, jx-1, a] * (self.h[ix+1, jx,   a] - self.h[ix,   jx-1, a])
                         
                         # Araaawa's J2
-                        jcc_J2 = (f[ix+1, j+1,a] - f[ix-1, j-1,a]) * (h[ix-1, j+1,a] - h[ix+1, j-1,a]) \
-                               - (f[ix-1, j+1,a] - f[ix+1, j-1,a]) * (h[ix+1, j+1,a] - h[ix-1, j-1,a])
+                        jcc_J2 = (self.f[ix+1, jx+1, a] - self.f[ix-1, jx-1, a]) * (self.h[ix-1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - (self.f[ix-1, jx+1, a] - self.f[ix+1, jx-1, a]) * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx-1, a])
                         
-                        jpc_J2 = f[ix+2, j  ,a] * (h[ix+1, j+1,a] - h[ix+1, j-1,a]) \
-                               - f[ix-2, j  ,a] * (h[ix-1, j+1,a] - h[ix-1, j-1,a]) \
-                               - f[ix,   j+2,a] * (h[ix+1, j+1,a] - h[ix-1, j+1,a]) \
-                               + f[ix,   j-2,a] * (h[ix+1, j-1,a] - h[ix-1, j-1,a])
+                        jpc_J2 = self.f[ix+2, jx,   a] * (self.h[ix+1, jx+1, a] - self.h[ix+1, jx-1, a]) \
+                               - self.f[ix-2, jx,   a] * (self.h[ix-1, jx+1, a] - self.h[ix-1, jx-1, a]) \
+                               - self.f[ix,   jx+2, a] * (self.h[ix+1, jx+1, a] - self.h[ix-1, jx+1, a]) \
+                               + self.f[ix,   jx-2, a] * (self.h[ix+1, jx-1, a] - self.h[ix-1, jx-1, a])
                         
-                        jcp_J2 = f[ix+1, j+1,a] * (h[ix,   j+2,a] - h[ix+2, j  ,a]) \
-                               - f[ix-1, j-1,a] * (h[ix-2, j  ,a] - h[ix,   j-2,a]) \
-                               - f[ix-1, j+1,a] * (h[ix,   j+2,a] - h[ix-2, j  ,a]) \
-                               + f[ix+1, j-1,a] * (h[ix+2, j  ,a] - h[ix,   j-2,a])
+                        jcp_J2 = self.f[ix+1, jx+1, a] * (self.h[ix,   jx+2, a] - self.h[ix+2, jx,   a]) \
+                               - self.f[ix-1, jx-1, a] * (self.h[ix-2, jx,   a] - self.h[ix,   jx-2, a]) \
+                               - self.f[ix-1, jx+1, a] * (self.h[ix,   jx+2, a] - self.h[ix-2, jx,   a]) \
+                               + self.f[ix+1, jx-1, a] * (self.h[ix+2, jx,   a] - self.h[ix,   jx-2, a])
                         
-                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12. * self.grid.hx_inv * self.grid.hv_inv
-                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24. * self.grid.hx_inv * self.grid.hv_inv
+                        result_J1 = (jpp_J1 + jpc_J1 + jcp_J1) / 12.
+                        result_J2 = (jcc_J2 + jpc_J2 + jcp_J2) / 24.
                         result_J4 = 2. * result_J1 - result_J2
+                        poisson   = result_J4 * self.grid.hx_inv * self.grid.hv_inv
                         
-                        
-                        # collision operator
-#                         coll_drag = ( (v[jx+1] - up[ix]) * fp[ix, jx+1] - (v[jx-1] - up[ix]) * fp[ix, jx-1] ) * ap[ix] \
-#                                   + ( (v[jx+1] - uh[ix]) * fh[ix, jx+1] - (v[jx-1] - uh[ix]) * fh[ix, jx-1] ) * ah[ix]
-#                         coll_diff = ( fp[ix, jx+1] - 2. * fp[ix, jx] + fp[ix, jx-1] ) \
-#                                   + ( fh[ix, jx+1] - 2. * fh[ix, jx] + fh[ix, jx-1] )
-                        coll_drag = 0.0
-                        coll_diff = 0.0
-                        
-                        
-                        y[iy, j, a] = k[ix, j, a] + result_J4 # \
-#                                     + 0.5 * self.nu * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5 \
-#                                     + 0.5 * self.nu * self.coll_diff * coll_diff * self.grid.hv2_inv
+                        # solution
+                        y[iy, jy, a] = k[ix, jx, a] + poisson
