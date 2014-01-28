@@ -42,11 +42,6 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         
         super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
         
-        # temporary arrays
-        (xs, xe), (ys, ye) = self.dax.getRanges()
-        self.tfft    = np.empty((self.grid.nx, ye-ys), dtype=np.complex128)
-        
-        
         # get local x ranges for solver
         (xs, xe), (ys, ye) = self.day.getRanges()
         

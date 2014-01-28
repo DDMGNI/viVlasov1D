@@ -22,6 +22,4 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     
     cdef list solvers
     
-    cdef np.ndarray tfft
-    
     cdef formSparsePreconditionerMatrix(self, np.complex eigen)

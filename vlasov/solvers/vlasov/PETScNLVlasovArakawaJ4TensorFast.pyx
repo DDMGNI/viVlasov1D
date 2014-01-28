@@ -242,7 +242,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, np.complex eigen):
         cdef int j
         
-        cdef np.ndarray[double, ndim=1] v = self.grid.v
+        cdef double[:] v = self.grid.v
         
         cdef double arak_fac_J1 = 0.5 / (12. * self.grid.hx * self.grid.hv)
         
