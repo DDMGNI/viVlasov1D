@@ -177,6 +177,7 @@ class petscVP1Dbase():
         
         # get local index ranges
         (xs, xe), (ys, ye) = self.da1.getRanges()
+        (xsx, xex), = self.dax.getRanges()
         
         # get coordinate vectors
         coords_x = self.dax.getCoordinates()
@@ -368,17 +369,14 @@ class petscVP1Dbase():
         
         
         # set initial data
-        n0 = self.dax.createGlobalVec()
+        N0 = self.dax.createGlobalVec()
         T0 = self.dax.createGlobalVec()
         
-        n0.setName('n0')
+        N0.setName('n0')
         T0.setName('T0')
-        
-        # !!! TODO !!! #
-#         c_arr = self.da1.getVecArray(coords)
-#         x_arr = self.dax.getGlobalArray(coords_x)
-#         v_arr = self.day.getGlobalArray(coords_v)
-#         print(coords[:])
+
+        n0 = PETSc.Vec().createSeq(nx)
+        t0 = PETSc.Vec().createSeq(nx)
         
         if self.cfg['initial_data']['distribution_python'] != None:
             init_data = __import__("runs." + self.cfg['initial_data']['distribution_python'], globals(), locals(), ['distribution'], 0)
@@ -388,11 +386,11 @@ class petscVP1Dbase():
             
             self.toolbox.initialise_distribution_function(self.fc, init_data.distribution)
             
-            n0.set(0.)
+            N0.set(0.)
             T0.set(0.)
         
         else:
-            n0_arr = self.dax.getVecArray(n0)
+            N0_arr = self.dax.getVecArray(N0)
             T0_arr = self.dax.getVecArray(T0)
             
             if self.cfg['initial_data']['density_python'] != None:
@@ -401,11 +399,11 @@ class petscVP1Dbase():
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print("Initialising density with Python function.")
             
-                for i in range(xs, xe):
-                    n0_arr[i] = init_data.density(self.grid.x[i], self.grid.xLength()) 
+                for i in range(xsx, xex):
+                    N0_arr[i] = init_data.density(self.grid.x[i], self.grid.xLength()) 
             
             else:
-                n0_arr[xs:xe] = self.cfg['initial_data']['density']            
+                N0_arr[xsx:xex] = self.cfg['initial_data']['density']            
             
             
             if self.cfg['initial_data']['temperature_python'] != None:
@@ -414,17 +412,19 @@ class petscVP1Dbase():
                 if PETSc.COMM_WORLD.getRank() == 0:
                     print("Initialising temperature with Python function.")
             
-                for i in range(xs, xe):
+                for i in range(xsx, xex):
                     T0_arr[i] = init_data.temperature(self.grid.x[i]) 
             
             else:
-                T0_arr[xs:xe] = self.cfg['initial_data']['temperature']            
+                T0_arr[xsx:xex] = self.cfg['initial_data']['temperature']            
             
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("Initialising distribution function with Maxwellian.")
             
-            self.toolbox.initialise_distribution_nT(self.fc, n0, T0)
+            self.copy_xvec_to_seq(N0, n0)
+            self.copy_xvec_to_seq(T0, t0)
+            self.toolbox.initialise_distribution_nT(self.fc, n0, t0)
             
         
         # normalise f

@@ -205,8 +205,8 @@ cdef class Toolbox(object):
          
         cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
         cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
-        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getGlobalArray(N)
-        cdef np.ndarray[np.float64_t, ndim=1] t = self.dax.getGlobalArray(T)
+        cdef np.ndarray[np.float64_t, ndim=1] n = N.getArray()
+        cdef np.ndarray[np.float64_t, ndim=1] t = T.getArray()
         
         cdef np.float64_t fac = sqrt(0.5 / np.pi)
          
@@ -217,4 +217,4 @@ cdef class Toolbox(object):
                 if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     f[i-xs, j-ys] = 0.0
                 else:
-                    f[i-xs, j-ys] = n[i-xs] * fac * exp( - 0.5 * v[j]**2 / T[i-xs] ) / sqrt(T[i-xs])
+                    f[i-xs, j-ys] = n[i] * fac * exp( - 0.5 * v[j]**2 / T[i] ) / sqrt(T[i])

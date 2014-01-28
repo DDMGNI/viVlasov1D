@@ -110,8 +110,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
         nindices = (yex-ysx)*nx*2
         
-        xindexlist = npy.empty(nindices, dtype=npy.int32)
-        yindexlist = npy.empty(nindices, dtype=npy.int32)
+        cdef int[:] xindexlist = npy.empty(nindices, dtype=npy.int32)
+        cdef int[:] yindexlist = npy.empty(nindices, dtype=npy.int32)
         
         l = 0
         for i in range(xsx, xex):
