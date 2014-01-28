@@ -294,51 +294,10 @@ class petscVP1Dbase():
         self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
         
         
-        # create Vlasov solver dummy
-        self.vlasov_solver = None        
-        
-        
-        if PETSc.COMM_WORLD.getRank() == 0:
-            print("Instantiating Poisson Object.")
-        
-        # initialise Poisson matrix
-        self.poisson_matrix = self.dax.createMat()
-        self.poisson_matrix.setUp()
-        self.poisson_matrix.setNullSpace(self.p_nullspace)
-        
-        # create Poisson object
-        self.poisson_solver = PETScPoissonSolver(self.dax, nx, hx, self.charge)
-        self.poisson_solver.formMat(self.poisson_matrix)
-        
-        
-        # create linear Poisson solver
-        if PETSc.COMM_WORLD.getRank() == 0:
-            print("Create Poisson Solver.")
-            
-        OptDB.setValue('ksp_rtol', 1E-13)
-
-#         OptDB.setValue('pc_gamg_type', 'agg')
-#         OptDB.setValue('pc_gamg_agg_nsmooths', '1')
-        
-#         OptDB.setValue('pc_hypre_type', 'boomeramg')
-
-
-        self.poisson_ksp = PETSc.KSP().create()
-        self.poisson_ksp.setFromOptions()
-        self.poisson_ksp.setOperators(self.poisson_matrix)
-#         self.poisson_ksp.setType('gmres')
-        self.poisson_ksp.setType('cg')
-#         self.poisson_ksp.setType('bcgs')
-#         self.poisson_ksp.getPC().setType('none')
-#         self.poisson_ksp.getPC().setType('gamg')
-        self.poisson_ksp.getPC().setType('hypre')
-#         self.poisson_ksp.getPC().setType('ml')
-        
-#         self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
-#         self.poisson_ksp.setNullSpace(self.poisson_nsp)
-        
-        
-        OptDB.setValue('ksp_rtol',   self.cfg['solver']['petsc_ksp_rtol'])
+        # create solver dummies
+        self.vlasov_solver  = None
+        self.poisson_solver = None
+        self.poisson_ksp    = None
         
         
         if PETSc.COMM_WORLD.getRank() == 0:
@@ -489,6 +448,50 @@ class petscVP1Dbase():
             print("")
     
     
+    def __del__(self):
+        
+        del self.toolbox
+        
+        self.hdf5_viewer.destroy()
+        
+        self.h0.destroy()
+        self.h1c.destroy()
+        self.h2c.destroy()
+        self.h1h.destroy()
+        self.h2h.destroy()
+        
+        self.fl.destroy()
+        self.fc.destroy()
+        self.fh.destroy()
+        self.fb.destroy()
+        self.pb.destroy()
+        self.pn.destroy()
+        
+        self.N.destroy()
+        self.U.destroy()
+        self.E.destroy()
+        self.A.destroy()
+        
+        self.nc.destroy()
+        self.uc.destroy()
+        self.ec.destroy()
+        self.ac.destroy()
+        self.nh.destroy()
+        self.uh.destroy()
+        self.eh.destroy()
+        self.ah.destroy()
+        
+        self.pc_int.destroy()
+        self.ph_int.destroy()
+        self.pc_ext.destroy()
+        self.ph_ext.destroy()
+        
+        self.da1.destroy()
+        self.dax.destroy()
+        self.day.destroy()
+            
+    
+    
     def normalise_distribution_function(self):
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Normalise distribution function.")
@@ -527,8 +530,43 @@ class petscVP1Dbase():
     
     def calculate_potential(self, output=True):
         
-        self.poisson_solver.formRHS(self.N, self.pb)
-        self.poisson_ksp.solve(self.pb, self.pc_int)
+        if self.poisson_solver == None or self.poisson_ksp == None:
+            # initialise Poisson matrix
+            poisson_matrix = self.dax.createMat()
+            poisson_matrix.setUp()
+            poisson_matrix.setNullSpace(self.p_nullspace)
+            
+            # create Poisson object
+            poisson_solver = PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+            poisson_solver.formMat(poisson_matrix)
+            
+            poisson_ksp = PETSc.KSP().create()
+            poisson_ksp.setFromOptions()
+            poisson_ksp.setTolerances(rtol=1E-13)
+            poisson_ksp.setOperators(poisson_matrix)
+            poisson_ksp.setType('cg')
+            poisson_ksp.getPC().setType('hypre')
+            
+#             self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
+#             self.poisson_ksp.setNullSpace(self.poisson_nsp)
+        
+            destroy = True
+        else:
+            poisson_solver = self.poisson_solver
+            poisson_ksp    = self.poisson_ksp
+            destroy = False
+        
+        
+        poisson_solver.formRHS(self.N, self.pb)
+        poisson_ksp.solve(self.pb, self.pc_int)
+        
+        
+        if destroy:
+            del poisson_ksp
+            del poisson_solver
+            
+            poisson_matrix.destroy()
+        
         
         if output:
             phisum = self.pc.sum()
