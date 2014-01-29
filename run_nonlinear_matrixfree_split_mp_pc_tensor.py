@@ -5,7 +5,6 @@ Created on Mar 23, 2012
 '''
 
 import argparse, time
-# import pstats, cProfile
 
 from petsc4py import PETSc
 
@@ -173,8 +172,4 @@ if __name__ == '__main__':
     
     with petscVP1Drunscript(args.c, args.i) as petscvp:
         petscvp.run()
-
-#     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile_Tensor.prof")
-#          
-#     s = pstats.Stats("Profile_Tensor.prof")
-#     s.strip_dirs().sort_stats("time").print_stats()
+    

@@ -5,7 +5,6 @@ Created on Mar 23, 2012
 '''
 
 import argparse, time
-# import pstats, cProfile
 
 from petsc4py import PETSc
 
@@ -19,17 +18,6 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
 
     def __init__(self, cfgfile="", runid="", cfg=None):
         super().__init__(cfgfile, runid, cfg)
-        
-#         OptDB = PETSc.Options()
-        
-#         OptDB.setValue('snes_ls', 'basic')
-
-#         OptDB.setValue('ksp_monitor',  '')
-#         OptDB.setValue('snes_monitor', '')
-        
-#         OptDB.setValue('log_info',    '')
-#         OptDB.setValue('log_summary', '')
-        
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Creating solver objects.")
@@ -179,9 +167,4 @@ if __name__ == '__main__':
     
     with petscVP1Drunscript(args.c, args.i) as petscvp:
         petscvp.run()
-    
-#     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile.prof")
-#       
-#     s = pstats.Stats("Profile.prof")
-#     s.strip_dirs().sort_stats("time").print_stats()
     

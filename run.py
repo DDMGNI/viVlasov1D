@@ -6,6 +6,7 @@ Created on Jun 26, 2013
 '''
 
 import argparse, sys
+import pstats, cProfile
 
 from petsc4py import PETSc
 
@@ -27,6 +28,8 @@ if __name__ == '__main__':
                         help='Show PETSc info')
     parser.add_argument('-summary','--logsummary', action='store_true', required=False,
                         help='Show PETSc summary')
+    parser.add_argument('-prof','--profiler', action='store_true', required=False,
+                        help='Activate Profiler')
     
     args = parser.parse_args()
     
@@ -86,4 +89,12 @@ if __name__ == '__main__':
     run_object = __import__(run_script, globals(), locals(), ['petscVP1Drunscript'], 0)
     
     with run_object.petscVP1Drunscript(cfg=cfg, runid=args.runid) as petscvp:
-        petscvp.run()
+        if args.profile:
+            cProfile.runctx("petscvp.run()", globals(), locals(), "profile.prof")
+        else:
+            petscvp.run()
+    
+    if args.profile:
+        s = pstats.Stats("profile.prof")
+        s.strip_dirs().sort_stats("time").print_stats()
+    

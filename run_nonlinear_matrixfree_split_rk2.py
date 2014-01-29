@@ -20,17 +20,6 @@ class petscVP1Drunscript(petscVP1DbasesplitRK2):
     def __init__(self, cfgfile="", runid="", cfg=None):
         super().__init__(cfgfile, runid, cfg)
         
-#         OptDB = PETSc.Options()
-        
-#         OptDB.setValue('snes_ls', 'basic')
-
-#         OptDB.setValue('ksp_monitor',  '')
-#         OptDB.setValue('snes_monitor', '')
-        
-#         OptDB.setValue('log_info',    '')
-#         OptDB.setValue('log_summary', '')
-        
-        
         # create solver objects
         self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
                                                self.da1, self.grid,
