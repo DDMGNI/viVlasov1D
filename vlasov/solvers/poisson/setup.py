@@ -6,15 +6,15 @@ from vlasov.setup_inc import *
 
 
 ext_modules = [
-        Extension("PETScPoissonSolver2",
-                  sources=["PETScPoissonSolver2.pyx"],
+        Extension("PETScPoissonCFD2",
+                  sources=["PETScPoissonCFD2.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
-        Extension("PETScPoissonSolver4",
-                  sources=["PETScPoissonSolver4.pyx"],
+        Extension("PETScPoissonCFD4",
+                  sources=["PETScPoissonCFD4.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
@@ -23,7 +23,7 @@ ext_modules = [
               ]
                 
 setup(
-    name = 'PETSc Vlasov-Poisson Explicit Predictor',
+    name = 'PETSc Vlasov-Poisson Poisson Schemes',
     cmdclass = {'build_ext': build_ext},
     ext_modules = ext_modules
 )
