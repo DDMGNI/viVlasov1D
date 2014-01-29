@@ -695,7 +695,7 @@ class petscVP1Dbase():
     
     def save_to_hdf5(self, itime):
         # save to hdf5 file
-        if itime % self.nsave == 0 or itime == self.nt + 1:
+        if itime % self.nsave == 0 or itime == self.grid.nt + 1:
             self.hdf5_viewer.incrementTimestep(1)
             self.save_hdf5_vectors()
 
