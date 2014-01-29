@@ -49,7 +49,7 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
         # create VIDA for 2d grid (f, phi and moments)
         self.da2 = VIDA().create(dim=2, dof=2,
                                        sizes=[self.grid.nx, self.grid.nv],
-                                       proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
+                                       proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic', 'ghosted'),
                                        stencil_width=2,
                                        stencil_type='box')
