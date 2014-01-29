@@ -47,7 +47,7 @@ class petscVP1Dbase():
         # load run config file
         if cfg != None:
             self.cfg = cfg
-        elif cfgfile != None and cfgfile.len() > 0:
+        elif cfgfile != None and len(cfgfile) > 0:
             self.cfg = Config(cfgfile)
         else:
             if PETSc.COMM_WORLD.getRank() == 0:
