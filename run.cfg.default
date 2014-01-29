@@ -1,36 +1,73 @@
 
-
 [grid]
 
 nt = 100
-nx = 101
-nv = 101
+nx = 128
+nv = 256
 
-ht = 0.01
+ht = 0.1
 
 L = 0.0
-vmin = -5.0
+vmin = 0.0
 vmax = 5.0
 
 
 [solver]
 
-petsc_ksp_type = gmres
-petsc_ksp_rtol = 1e-07
+method = iterative
+# use direct LU solver, matrix-based iterative GMRES solver,
+# or matrix-free iterative GMRES solver, not implemented yet
+
+type = nonlinear
+# use linear or nonlinear solver
+
+mode = split
+# Vlasov and Poisson equation
+
+scheme = ArakawaJ4
+# numerical scheme to use in implicit solvers
+# should also be used to select scheme in explicit solvers
+
+timestepping = mp
+# timetepping method to use in implicit solvers
+# mp:  midpoint
+# rk2: symplectic Runge-Kutta of 2nd order (equivalent to midpoint)
+# rk4: symplectic Runge-Kutta of 4th order
+
+preconditioner_type = None
+# preconditioner scheme to use in iterative solvers
+
+preconditioner_scheme = None
+# preconditioner scheme to use in iterative solvers
+
+initial_guess = None
+# compute initial guess via RK4, Gear or symplectic method
+# also used to select explicit solver
+
+lu_package = mumps
+# direct solver package for LU decomposition 
+
+poisson_scheme = CFD4
+# selects scheme for Poisson equation
+
+initial_iter = 1
+
+petsc_ksp_rtol = 0.0001
 # (relative decrease in the residual norm)
-petsc_ksp_atol = 1e-10
+petsc_ksp_atol = 1e-50
 # (absolute size of the residual norm)
 petsc_ksp_max_iter = 1000
 
-petsc_pc_type = none
-
-petsc_snes_rtol = 1e-20
-petsc_snes_atol = 1e-12
-petsc_snes_stol = 1e-14
+petsc_snes_atol = 1e-10
+petsc_snes_rtol = 1e-14
+petsc_snes_stol = 1e-16
 # of the norm of the change in the solution between steps
 petsc_snes_max_iter = 20
 
+
 coll_freq = 0.0
+coll_diff = 1.0
+coll_drag = 1.0
 
 
 [initial_data]
@@ -38,10 +75,8 @@ coll_freq = 0.0
 mass = 1.0
 charge = 1.0
 
-distribution = 0.0
 density = 1.0
 temperature = 1.0
-potential = 0.0
 
 distribution_file = None
 density_file = None
@@ -57,10 +92,26 @@ distribution_python = None
 density_python = None
 temperature_python = None
 potential_python = None
+external_python = None
+
+#
+# The code is proceeding as follows
+# 
+# check if distribution_python is given
+#    if so use that to compute f
+# else
+#    check if density_python     is given, else use constant density
+#    check if temperature_python is given, else use constant temperature
+#    compute a Maxwellian distribution function according to the above
+# normalise f such that the average density equals one
+# compute moments and potential
+#
 
 
 [io]
 
+output_dir = .
+nsave = 1
+
 hdf5_input = None
 hdf5_output = None
-nsave = 1
