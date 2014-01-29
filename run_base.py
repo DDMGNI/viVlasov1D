@@ -28,10 +28,14 @@ class petscVP1Dbase():
     '''
 
 
-    def __init__(self, cfgfile="", runid="", cfg=None):
+    def __init__(self, cfgfile, runid=None, cfg=None):
         '''
         Constructor
         '''
+        
+        assert cfgfile is not None
+        assert cfgfile is not ""
+        
         
         # if runid is empty use timestamp
         if runid == None or runid == "":

@@ -24,7 +24,7 @@ class petscVP1Dbasefull(petscVP1Dbasesplit):
     '''
 
 
-    def __init__(self, cfgfile="", runid="", cfg=None):
+    def __init__(self, cfgfile, runid=None, cfg=None):
         '''
         Constructor
         '''

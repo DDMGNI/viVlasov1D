@@ -16,7 +16,7 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
 
-    def __init__(self, cfgfile="", runid="", cfg=None):
+    def __init__(self, cfgfile, runid=None, cfg=None):
         super().__init__(cfgfile, runid, cfg)
         
         if PETSc.COMM_WORLD.getRank() == 0:

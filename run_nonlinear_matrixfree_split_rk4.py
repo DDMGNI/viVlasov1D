@@ -17,7 +17,7 @@ class petscVP1Drunscript(petscVP1DbasesplitRK4):
     '''
 
 
-    def __init__(self, cfgfile="", runid="", cfg=None):
+    def __init__(self, cfgfile, runid=None, cfg=None):
         super().__init__(cfgfile, runid, cfg)
         
         # create solver objects
