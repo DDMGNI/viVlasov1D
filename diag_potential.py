@@ -63,7 +63,9 @@ class potential(object):
         fit = np.polyfit(tMax[1:nmax], np.log(EMax[1:nmax]), 1)
         fit_fn = np.poly1d(fit)
         
+        print("")
         print("Fit Parameter (m,b):", fit)
+        print("")
         
         # set up figure/window size
         self.figure1 = plt.figure(num=None, figsize=(16,9))
@@ -81,7 +83,14 @@ class potential(object):
        
         plt.draw()
         
-        filename = str('potential')
+        
+        if hdf5_file.rfind('/') >= 0:
+            filename = hdf5_file[hdf5_file.rfind('/'):]
+        else:
+            filename = hdf5_file
+        
+        filename  = filename.replace('.hdf5', '_')
+        filename += 'potential'
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.pdf')
        
