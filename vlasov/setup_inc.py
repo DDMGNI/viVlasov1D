@@ -18,10 +18,17 @@ LIBRARIES    = []
 CARGS        = ['-O3','-axavx', '-std=c99']
 LARGS        = []
 
+
+# MacPorts
+if isdir('/opt/local'):
+    INCLUDE_DIRS += ['/opt/local/include']
+    LIBRARY_DIRS += ['/opt/local/lib']
+
+
 # FFTW
 FFTW_DIR  = os.environ['FFTW_HOME']
 
-if FFTW_DIR:
+if FFTW_DIR and isdir(FFTW_DIR):
     INCLUDE_DIRS += [join(FFTW_DIR, 'include')]
     LIBRARY_DIRS += [join(FFTW_DIR, 'lib')]
     
@@ -43,27 +50,30 @@ else:
 
 LIBRARIES    += ['petsc']
 
+
 # NumPy
 INCLUDE_DIRS += [numpy.get_include()]
+
 
 # PETSc for Python
 import petsc4py
 INCLUDE_DIRS += [petsc4py.get_include()]
 
-# OpenMPI
-INCLUDE_DIRS += ['/opt/local/include/openmpi']
-LIBRARY_DIRS += ['/opt/local/lib']
 
 # Intel MPI
-INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
-LIBRARY_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/lib']
+IMPI_DIR = '/afs/@cell/common/soft/intel/impi/4.1.0/intel64'
 
-# MPI
+if isdir(IMPI_DIR):
+    INCLUDE_DIRS += [join(IMPI_DIR, 'include')]
+    LIBRARY_DIRS += [join(IMPI_DIR, 'lib')]
+
 LIBRARIES    += ['mpi']
 
+
 # Valgrind
-INCLUDE_DIRS += ['/opt/local/include']
-LIBRARY_DIRS += ['/opt/local/lib']
+# INCLUDE_DIRS += ['/opt/local/include']
+# LIBRARY_DIRS += ['/opt/local/lib']
+
 
 # LAPACK
 if 'extra_compile_args' in numpy.__config__.lapack_opt_info:
