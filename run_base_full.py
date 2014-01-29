@@ -24,12 +24,12 @@ class petscVP1Dbasefull(petscVP1Dbasesplit):
     '''
 
 
-    def __init__(self, cfgfile, runid):
+    def __init__(self, cfgfile="", runid="", cfg=None):
         '''
         Constructor
         '''
         
-        super().__init__(cfgfile, runid)
+        super().__init__(cfgfile, runid, cfg)
         
         
         # create VIDA for 2d grid (f, phi and moments)

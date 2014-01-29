@@ -21,9 +21,6 @@ from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
 from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
 from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
-# from vlasov.solvers.poisson.PETScPoissonSolver2  import PETScPoissonSolver
-from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
-
 
 class petscVP1Dbase():
     '''
@@ -31,20 +28,70 @@ class petscVP1Dbase():
     '''
 
 
-    def __init__(self, cfgfile, runid):
+    def __init__(self, cfgfile="", runid="", cfg=None):
         '''
         Constructor
         '''
         
         # if runid is empty use timestamp
-        if runid == "":
+        if runid == None or runid == "":
             runid = datetime.datetime.fromtimestamp(time.time()).strftime("%y%m%d%H%M%S")
         
         # stencil width
         stencil = 2
         
         # load run config file
-        self.cfg = Config(cfgfile)
+        if cfg != None:
+            self.cfg = cfg
+        elif cfgfile != None and cfgfile.len() > 0:
+            self.cfg = Config(cfgfile)
+        else:
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("ERROR: No valid config file or object passed.")
+            sys.exit()
+        
+        
+        # determine solver modules
+        if cfg['solver']['method'] == 'explicit':
+            self.vlasov_module  = None
+        else:
+            self.vlasov_module  = "vlasov.solvers."
+            
+            if cfg['solver']['mode'] == 'split':
+                self.vlasov_module += 'vlasov'
+            else:
+                self.vlasov_module += self.cfg['solver']['mode']
+            
+            self.vlasov_module += '.' + "PETSc"
+            
+            if cfg['solver']['type'] == 'newton' or cfg['solver']['type'] == 'nonlinear':
+                self.vlasov_module += "NL"
+        
+            if cfg['solver']['mode'] == 'split':
+                self.vlasov_module += "Vlasov"
+        
+            self.vlasov_module += self.cfg['solver']['scheme']
+        
+            if cfg['solver']['preconditioner_type'] != None and cfg['solver']['preconditioner_scheme'] != None:
+                self.vlasov_module += self.cfg['solver']['preconditioner_scheme']
+            
+            if cfg['solver']['timestepping'] != 'mp': 
+                self.vlasov_module += self.cfg['solver']['timestepping'].upper()
+        
+        
+        self.poisson_module  = "vlasov.solvers.poisson.PETScPoisson"
+        self.poisson_module += self.cfg['solver']['poisson_scheme']
+        
+        
+        # importing solver modules
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Loading Vlasov  solver %s" % (self.vlasov_module))
+            print("Loading Poisson solver %s" % (self.poisson_module))
+            print("")
+        
+        self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
+        self.poisson_object = __import__(self.poisson_module, globals(), locals(), ['PETScPoissonSolver'], 0)
+        
         
         # timestep setup
         ht         = self.cfg['grid']['ht']              # timestep size
@@ -547,7 +594,7 @@ class petscVP1Dbase():
             poisson_matrix.setNullSpace(self.p_nullspace)
             
             # create Poisson object
-            poisson_solver = PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+            poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
             poisson_solver.formMat(poisson_matrix)
             
             poisson_ksp = PETSc.KSP().create()
@@ -556,9 +603,7 @@ class petscVP1Dbase():
             poisson_ksp.setOperators(poisson_matrix)
             poisson_ksp.setType('cg')
             poisson_ksp.getPC().setType('hypre')
-            
-#             self.poisson_nsp = PETSc.NullSpace().create(vectors=(self.p_nvec,))
-#             self.poisson_ksp.setNullSpace(self.poisson_nsp)
+#             self.poisson_ksp.setNullSpace(self.p_nullspace)
         
             destroy = True
         else:
@@ -643,9 +688,6 @@ class petscVP1Dbase():
         if self.vlasov_solver != None:
             self.vlasov_solver.update_history(self.fc)
         
-        if self.cfg['solver']['initial_guess'] == "gear":
-            self.arakawa_gear.update_history(self.fc)
-        
     
     def save_to_hdf5(self, itime):
         # save to hdf5 file
@@ -722,6 +764,8 @@ class petscVP1Dbase():
         using 4th order Gear timestepping together with
         Arakawa's 4th order bracket discretisation.
         """
+        
+        self.arakawa_gear.update_history(self.fc)
         
         for i in range(0, self.nInitial):
 #             self.arakawa_gear.gear2(self.fc)

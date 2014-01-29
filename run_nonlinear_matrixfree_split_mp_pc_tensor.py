@@ -9,41 +9,24 @@ import argparse, time
 
 from petsc4py import PETSc
 
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1TensorFast import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorPETSc import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorSciPy import PETScVlasovSolver
-
-from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
-
 from run_base_split import petscVP1Dbasesplit
 
 
-class petscVP1Dmatrixfree(petscVP1Dbasesplit):
+class petscVP1Drunscript(petscVP1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
 
 
-    def __init__(self, cfgfile, runid):
-        super().__init__(cfgfile, runid)
-        
-#         OptDB = PETSc.Options()
-        
-#         OptDB.setValue('snes_ls', 'basic')
-
-#         OptDB.setValue('ksp_monitor',  '')
-#         OptDB.setValue('snes_monitor', '')
-        
-#         OptDB.setValue('log_info',    '')
-#         OptDB.setValue('log_summary', '')
-        
+    def __init__(self, cfgfile="", runid="", cfg=None):
+        super().__init__(cfgfile, runid, cfg)
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Creating solver objects.")
     
         # create solver objects
-        self.vlasov_solver = PETScVlasovSolver(self.da1, self.grid,
+        self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
+                                               self.da1, self.grid,
                                                self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
                                                self.charge, coll_freq=self.coll_freq)
         
@@ -71,7 +54,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.poisson_matrix.setUp()
         self.poisson_matrix.setNullSpace(self.p_nullspace)
         
-        self.poisson_solver = PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
         self.poisson_solver.formMat(self.poisson_matrix)
         
         self.poisson_mf = PETSc.Mat().createPython([self.pc_int.getSizes(), self.pb.getSizes()], 
@@ -188,7 +171,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    with petscVP1Dmatrixfree(args.c, args.i) as petscvp:
+    with petscVP1Drunscript(args.c, args.i) as petscvp:
         petscvp.run()
 
 #     cProfile.runctx("petscvp.run()", globals(), locals(), "Profile_Tensor.prof")

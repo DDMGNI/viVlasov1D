@@ -23,12 +23,12 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
     '''
 
 
-    def __init__(self, cfgfile, runid):
+    def __init__(self, cfgfile="", runid="", cfg=None):
         '''
         Constructor
         '''
         
-        super().__init__(cfgfile, runid)
+        super().__init__(cfgfile, runid, cfg)
         
         
         # Runge-Kutta collocation points

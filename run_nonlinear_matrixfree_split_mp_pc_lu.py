@@ -8,23 +8,8 @@ import argparse, time
 
 from petsc4py import PETSc
 
-# from vlasov.solvers.vlasov.PETScNLVlasov4by4            import PETScVlasovSolver
-
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ1     import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ2     import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
-from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4kinetic   import PETScVlasovSolverKinetic
-# from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st     import PETScVlasovSolver
-# from vlasov.solvers.vlasov.PETScNLVlasovUpwind1stkinetic   import PETScVlasovSolverKinetic
-
-from vlasov.solvers.poisson.PETScPoissonSolver4  import PETScPoissonSolver
-
 from run_base_split import petscVP1Dbasesplit
 
-
-# solver_package = 'superlu_dist'
-solver_package = 'mumps'
-# solver_package = 'pastix'
 
 class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     '''
@@ -32,22 +17,12 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
     '''
 
 
-    def __init__(self, cfgfile, runid):
-        super().__init__(cfgfile, runid)
-        
-        OptDB = PETSc.Options()
-        
-#         OptDB.setValue('snes_ls', 'basic')
-
-#         OptDB.setValue('ksp_monitor',  '')
-#         OptDB.setValue('snes_monitor', '')
-        
-#         OptDB.setValue('log_info',    '')
-#         OptDB.setValue('log_summary', '')
-        
+    def __init__(self, cfgfile="", runid="", cfg=None):
+        super().__init__(cfgfile, runid, cfg)
         
         # create solver objects
-        self.vlasov_solver = PETScVlasovSolver(self.da1, self.dax,
+        self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
+                                               self.da1, self.dax,
                                                self.h0, self.vGrid,
                                                self.nx, self.nv, self.ht, self.hx, self.hv,
                                                self.charge, coll_freq=self.coll_freq)
@@ -86,13 +61,13 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().getPC().setType('lu')
-        self.snes.getKSP().getPC().setFactorSolverPackage(solver_package)
+        self.snes.getKSP().getPC().setFactorSolverPackage(self.solver_package)
         
         
         del self.poisson_ksp
         del self.poisson_solver
             
-        self.poisson_solver = PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
+        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
         self.poisson_solver.formMat(self.poisson_matrix)
         
         self.poisson_mf = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], 
