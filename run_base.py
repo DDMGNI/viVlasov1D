@@ -109,7 +109,7 @@ class petscVP1Dbase():
         vMax = self.cfg['grid']['vmax']
         vMin = self.cfg['grid']['vmin']
         
-        if vMin == 0.: 
+        if vMin == None: 
             vMin = -vMax
         
         Lx = L
