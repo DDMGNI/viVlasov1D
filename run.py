@@ -89,12 +89,12 @@ if __name__ == '__main__':
     run_object = __import__(run_script, globals(), locals(), ['petscVP1Drunscript'], 0)
     
     with run_object.petscVP1Drunscript(cfg=cfg, runid=args.runid) as petscvp:
-        if args.profile:
+        if args.profiler:
             cProfile.runctx("petscvp.run()", globals(), locals(), "profile.prof")
         else:
             petscvp.run()
     
-    if args.profile:
+    if args.profiler:
         s = pstats.Stats("profile.prof")
         s.strip_dirs().sort_stats("time").print_stats()
     
