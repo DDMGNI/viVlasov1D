@@ -7,8 +7,8 @@
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_200x401_dt1E-1_nu0_rk2.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_200x401_dt1E-1_nu0_rk2.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_512x1024.$JOB_ID.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_512x1024.$JOB_ID.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=twostream_200x401_dt1E-1_nu0_rk2
+RUNID=jeans_strong_512x1024
 
 
 module load intel/14.0
@@ -42,4 +42,5 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/mkl/lib/intel64/libm
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/mkl/lib/intel64/libmkl_intel_thread.so:$LD_PRELOAD
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
-mpiexec -perhost 16 -l -n 16 python3.3 run_nonlinear_matrixfree_split_rk2.py -c runs_tokp/$RUNID.cfg -i $JOB_ID
+
+mpiexec -perhost 16 -l -n 16 python3.3 run.py -c runs_tokp/$RUNID.cfg -i $JOB_ID
