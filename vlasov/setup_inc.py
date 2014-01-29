@@ -52,9 +52,14 @@ INCLUDE_DIRS += [petsc4py.get_include()]
 
 # OpenMPI
 INCLUDE_DIRS += ['/opt/local/include/openmpi']
+LIBRARY_DIRS += ['/opt/local/lib']
 
 # Intel MPI
 INCLUDE_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/include']
+LIBRARY_DIRS += ['/afs/@cell/common/soft/intel/impi/4.1.0/intel64/lib']
+
+# MPI
+LIBRARIES    += ['mpi']
 
 # Valgrind
 INCLUDE_DIRS += ['/opt/local/include']
