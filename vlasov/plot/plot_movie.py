@@ -7,7 +7,7 @@ Created on Mar 21, 2012
 import numpy as np
 
 from scipy.ndimage     import zoom, gaussian_filter
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, interp2d
 
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors, gridspec
@@ -30,6 +30,8 @@ class PlotMovie(object):
         self.distribution = distribution
         self.hamiltonian  = hamiltonian
         self.potential    = potential
+        
+        self.dpi = 100
         
         
         if ntMax == 0:
@@ -77,7 +79,7 @@ class PlotMovie(object):
         
 
         # set up figure/window size
-        self.figure = plt.figure(num=None, figsize=(14,9))
+        self.figure = plt.figure(num=None, figsize=(14,9), dpi=self.dpi)
         
         # set up plot margins
         plt.subplots_adjust(hspace=0.3, wspace=0.2)
@@ -121,6 +123,12 @@ class PlotMovie(object):
 #        self.axes["E"] = plt.subplot2grid((4,4), (3, 0), colspan=2)
 #        self.axes["n"] = plt.subplot2grid((4,4), (0, 2), rowspan=2)
 #        self.axes["p"] = plt.subplot2grid((4,4), (2, 2), rowspan=2)
+        
+        
+        # get f plot size in pixels
+        fbox = self.axes["f"].get_window_extent().transformed(self.figure.dpi_scale_trans.inverted())
+        self.nx  = fbox.width  * self.dpi
+        self.nv  = fbox.height * self.dpi
         
         
         # distribution function (filled contour)
@@ -216,7 +224,17 @@ class PlotMovie(object):
         
 #         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
 
-        self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
+
+#         self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
+        
+        
+        fspl = interp2d(self.x, self.grid.vGrid, self.f.T, kind='cubic')        
+        xint = np.linspace(self.x[0], self.x[-1], self.nx)
+        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], self.nv)
+        fint = fspl(xint, vint) 
+        
+        self.axes["f"].pcolormesh(xint, vint, fint, norm=self.fnorm, shading='gouraud')
+
         
         self.axes["f"].set_xlim((self.x[0], self.x[-1]))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
@@ -257,7 +275,7 @@ class PlotMovie(object):
         
         if self.write:
             filename = self.prefix + str('%06d' % (self.iTime-1)) + '.png'
-            plt.savefig(filename, dpi=100)
+            plt.savefig(filename, dpi=self.dpi)
         else:
             plt.draw()
             plt.show(block=final)
