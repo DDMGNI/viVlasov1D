@@ -18,7 +18,7 @@ class Potential(object):
     '''
 
 
-    def __init__(self, grid, hdf5, charge=1.0):
+    def __init__(self, grid, hdf5=None):
         '''
         Constructor
         '''
@@ -38,7 +38,7 @@ class Potential(object):
         self.E  = 0.0
         self.E_error = 0.0
         
-        self.charge = charge
+        self.charge = hdf5.attrs['charge']
         
         self.phi = None
         self.set_hdf5_file(hdf5)

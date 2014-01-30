@@ -34,8 +34,8 @@ class movie(object):
         
         self.hdf5 = h5py.File(hdf5_file, 'r')
         
-        self.grid         = Grid                (hdf5_in=self.hdf5, replay=True)
-        self.potential    = Potential           (self.grid, self.hdf5, charge=-1.)
+        self.grid         = Grid                (hdf5=self.hdf5)
+        self.potential    = Potential           (self.grid, hdf5=self.hdf5)
         self.hamiltonian  = Hamiltonian         (self.grid, hdf5=self.hdf5)
         self.distribution = DistributionFunction(self.grid, hdf5=self.hdf5)
         

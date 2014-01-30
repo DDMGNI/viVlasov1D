@@ -24,14 +24,18 @@ class Hamiltonian(object):
         self.grid  = grid       # grid object
         self.mass  = mass       # particle mass
         
-        self.f  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # distribution function (data array only),
-                                                                                  # needed for calculation of total energy
-        self.h  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # total hamiltonian
+        self.f  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64)      # distribution function (data array only),
+                                                                                 # needed for calculation of total energy
+        self.h  = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64)      # total hamiltonian
         
-        self.h0 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # kinetic   term
-        self.h1 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # potential term
-        self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64 )      # external  term
+        self.h0 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64)      # kinetic   term
+        self.h1 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64)      # potential term
+        self.h2 = np.zeros( (self.grid.nx, self.grid.nv), dtype=np.float64)      # external  term
         
+        self.h_ext  = np.zeros((self.grid.nx+1, self.grid.nv), dtype=np.float64)
+        self.h0_ext = np.zeros((self.grid.nx+1, self.grid.nv), dtype=np.float64)
+        self.h1_ext = np.zeros((self.grid.nx+1, self.grid.nv), dtype=np.float64)
+        self.h2_ext = np.zeros((self.grid.nx+1, self.grid.nv), dtype=np.float64)
         
         self.E0      = 0.0         # initial total energy
         self.E       = 0.0         # current total energy
@@ -65,17 +69,17 @@ class Hamiltonian(object):
         Calculates total energy integral w.r.t. the given distribution function.
         '''
         
-        cdef np.uint64_t nx = self.grid.nx
-        cdef np.uint64_t nv = self.grid.nv
+        cdef int nx = self.grid.nx
+        cdef int nv = self.grid.nv
         
-        cdef np.uint64_t ix, ixm, ixp, iv
+        cdef int ix, ixm, ixp, iv
         
-        cdef np.float64_t Ekin, Epot
+        cdef double Ekin, Epot
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0 = self.h0
-        cdef np.ndarray[np.float64_t, ndim=2] h1 = self.h1 - self.h1.mean()
-        cdef np.ndarray[np.float64_t, ndim=2] h2 = self.h2 - self.h2.mean()
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
+        cdef double[:,:] h0 = self.h0
+        cdef double[:,:] h1 = self.h1 # - self.h1.mean()
+        cdef double[:,:] h2 = self.h2 # - self.h2.mean()
+        cdef double[:,:] f  = self.f
         
         
         Ekin = 0.0
@@ -92,9 +96,32 @@ class Hamiltonian(object):
         self.E_kin = Ekin * self.grid.hx * self.grid.hv
         self.E_pot = Epot * self.grid.hx * self.grid.hv
         
-        
         # total energy
-        self.E = self.E_kin + 0.5 * self.E_pot
+        self.E = self.E_kin + self.E_pot
+        
+    
+    def calculate_total_momentum(self):
+        '''
+        Calculates total momentum w.r.t. the given distribution function.
+        '''
+        
+        cdef int nx = self.grid.nx
+        cdef int nv = self.grid.nv
+        
+        cdef int ix, iv
+        
+        cdef double P = 0.0
+        
+        cdef double[:]   v  = self.grid.vGrid
+        cdef double[:,:] f  = self.f
+        
+        
+        if self.f != None:
+            for ix in range(0, nx):
+                for iv in range(0, nv-1):
+                    P += f[ix, iv] * v[iv]
+
+            self.P = P * self.mass * self.grid.hx * self.grid.hv
         
     
     def calculate_energy_error(self):
@@ -108,31 +135,6 @@ class Hamiltonian(object):
             self.E_error = 0.0
     
 
-    def calculate_total_momentum(self):
-        '''
-        Calculates total momentum w.r.t. the given distribution function.
-        '''
-        
-        cdef np.uint64_t nx = self.grid.nx
-        cdef np.uint64_t nv = self.grid.nv
-        
-        cdef np.uint64_t ix, ixp, iv
-        
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.f
-        
-        self.P = 0.0
-        
-        if self.f != None:
-            for ix in range(0, nx):
-                ixp = (ix+1) % nx
-                
-                for iv in range(0, nv-1):
-                    
-                    self.P += f[ix, iv] * self.grid.vGrid[iv]
-
-            self.P *= self.mass * self.grid.hx * self.grid.hv
-        
-    
     def calculate_momentum_error(self):
         '''
         Calculates momentum error, i.e. relative difference between P and P0.
@@ -143,7 +145,6 @@ class Hamiltonian(object):
             self.P_error = 0.0
     
 
-    
     def set_hdf5_file(self, hdf5):
         self.hdf5_f  = hdf5['f']
         self.hdf5_h0 = hdf5['h0']
@@ -164,6 +165,19 @@ class Hamiltonian(object):
         
         self.f[:,:] = self.hdf5_f[iTime,:,:].T
         self.h[:,:] = self.h0 + self.h1 + self.h2
+
+        self.h_ext[0:-1,:]  = self.h[:,:]
+        self.h_ext[  -1,:]  = self.h[0,:]
+
+        self.h0_ext[0:-1,:] = self.h0[:,:]
+        self.h0_ext[  -1,:] = self.h0[0,:]
+
+        self.h1_ext[0:-1,:] = self.h1[:,:]
+        self.h1_ext[  -1,:] = self.h1[0,:]
+
+        self.h2_ext[0:-1,:] = self.h2[:,:]
+        self.h2_ext[  -1,:] = self.h2[0,:]
+
         
         self.calculate_total_energy()
         self.calculate_total_momentum()

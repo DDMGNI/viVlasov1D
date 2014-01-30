@@ -83,17 +83,18 @@ class DistributionFunction(object):
         self.temperature = np.zeros(self.grid.nx)
         self.density     = np.zeros(self.grid.nx)
         
-        
-        self.f = None
+        self.f     = None
+        self.f_ext = np.zeros((self.grid.nx+1, self.grid.nv))
         
         self.set_hdf5_file(hdf5)
         
         self.f0   = hdf5['f'][0,:,:].T
         self.fMin = hdf5['f'][:,:,:].min()
         self.fMax = hdf5['f'][:,:,:].max()
-        
+
         self.fmin  = self.hdf5_f[0,:,:].min()
         self.fmax  = self.hdf5_f[0,:,:].max()
+        self.fmin0 = self.fmin
         self.fmax0 = self.fmax
         self.fmax_error = 0.
         
@@ -126,13 +127,13 @@ class DistributionFunction(object):
             
     
     def calculate_total_particle_number(self, f0=None):
-        cdef np.uint64_t nx = self.grid.nx
-        cdef np.uint64_t nv = self.grid.nv
+        cdef int nx = self.grid.nx
+        cdef int nv = self.grid.nv
         
-        cdef np.uint64_t ix, ixp, iv
-        cdef np.float64_t N
+        cdef int ix, ixp, iv
+        cdef double N
         
-        cdef np.ndarray[np.float64_t, ndim=2] f
+        cdef double[:,:] f
         
         
         N = 0.0
@@ -163,13 +164,13 @@ class DistributionFunction(object):
         
     
     def calculate_norm(self, np.ndarray[np.float64_t, ndim=2] f0=None):
-        cdef np.uint64_t nx = self.grid.nx
-        cdef np.uint64_t nv = self.grid.nv
+        cdef int nx = self.grid.nx
+        cdef int nv = self.grid.nv
         
-        cdef np.uint64_t ix, ixp, iv
-        cdef np.float64_t L1, L2, L3, L4, L5, L6, L8
+        cdef int ix, ixp, iv
+        cdef double L1, L2, L3, L4, L5, L6, L8
         
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.f
+        cdef double[:,:] f = self.f
         
         L1 = 0.0
         L2 = 0.0
@@ -201,8 +202,8 @@ class DistributionFunction(object):
             self.L6 = (self.grid.hx * self.grid.hv) * L6
             self.L8 = (self.grid.hx * self.grid.hv) * L8
             
-            self.Lmin = f.min() * self.grid.hx * self.grid.hv
-            self.Lmax = f.max() * self.grid.hx * self.grid.hv
+            self.Lmin = self.fmin * self.grid.hx * self.grid.hv
+            self.Lmax = self.fmax * self.grid.hx * self.grid.hv
             
         else:
             for ix in range(0, nx):
@@ -225,8 +226,8 @@ class DistributionFunction(object):
             self.L6_0 = (self.grid.hx * self.grid.hv) * L6
             self.L8_0 = (self.grid.hx * self.grid.hv) * L8
             
-            self.Lmin_0 = f0.min() * self.grid.hx * self.grid.hv
-            self.Lmax_0 = f0.max() * self.grid.hx * self.grid.hv
+            self.Lmin_0 = self.fmin0 * self.grid.hx * self.grid.hv
+            self.Lmax_0 = self.fmax0 * self.grid.hx * self.grid.hv
         
     
     def calculate_norm_error(self):
@@ -277,23 +278,23 @@ class DistributionFunction(object):
         
     
     def calculate_total_entropy(self, np.ndarray[np.float64_t, ndim=2] f0=None):
-        cdef np.uint64_t nx = self.grid.nx
-        cdef np.uint64_t nv = self.grid.nv
+        cdef int nx = self.grid.nx
+        cdef int nv = self.grid.nv
         
-        cdef np.uint64_t ix, ixp, iv
-        cdef np.float64_t S
-        
-        cdef np.ndarray[np.float64_t, ndim=2] f
+        cdef int ix, ixp, iv
+        cdef double S = 0.0
         
         if f0 == None:
-            f = self.f.copy()
-        else:
-            f = f0.copy()
+            f0 = self.f
         
-        f[f <= 0.] = min((1E-25, self.f0[self.f0 > 0.].min()))
-
-
-        S = 0.0
+        cdef double[:,:] f = f0.copy()
+        
+        
+        for ix in range(0, nx):
+            for iv in range(0, nv):
+                if f[ix,iv] <= 0.: 
+                    f[ix,iv] = 1E-15
+        
         
         for ix in range(0, nx):
             ixp = (ix+1) % nx
@@ -321,8 +322,11 @@ class DistributionFunction(object):
     def read_from_hdf5(self, iTime):
         self.f = self.hdf5_f[iTime,:,:].T
         
-        self.fmin = self.hdf5_f[iTime,:,:].min()
-        self.fmax = self.hdf5_f[iTime,:,:].max()
+        self.f_ext[0:-1,:] = self.f[:,:]
+        self.f_ext[  -1,:] = self.f[0,:]
+        
+        self.fmin = self.f.min()
+        self.fmax = self.f.max()
         
         if self.fmax0 > 0:
             self.fmax_error = (self.fmax - self.fmax0) / self.fmax0
