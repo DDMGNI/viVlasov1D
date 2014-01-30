@@ -15,8 +15,8 @@ from petsc4py.PETSc         cimport Vec
 
 from pyfftw.pyfftw          cimport FFTW
 
-from vlasov.toolbox.Grid    cimport Grid
-from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.core.Grid    cimport Grid
+from vlasov.toolbox.VIDA cimport VIDA
 
 from vlasov.solvers.vlasov.PETScVlasovPreconditioner cimport PETScVlasovPreconditioner
 

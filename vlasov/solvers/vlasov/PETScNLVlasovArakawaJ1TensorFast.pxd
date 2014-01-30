@@ -8,8 +8,8 @@ cimport numpy as np
 
 from petsc4py.PETSc         cimport Vec
 
-from vlasov.toolbox.Grid    cimport Grid
-from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.core.Grid    cimport Grid
+from vlasov.toolbox.VIDA cimport VIDA
 
 cimport vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast
 

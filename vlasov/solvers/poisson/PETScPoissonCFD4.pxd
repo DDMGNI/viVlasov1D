@@ -14,7 +14,7 @@ from petsc4py cimport PETSc
 
 from petsc4py.PETSc cimport Mat, Vec
 
-from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.toolbox.VIDA cimport VIDA
 
 
 cdef class PETScPoissonSolver(object):

@@ -6,8 +6,8 @@ Created on June 05, 2013
 
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
-from vlasov.toolbox.Grid    cimport Grid
-from vlasov.toolbox.VIDA    cimport VIDA
+from vlasov.core.Grid    cimport Grid
+from vlasov.toolbox.VIDA cimport VIDA
 
 
 cdef class PETScVlasovSolverBase(object):

@@ -7,7 +7,7 @@ Created on Jan 25, 2013
 cimport cython
 cimport numpy as np
 
-from Grid cimport Grid
+from vlasov.core.Grid cimport Grid
 from VIDA cimport VIDA
 
 from petsc4py.PETSc cimport Vec
