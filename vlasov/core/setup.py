@@ -6,6 +6,13 @@ from vlasov.setup_inc import *
 
 
 ext_modules = [
+        Extension("Grid",
+                  sources=["Grid.pyx"],
+                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("distribution_function",
                   sources=["distribution_function.pyx"],
                   include_dirs=INCLUDE_DIRS + [os.curdir],
