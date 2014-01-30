@@ -14,7 +14,8 @@ from petsc4py import PETSc
 
 from vlasov.core.config  import Config
 
-from vlasov.toolbox.Grid    import Grid
+from vlasov.core.Grid    import Grid
+
 from vlasov.toolbox.VIDA    import VIDA
 from vlasov.toolbox.Toolbox import Toolbox
 
@@ -259,7 +260,7 @@ class petscVP1Dbase():
         
         
         # create grid object
-        self.grid = Grid(xGrid, vGrid, nt, nx, nv, ht, hx, hv, stencil)
+        self.grid = Grid().create(xGrid, vGrid, nt, nx, nv, ht, hx, hv, stencil)
         
         
         # create vectors for Hamiltonians
@@ -473,9 +474,9 @@ class petscVP1Dbase():
         
         
         # use h5py to store attributes
-        f = h5py.File(hdf_out_filename, 'w')
-        f.attrs['charge'] = self.charge
-        f.close()        
+        hdf5out = h5py.File(hdf_out_filename, 'w')
+        hdf5out.attrs['charge'] = self.charge
+        hdf5out.close()        
         
         
         # create PETSc HDF5 viewer
