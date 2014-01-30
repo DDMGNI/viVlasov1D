@@ -11,7 +11,7 @@ cdef class Grid(object):
     The grid class bundles all information related to the (x,v) grid.
     '''
 
-    def __init__(self, 
+    def create(self, 
                  np.ndarray[np.float64_t, ndim=1] x,
                  np.ndarray[np.float64_t, ndim=1] v,
                  np.uint64_t  nt, np.uint64_t  nx, np.uint64_t  nv,
@@ -21,7 +21,7 @@ cdef class Grid(object):
         Constructor
         '''
         
-        self.stencil= stencil
+        self.stencil = stencil
         
         self.t  = np.linspace(0, ht*nt, nt+1)
         self.x  = x
@@ -45,10 +45,12 @@ cdef class Grid(object):
         self.hv2     = self.hv**2
         
         self.hx2_inv = 1. / self.hx2 
-        self.hv2_inv = 1. / self.hv2 
+        self.hv2_inv = 1. / self.hv2
         
+        return self
         
-    def __init__(self, hdf5):
+    
+    def load_from_hdf5(self, hdf5):
         
         assert hdf5 is not None
         
@@ -103,6 +105,7 @@ cdef class Grid(object):
         print(self.v)
         print("")
         
+        return self
         
         
 

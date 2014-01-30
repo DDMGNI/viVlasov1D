@@ -36,9 +36,9 @@ class replay(object):
         self.nPlot  = nPlot
         
         self.hdf5 = h5py.File(hdf5_file, 'r')
+        self.grid = Grid().load_from_hdf5(self.hdf5)
         
-        self.grid         = Grid                (hdf5=self.hdf5)
-        self.potential    = Potential           (self.grid, hdf5=self.hdf5)
+        self.potential    = Potential           (self.grid, self.hdf5)
         self.hamiltonian  = Hamiltonian         (self.grid, hdf5=self.hdf5)
         self.distribution = DistributionFunction(self.grid, hdf5=self.hdf5)
         

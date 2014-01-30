@@ -44,10 +44,10 @@ class PlotNoether(object):
         self.energy    = np.zeros(grid.nt+1)
         self.entropy   = np.zeros(grid.nt+1)
         
+        self.L1        = np.zeros(grid.nt+1)
         self.L2        = np.zeros(grid.nt+1)
         self.L3        = np.zeros(grid.nt+1)
         self.L4        = np.zeros(grid.nt+1)
-        self.L5        = np.zeros(grid.nt+1)
         self.L6        = np.zeros(grid.nt+1)
         self.L8        = np.zeros(grid.nt+1)
         
@@ -101,10 +101,10 @@ class PlotNoether(object):
         self.axes["E"]  = plt.subplot(gs[2,2])
         self.axes["S"]  = plt.subplot(gs[3,2])
         
-        self.axes["L2"] = plt.subplot(gs[0,3])
-        self.axes["L3"] = plt.subplot(gs[1,3])
-        self.axes["L4"] = plt.subplot(gs[2,3])
-        self.axes["L5"] = plt.subplot(gs[3,3])
+        self.axes["L1"] = plt.subplot(gs[0,3])
+        self.axes["L2"] = plt.subplot(gs[1,3])
+        self.axes["L3"] = plt.subplot(gs[2,3])
+        self.axes["L4"] = plt.subplot(gs[3,3])
         
         self.axes["L6"] = plt.subplot(gs[0,4])
         self.axes["L8"] = plt.subplot(gs[1,4])
@@ -154,40 +154,40 @@ class PlotNoether(object):
         self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
         
         
+        self.lines["L1"], = self.axes["L1"].plot(self.grid.t[tStart:tEnd], self.L1[tStart:tEnd])
         self.lines["L2"], = self.axes["L2"].plot(self.grid.t[tStart:tEnd], self.L2[tStart:tEnd])
         self.lines["L3"], = self.axes["L3"].plot(self.grid.t[tStart:tEnd], self.L3[tStart:tEnd])
         self.lines["L4"], = self.axes["L4"].plot(self.grid.t[tStart:tEnd], self.L4[tStart:tEnd])
-        self.lines["L5"], = self.axes["L5"].plot(self.grid.t[tStart:tEnd], self.L5[tStart:tEnd])
         self.lines["L6"], = self.axes["L6"].plot(self.grid.t[tStart:tEnd], self.L6[tStart:tEnd])
         self.lines["L8"], = self.axes["L8"].plot(self.grid.t[tStart:tEnd], self.L8[tStart:tEnd])
         
         self.lines["fmin"], = self.axes["fmin"].plot(self.grid.t[tStart:tEnd], self.fmin[tStart:tEnd])
         self.lines["fmax"], = self.axes["fmax"].plot(self.grid.t[tStart:tEnd], self.fmax[tStart:tEnd])
         
+        self.axes ["L1"].set_title('$\Delta L^{1} (t)$')
         self.axes ["L2"].set_title('$\Delta L^{2} (t)$')
         self.axes ["L3"].set_title('$\Delta L^{3} (t)$')
         self.axes ["L4"].set_title('$\Delta L^{4} (t)$')
-        self.axes ["L5"].set_title('$\Delta L^{5} (t)$')
         self.axes ["L6"].set_title('$\Delta L^{6} (t)$')
         self.axes ["L8"].set_title('$\Delta L^{8} (t)$')
 
         self.axes ["fmin"].set_title('$f_{min} (t)$')
         self.axes ["fmax"].set_title('$\Delta f_{max} (t)$')
         
+        self.axes ["L1"].set_xlim((xStart,xEnd)) 
         self.axes ["L2"].set_xlim((xStart,xEnd)) 
         self.axes ["L3"].set_xlim((xStart,xEnd)) 
         self.axes ["L4"].set_xlim((xStart,xEnd)) 
-        self.axes ["L5"].set_xlim((xStart,xEnd)) 
         self.axes ["L6"].set_xlim((xStart,xEnd)) 
         self.axes ["L8"].set_xlim((xStart,xEnd)) 
         
         self.axes ["fmin"].set_xlim((xStart,xEnd)) 
         self.axes ["fmax"].set_xlim((xStart,xEnd)) 
         
+        self.axes ["L1"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L2"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L3"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L4"].yaxis.set_major_formatter(majorFormatter)
-        self.axes ["L5"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L6"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L8"].yaxis.set_major_formatter(majorFormatter)
         
@@ -200,9 +200,9 @@ class PlotNoether(object):
         plt.setp(self.axes["N"].get_xticklabels(), visible=False)
         plt.setp(self.axes["P"].get_xticklabels(), visible=False)
         plt.setp(self.axes["E"].get_xticklabels(), visible=False)
+        plt.setp(self.axes["L1"].get_xticklabels(), visible=False)
         plt.setp(self.axes["L2"].get_xticklabels(), visible=False)
         plt.setp(self.axes["L3"].get_xticklabels(), visible=False)
-        plt.setp(self.axes["L4"].get_xticklabels(), visible=False)
         plt.setp(self.axes["L6"].get_xticklabels(), visible=False)
         plt.setp(self.axes["L8"].get_xticklabels(), visible=False)
         plt.setp(self.axes["fmin"].get_xticklabels(), visible=False)
@@ -269,6 +269,12 @@ class PlotNoether(object):
         self.axes ["S"].autoscale_view()
         self.axes ["S"].set_xlim((xStart,xEnd)) 
         
+        self.lines["L1"].set_xdata(self.grid.t[tStart:tEnd])
+        self.lines["L1"].set_ydata(self.L1[tStart:tEnd])
+        self.axes ["L1"].relim()
+        self.axes ["L1"].autoscale_view()
+        self.axes ["L1"].set_xlim((xStart,xEnd)) 
+        
         self.lines["L2"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L2"].set_ydata(self.L2[tStart:tEnd])
         self.axes ["L2"].relim()
@@ -286,12 +292,6 @@ class PlotNoether(object):
         self.axes ["L4"].relim()
         self.axes ["L4"].autoscale_view()
         self.axes ["L4"].set_xlim((xStart,xEnd)) 
-        
-        self.lines["L5"].set_xdata(self.grid.t[tStart:tEnd])
-        self.lines["L5"].set_ydata(self.L5[tStart:tEnd])
-        self.axes ["L5"].relim()
-        self.axes ["L5"].autoscale_view()
-        self.axes ["L5"].set_xlim((xStart,xEnd)) 
         
         self.lines["L6"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L6"].set_ydata(self.L6[tStart:tEnd])
@@ -325,16 +325,8 @@ class PlotNoether(object):
     
     
     def add_timepoint(self):
-#         E  = self.hamiltonian.E_kin  + self.hamiltonian.E_pot  + self.potential.E
-#         E0 = self.hamiltonian.E_kin0 + self.hamiltonian.E_pot0 + self.potential.E0
         
-#         E  = self.hamiltonian.E_kin  - self.potential.E
-#         E0 = self.hamiltonian.E_kin0 - self.potential.E0
-        
-        E0 = self.hamiltonian.E0
-        E  = self.hamiltonian.E
-        
-        self.energy  [self.iTime] = (E - E0) / E0
+        self.energy  [self.iTime] = self.hamiltonian.E_error
         self.partnum [self.iTime] = self.distribution.N_error
         
         if np.abs(self.hamiltonian.P0) > self.eps:
@@ -344,10 +336,10 @@ class PlotNoether(object):
         
         self.entropy [self.iTime] = self.distribution.S_error
         
+        self.L1[self.iTime] = self.distribution.L1_error
         self.L2[self.iTime] = self.distribution.L2_error
         self.L3[self.iTime] = self.distribution.L3_error
         self.L4[self.iTime] = self.distribution.L4_error
-        self.L5[self.iTime] = self.distribution.L5_error
         self.L6[self.iTime] = self.distribution.L6_error
         self.L8[self.iTime] = self.distribution.L8_error
         

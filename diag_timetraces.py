@@ -43,9 +43,9 @@ class timetraces(object):
         self.last  = last
         
         self.hdf5 = h5py.File(hdf5_file, 'r')
+        self.grid = Grid().load_from_hdf5(self.hdf5)
         
-        self.grid         = Grid                (hdf5=self.hdf5)
-        self.potential    = Potential           (self.grid, hdf5=self.hdf5)
+        self.potential    = Potential           (self.grid, self.hdf5)
         self.hamiltonian  = Hamiltonian         (self.grid, hdf5=self.hdf5)
         self.distribution = DistributionFunction(self.grid, hdf5=self.hdf5)
         
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Vlasov-Poisson Solver in 1D')
     
-    parser.add_argument('-i', metavar='<run.hdf5>', type=str,
+    parser.add_argument('hdf5_file', metavar='<run.hdf5>', type=str,
                         help='HDF5 data file')
     parser.add_argument('-f', metavar='<findex>', type=int, default=-1,
                         help='first time index')
@@ -97,10 +97,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     print
-    print("Replay run with " + args.i)
+    print("Replay run with " + args.hdf5_file)
     print
     
-    pyvp = timetraces(args.i, args.f, args.l, args.v)
+    pyvp = timetraces(args.hdf5_file, args.f, args.l, args.v)
     pyvp.run(args.l)
     
     print

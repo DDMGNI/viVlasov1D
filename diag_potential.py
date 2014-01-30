@@ -30,10 +30,9 @@ class potential(object):
         
         self.nPlot = nPlot
         
-        self.hdf5 = h5py.File(hdf5_file, 'r')
-        
-        self.grid         = Grid                (hdf5=self.hdf5)
-        self.potential    = Potential           (self.grid, hdf5=self.hdf5)
+        self.hdf5      = h5py.File(hdf5_file, 'r')
+        self.grid      = Grid().load_from_hdf5(self.hdf5)
+        self.potential = Potential(self.grid, self.hdf5)
         
         
         self.energy = np.zeros(self.grid.nt+1)

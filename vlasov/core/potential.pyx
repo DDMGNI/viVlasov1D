@@ -18,7 +18,7 @@ class Potential(object):
     '''
 
 
-    def __init__(self, grid, hdf5=None):
+    def __init__(self, grid, hdf5):
         '''
         Constructor
         '''
