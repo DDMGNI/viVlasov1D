@@ -46,7 +46,6 @@ class PlotMovie(object):
         
         self.iTime = 0
         self.nPlot = nPlot
-        self.vMax  = vMax
         self.cMax  = cMax
         self.cFac  = cFac
         self.write = write
@@ -62,7 +61,10 @@ class PlotMovie(object):
         
         self.x[0:-1] = self.grid.xGrid
         self.x[  -1] = self.grid.L
-
+        
+        self.xMin = self.x[0]
+        self.xMax = self.x[-1]
+        
         if vMax is not None:
             self.vMax = vMax
         else:
@@ -216,7 +218,7 @@ class PlotMovie(object):
 
         self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
         
-        self.axes["f"].set_xlim((self.x[0], self.x[-1])) 
+        self.axes["f"].set_xlim((self.x[0], self.x[-1]))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
 
         

@@ -24,7 +24,7 @@ class movie(object):
     '''
 
 
-    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMax=0.0, cMax=False, cFac=1.0):
+    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMin=None, vMax=None, cMax=False, cFac=1.0):
         '''
         Constructor
         '''
@@ -50,7 +50,8 @@ class movie(object):
             self.nt = self.grid.nt
         
         self.plot = PlotMovie(self.grid, self.distribution, self.hamiltonian, self.potential,
-                              nTime, nPlot, self.nt, vMax, cMax, cFac, write=True)
+                              nTime=nTime, nPlot=nPlot, ntMax=self.nt,
+                              vMin=vMin, vMax=vMax, cMax=cMax, cFac=cFac, write=True)
         
     
     def __del__(self):
@@ -87,8 +88,12 @@ if __name__ == '__main__':
                         help='plot every i\'th frame')
     parser.add_argument('-ntmax', metavar='i', type=int, default=0,
                         help='limit to i points in time')
-    parser.add_argument('-v', metavar='f', type=float, default=0.0,
+    parser.add_argument('-v', metavar='f', type=float, default=None,
                         help='limit velocity domain to +/-v')
+    parser.add_argument('-vmin', metavar='f', type=float, default=None,
+                        help='set lower limit of velocity domain to vmin')
+    parser.add_argument('-vmax', metavar='f', type=float, default=None,
+                        help='set upper limit of velocity domain to vmax')
     parser.add_argument('-cmax', metavar='b', type=bool, default=False,
                         help='use max values of simulation in contour plots')
     parser.add_argument('-cfac', metavar='f', type=float, default=1.0,
@@ -98,12 +103,25 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
+    vMin = None
+    vMax = None
+    
+    if args.v is not None:
+        vMin = -args.v
+        vMax = +args.v
+    else:
+        if args.vmin is not None:
+            vMin = args.vmin 
+        if args.vmax is not None:
+            vMax = args.vmax 
+     
+    
     print
     print("Replay run with " + args.hdf5_file)
     print
     
     pyvp = movie(args.hdf5_file, ntMax=args.ntmax, nTime=args.nt, nPlot=args.np,
-                 vMax=args.v, cMax=args.cmax, cFac=args.cfac)
+                 vMin=vMin, vMax=vMax, cMax=args.cmax, cFac=args.cfac)
     
     pyvp.run()
     
