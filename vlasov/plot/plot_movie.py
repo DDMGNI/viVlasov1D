@@ -206,9 +206,9 @@ class PlotMovie(object):
 
 #        self.update_boundaries()
         
-        for ckey, cont in self.conts.items():
-            for coll in cont.collections:
-                self.axes[ckey].collections.remove(coll)
+#         for ckey, cont in self.conts.items():
+#             for coll in cont.collections:
+#                 self.axes[ckey].collections.remove(coll)
         
         self.f  [0:-1,:] = self.distribution.f[:,:]
         self.f  [  -1,:] = self.distribution.f[0,:]
@@ -225,6 +225,7 @@ class PlotMovie(object):
 #         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
 
 
+#         self.axes["f"].cla()
 #         self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
         
         
@@ -233,8 +234,9 @@ class PlotMovie(object):
         vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], self.nv)
         fint = fspl(xint, vint) 
         
+        self.axes["f"].cla()
         self.axes["f"].pcolormesh(xint, vint, fint, norm=self.fnorm, shading='gouraud')
-
+        
         
         self.axes["f"].set_xlim((self.x[0], self.x[-1]))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
