@@ -6,6 +6,7 @@ Created on June 05, 2013
 
 import sys, time, datetime
 
+import h5py
 import petsc4py
 petsc4py.init(sys.argv)
 
@@ -470,8 +471,16 @@ class petscVP1Dbase():
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Create HDF5 output file.")
         
+        
+        # use h5py to store attributes
+        f = h5py.File(hdf_out_filename, 'w')
+        f.attrs['charge'] = self.charge
+        f.close()        
+        
+        
+        # create PETSc HDF5 viewer
         self.hdf5_viewer = PETSc.ViewerHDF5().create(hdf_out_filename,
-                                              mode=PETSc.Viewer.Mode.WRITE,
+                                              mode=PETSc.Viewer.Mode.APPEND,
                                               comm=PETSc.COMM_WORLD)
         
         self.hdf5_viewer.pushGroup("/")
@@ -487,8 +496,8 @@ class petscVP1Dbase():
         self.hdf5_viewer(coords_v)
         
         # write initial data to hdf5 file
-        self.hdf5_viewer(n0)
-        self.hdf5_viewer(T0)
+#         self.hdf5_viewer(N0)
+#         self.hdf5_viewer(T0)
         
         # save to hdf5
         self.hdf5_viewer.setTimestep(0)
