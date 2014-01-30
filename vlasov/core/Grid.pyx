@@ -85,7 +85,7 @@ cdef class Grid(object):
         
         
         print("")
-        print("nt = %i (%i)" % (self.nt, len(self.tGrid)) )
+        print("nt = %i (%i)" % (self.nt, len(self.t)) )
         print("nx = %i" % (self.nx))
         print("nv = %i" % (self.nv))
         print
@@ -94,13 +94,13 @@ cdef class Grid(object):
         print("hv = %f" % (self.hv))
         print("")
         print("tGrid:")
-        print(self.tGrid)
+        print(self.t)
         print("")
         print("xGrid:")
-        print(self.xGrid)
+        print(self.x)
         print("")
         print("vGrid:")
-        print(self.vGrid)
+        print(self.v)
         print("")
         
         
@@ -125,7 +125,7 @@ cdef class Grid(object):
         return self.v[-1]
 
     def xLength(self):
-        return self.xMax() - self.xMin()
+        return self.xMax() - self.xMin() + self.hx
     
     def vLength(self):
         return self.vMax() - self.vMin()

@@ -97,7 +97,7 @@ class Hamiltonian(object):
         self.E_pot = Epot * self.grid.hx * self.grid.hv
         
         # total energy
-        self.E = self.E_kin + self.E_pot
+        self.E = self.E_kin + 0.5 * self.E_pot
         
     
     def calculate_total_momentum(self):
@@ -112,7 +112,7 @@ class Hamiltonian(object):
         
         cdef double P = 0.0
         
-        cdef double[:]   v  = self.grid.vGrid
+        cdef double[:]   v  = self.grid.v
         cdef double[:,:] f  = self.f
         
         

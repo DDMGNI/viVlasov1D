@@ -47,17 +47,17 @@ class PlotTimetraces(object):
         self.hamiltonian  = hamiltonian
         self.potential    = potential
         
-        self.partnum   = np.zeros_like(grid.tGrid)
-        self.energy    = np.zeros_like(grid.tGrid)
-        self.momentum  = np.zeros_like(grid.tGrid)
-        self.entropy   = np.zeros_like(grid.tGrid)
-        self.L1        = np.zeros_like(grid.tGrid)
-        self.L2        = np.zeros_like(grid.tGrid)
+        self.partnum   = np.zeros(grid.nt+1)
+        self.energy    = np.zeros(grid.nt+1)
+        self.momentum  = np.zeros(grid.nt+1)
+        self.entropy   = np.zeros(grid.nt+1)
+        self.L1        = np.zeros(grid.nt+1)
+        self.L2        = np.zeros(grid.nt+1)
         
         self.x       = np.zeros(grid.nx+1)
         
-        self.x[0:-1] = self.grid.xGrid
-        self.x[  -1] = self.grid.L
+        self.x[0:-1] = self.grid.x
+        self.x[  -1] = self.grid.xLength()
         
         
         # set up tick formatter
@@ -134,18 +134,18 @@ class PlotTimetraces(object):
         self.axes["S0"] = plt.subplot(1,1,1)
 
 
-        xStart = self.grid.tGrid[self.iStart]
-        xEnd   = self.grid.tGrid[self.nTime]
+        xStart = self.grid.t[self.iStart]
+        xEnd   = self.grid.t[self.nTime]
 
-        self.lines["N" ], = self.axes["N" ].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.partnum  [self.iStart:self.nTime+1])
-        self.lines["E" ], = self.axes["E" ].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.energy   [self.iStart:self.nTime+1])
-        self.lines["P" ], = self.axes["P" ].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.momentum [self.iStart:self.nTime+1])
-        self.lines["E0"], = self.axes["E0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.energy   [self.iStart:self.nTime+1])
-        self.lines["P0"], = self.axes["P0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.momentum [self.iStart:self.nTime+1])
-        self.lines["N0"], = self.axes["N0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.partnum  [self.iStart:self.nTime+1])
-        self.lines["L1"], = self.axes["L1"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.L1       [self.iStart:self.nTime+1])
-        self.lines["L2"], = self.axes["L2"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.L2       [self.iStart:self.nTime+1])
-        self.lines["S0"], = self.axes["S0"].plot(self.grid.tGrid[self.iStart:self.nTime+1], self.entropy  [self.iStart:self.nTime+1])
+        self.lines["N" ], = self.axes["N" ].plot(self.grid.t[self.iStart:self.nTime+1], self.partnum  [self.iStart:self.nTime+1])
+        self.lines["E" ], = self.axes["E" ].plot(self.grid.t[self.iStart:self.nTime+1], self.energy   [self.iStart:self.nTime+1])
+        self.lines["P" ], = self.axes["P" ].plot(self.grid.t[self.iStart:self.nTime+1], self.momentum [self.iStart:self.nTime+1])
+        self.lines["E0"], = self.axes["E0"].plot(self.grid.t[self.iStart:self.nTime+1], self.energy   [self.iStart:self.nTime+1])
+        self.lines["P0"], = self.axes["P0"].plot(self.grid.t[self.iStart:self.nTime+1], self.momentum [self.iStart:self.nTime+1])
+        self.lines["N0"], = self.axes["N0"].plot(self.grid.t[self.iStart:self.nTime+1], self.partnum  [self.iStart:self.nTime+1])
+        self.lines["L1"], = self.axes["L1"].plot(self.grid.t[self.iStart:self.nTime+1], self.L1       [self.iStart:self.nTime+1])
+        self.lines["L2"], = self.axes["L2"].plot(self.grid.t[self.iStart:self.nTime+1], self.L2       [self.iStart:self.nTime+1])
+        self.lines["S0"], = self.axes["S0"].plot(self.grid.t[self.iStart:self.nTime+1], self.entropy  [self.iStart:self.nTime+1])
         
         self.axes ["N" ].set_title('Total Particle Number Error $\Delta N (t)$', fontsize=24)
         self.axes ["E" ].set_title('Total Energy Error $\Delta E (t)$', fontsize=24)
@@ -323,74 +323,74 @@ class PlotTimetraces(object):
         
 #        nscale = 5
 #        fint = zoom(self.distribution.f.T, nscale)
-#        xint = np.linspace(self.grid.xGrid[0], self.grid.xGrid[-1], nscale*len(self.grid.xGrid))
-#        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], nscale*len(self.grid.vGrid))
+#        xint = np.linspace(self.grid.x[0], self.grid.x[-1], nscale*len(self.grid.x))
+#        vint = np.linspace(self.grid.v[0], self.grid.v[-1], nscale*len(self.grid.v))
 #
 #        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
 
         fint = gaussian_filter(self.distribution.f.T, sigma=1.0, order=0)
 
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 100, norm=self.fnorm, extend='neither')
+        self.conts["f"] = self.axes["f"].contourf(self.grid.x, self.grid.v, self.distribution.f.T, 100, norm=self.fnorm, extend='neither')
 
-#        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
-        self.axes ["f"].set_title('t = %.0f' % (self.grid.tGrid[self.iTime-1]))
+#        self.conts["f"] = self.axes["f"].contourf(self.grid.x, self.grid.v, fint, 100, norm=self.fnorm, extend='neither')
+        self.axes ["f"].set_title('t = %.0f' % (self.grid.t[self.iTime-1]))
         
         if self.vMax > 0.0:
             self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
         
         
-        xStart = self.grid.tGrid[self.iStart]
-        xEnd   = self.grid.tGrid[self.nTime]
+        xStart = self.grid.t[self.iStart]
+        xEnd   = self.grid.t[self.nTime]
         
-        self.lines["N"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["N"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["N"].set_ydata(self.partnum[self.iStart:self.nTime+1])
         self.axes ["N"].relim()
         self.axes ["N"].autoscale_view()
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["E"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["E"].set_ydata(self.energy[self.iStart:self.nTime+1])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         
-        self.lines["P"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["P"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["P"].set_ydata(self.momentum[self.iStart:self.nTime+1])
         self.axes ["P"].relim()
         self.axes ["P"].autoscale_view()
         self.axes ["P"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["E0"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["E0"].set_ydata(self.energy[self.iStart:self.nTime+1])
         self.axes ["E0"].relim()
         self.axes ["E0"].autoscale_view()
         self.axes ["E0"].set_xlim((xStart,xEnd)) 
         
-        self.lines["P0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["P0"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["P0"].set_ydata(self.momentum[self.iStart:self.nTime+1])
         self.axes ["P0"].relim()
         self.axes ["P0"].autoscale_view()
         self.axes ["P0"].set_xlim((xStart,xEnd)) 
         
-        self.lines["N0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["N0"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["N0"].set_ydata(self.partnum[self.iStart:self.nTime+1])
         self.axes ["N0"].relim()
         self.axes ["N0"].autoscale_view()
         self.axes ["N0"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L1"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["L1"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["L1"].set_ydata(self.L1[self.iStart:self.nTime+1])
         self.axes ["L1"].relim()
         self.axes ["L1"].autoscale_view()
         self.axes ["L1"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L2"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["L2"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["L2"].set_ydata(self.L2[self.iStart:self.nTime+1])
         self.axes ["L2"].relim()
         self.axes ["L2"].autoscale_view()
         self.axes ["L2"].set_xlim((xStart,xEnd)) 
         
-        self.lines["S0"].set_xdata(self.grid.tGrid[self.iStart:self.nTime+1])
+        self.lines["S0"].set_xdata(self.grid.t[self.iStart:self.nTime+1])
         self.lines["S0"].set_ydata(self.entropy[self.iStart:self.nTime+1])
         self.axes ["S0"].relim()
         self.axes ["S0"].autoscale_view()

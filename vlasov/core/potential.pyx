@@ -23,55 +23,44 @@ class Potential(object):
         Constructor
         '''
         
-#         assert grid not None
-#         assert hdf5 not None
+        assert grid is not None
+        assert hdf5 is not None
         
         
-        self.average_diagnostics = False
+        self.grid     = grid
+        self.hdf5_phi = hdf5['phi_int'] 
+        self.phi      = None
         
-        
-        self.grid  = grid
-        
-        self.hdf5_phi = None 
+        if 'charge' in hdf5.attrs:
+            self.charge = hdf5.attrs['charge']
+        else:
+            self.charge = -1.
         
         self.E0 = 0.0
         self.E  = 0.0
         self.E_error = 0.0
         
-        self.charge = hdf5.attrs['charge']
-        
-        self.phi = None
-        self.set_hdf5_file(hdf5)
         self.read_from_hdf5(0)
         self.E0 = self.E
             
         
     
     def calculate_energy(self):
-        cdef np.uint64_t nx = self.grid.nx
+        cdef int ix, ixp
+        cdef double E = 0.0
         
-        cdef np.uint64_t ix, ixp
-        cdef np.float64_t E
+        cdef double[:] phi = self.phi
         
-        cdef np.ndarray[np.float64_t, ndim=1] phi  = self.phi
-        cdef np.ndarray[np.float64_t, ndim=1] tphi = phi - phi.mean()
-        
-        E = 0.0
-        
-        for ix in range(0, nx):
-            ixp = (ix+1) % nx
+        for ix in range(0, self.grid.nx):
+            ixp = (ix+1) % self.grid.nx
             
-            E += pow(tphi[ixp] - tphi[ix], 2)
+            E += pow(phi[ixp] - phi[ix], 2)
         
         self.E = 0.5 * self.charge * E / self.grid.hx
         # / hx**2 for the square of the derivative
         # * hx**1 for the integration
         
     
-    def set_hdf5_file(self, hdf5):
-        self.hdf5_phi = hdf5['phi_int']
-                
-        
     def read_from_hdf5(self, iTime):
         self.phi = self.hdf5_phi[iTime,:]
         

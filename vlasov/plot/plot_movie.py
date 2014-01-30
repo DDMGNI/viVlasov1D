@@ -52,17 +52,18 @@ class PlotMovie(object):
         self.cFac  = cFac
         self.write = write
         
-        self.partnum   = np.zeros_like(grid.tGrid)
-        self.enstrophy = np.zeros_like(grid.tGrid)
-        self.entropy   = np.zeros_like(grid.tGrid)
-        self.energy    = np.zeros_like(grid.tGrid)
-        self.momentum  = np.zeros_like(grid.tGrid)
+        self.partnum   = np.zeros(grid.nt+1)
+        self.enstrophy = np.zeros(grid.nt+1)
+        self.entropy   = np.zeros(grid.nt+1)
+        self.energy    = np.zeros(grid.nt+1)
+        self.momentum  = np.zeros(grid.nt+1)
+        
+        self.f       = self.distribution.f_ext
         
         self.x       = np.zeros(grid.nx+1)
-        self.f       = np.zeros((grid.nx+1, grid.nv))
-        
-        self.x[0:-1] = self.grid.xGrid
-        self.x[  -1] = self.grid.L
+        self.x[0:-1] = self.grid.x
+        self.x[  -1] = self.grid.xMin() + self.grid.xLength()
+        self.v       = self.grid.v
         
         self.xMin = self.x[0]
         self.xMax = self.x[-1]
@@ -70,12 +71,12 @@ class PlotMovie(object):
         if vMax is not None:
             self.vMax = vMax
         else:
-            self.vMax = self.grid.vGrid[-1]
+            self.vMax = self.v[-1]
 
         if vMin is not None:
             self.vMin = vMin
         else:
-            self.vMin = self.grid.vGrid[0]
+            self.vMin = self.v[0]
         
 
         # set up figure/window size
@@ -86,7 +87,7 @@ class PlotMovie(object):
         plt.subplots_adjust(left=0.04, right=0.96, top=0.93, bottom=0.05)
         
         # set up plot title
-        self.title = self.figure.text(0.5, 0.97, 't = 0.0' % (grid.tGrid[self.iTime]), horizontalalignment='center') 
+        self.title = self.figure.text(0.5, 0.97, 't = 0.0' % (grid.t[self.iTime]), horizontalalignment='center') 
         
         # set up tick formatter
         majorFormatter = ScalarFormatter(useOffset=False)
@@ -130,6 +131,10 @@ class PlotMovie(object):
         self.nx  = fbox.width  * self.dpi
         self.nv  = fbox.height * self.dpi
         
+        # interpolated grid
+        self.xint = np.linspace(self.xMin, self.xMax, self.nx)
+        self.vint = np.linspace(self.vMin, self.vMax, self.nv)
+
         
         # distribution function (filled contour)
         self.axes ["f"].set_title('$f (x,v)$')
@@ -138,7 +143,7 @@ class PlotMovie(object):
         tStart, tEnd, xStart, xEnd = self.get_timerange()
 
         # error in total particle number (time trace)
-        self.lines["N"], = self.axes["N"].plot(self.grid.tGrid[tStart:tEnd], self.partnum[tStart:tEnd])
+        self.lines["N"], = self.axes["N"].plot(self.grid.t[tStart:tEnd], self.partnum[tStart:tEnd])
         self.axes ["N"].set_title('$\Delta N (t)$')
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         self.axes ["N"].yaxis.set_major_formatter(majorFormatter)
@@ -146,21 +151,21 @@ class PlotMovie(object):
         
         
         # error in total enstrophy (time trace)
-        self.lines["L"], = self.axes["L"].plot(self.grid.tGrid[tStart:tEnd], self.enstrophy[tStart:tEnd])
+        self.lines["L"], = self.axes["L"].plot(self.grid.t[tStart:tEnd], self.enstrophy[tStart:tEnd])
         self.axes ["L"].set_title('$\Delta L_{2} (t)$')
         self.axes ["L"].set_xlim((xStart,xEnd)) 
         self.axes ["L"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["L"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total energy (time trace)
-        self.lines["E"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy[tStart:tEnd])
+        self.lines["E"], = self.axes["E"].plot(self.grid.t[tStart:tEnd], self.energy[tStart:tEnd])
         self.axes ["E"].set_title('$\Delta E (t)$')
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         self.axes ["E"].yaxis.set_major_formatter(majorFormatter)
         self.axes ["E"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total momentum (time trace)
-        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum[tStart:tEnd])
+        self.lines["P"], = self.axes["P"].plot(self.grid.t[tStart:tEnd], self.momentum[tStart:tEnd])
         if self.hamiltonian.P0 < 1E-8:
             self.axes ["P"].set_title('$P (t)$')
         else:
@@ -170,7 +175,7 @@ class PlotMovie(object):
         self.axes ["P"].yaxis.set_major_locator(MaxNLocator(4))
         
         # error in total entropy (time trace)
-#        self.lines["S"], = self.axes["S"].plot(self.grid.tGrid[tStart:tEnd], self.entropy[tStart:tEnd])
+#        self.lines["S"], = self.axes["S"].plot(self.grid.t[tStart:tEnd], self.entropy[tStart:tEnd])
 #        self.axes ["S"].set_title('$\Delta S (t)$')
 #        self.axes ["S"].set_xlim((xStart,xEnd)) 
 #        self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
@@ -210,69 +215,59 @@ class PlotMovie(object):
 #             for coll in cont.collections:
 #                 self.axes[ckey].collections.remove(coll)
         
-        self.f  [0:-1,:] = self.distribution.f[:,:]
-        self.f  [  -1,:] = self.distribution.f[0,:]
-        
-#        fint = zoom(self.f.T, 3)
-#        xint = np.linspace(self.x[0], self.x[-1], 3*len(self.x))
-#        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], 3*len(self.grid.vGrid))
-#        
-#        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
-        
-#        fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
-#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
-        
-#         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
+#         # contour plot
+#         self.conts["f"] = self.axes["f"].contourf(self.x, self.v, self.f.T, 100, norm=self.fnorm, extend='neither')
 
+#         # contour plot with Gaussian filter
+#         fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
+#         self.conts["f"] = self.axes["f"].contourf(self.x, self.v, fint, 100, norm=self.fnorm, extend='neither')
 
+#         # colormesh
 #         self.axes["f"].cla()
-#         self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
+#         self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm)
         
-        
-        fspl = interp2d(self.x, self.grid.vGrid, self.f.T, kind='cubic')        
-        xint = np.linspace(self.x[0], self.x[-1], self.nx)
-        vint = np.linspace(self.grid.vGrid[0], self.grid.vGrid[-1], self.nv)
-        fint = fspl(xint, vint) 
+        # colormesh with spline interpolation
+        fspl = interp2d(self.x, self.v, self.f.T, kind='cubic')        
+        fint = fspl(self.xint, self.vint) 
         
         self.axes["f"].cla()
-        self.axes["f"].pcolormesh(xint, vint, fint, norm=self.fnorm, shading='gouraud')
+        self.axes["f"].pcolormesh(self.xint, self.vint, fint, norm=self.fnorm)
         
-        
-        self.axes["f"].set_xlim((self.x[0], self.x[-1]))
+        self.axes["f"].set_xlim((self.xMin, self.xMax))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
-
+        
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
         
-        self.lines["N"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["N"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["N"].set_ydata(self.partnum[tStart:tEnd])
         self.axes ["N"].relim()
         self.axes ["N"].autoscale_view()
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L"].set_ydata(self.enstrophy[tStart:tEnd])
         self.axes ["L"].relim()
         self.axes ["L"].autoscale_view()
         self.axes ["L"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["E"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["E"].set_ydata(self.energy[tStart:tEnd])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         
-        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["P"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["P"].set_ydata(self.momentum[tStart:tEnd])
         self.axes ["P"].relim()
         self.axes ["P"].autoscale_view()
         self.axes ["P"].set_xlim((xStart,xEnd)) 
         
-#        self.lines["S"].set_xdata(self.grid.tGrid[tStart:tEnd])
+#        self.lines["S"].set_xdata(self.grid.t[tStart:tEnd])
 #        self.lines["S"].set_ydata(self.entropy[tStart:tEnd])
 #        self.axes ["S"].relim()
 #        self.axes ["S"].autoscale_view()
-#        self.axes ["S"].set_xlim((xStart,xEnd)) 
+#        self.axes ["S"].set_xlim((xStart,xEnd))
         
         
         if self.write:
@@ -284,24 +279,18 @@ class PlotMovie(object):
     
     
     def add_timepoint(self):
-        E0 = self.hamiltonian.E0
-        E  = self.hamiltonian.E
-
-        E_error   = (E - E0) / E0
-        
-        
         self.partnum  [self.iTime] = self.distribution.N_error
         self.enstrophy[self.iTime] = self.distribution.L2_error
         self.entropy  [self.iTime] = self.distribution.S_error
+        self.energy   [self.iTime] = self.hamiltonian.E_error
         
         if self.hamiltonian.P0 < 1E-8:
             self.momentum [self.iTime] = self.hamiltonian.P
         else:
             self.momentum [self.iTime] = self.hamiltonian.P_error
         
-        self.energy   [self.iTime] = E_error
         
-        self.title.set_text('t = %1.2f' % (self.grid.tGrid[self.iTime]))
+        self.title.set_text('t = %1.2f' % (self.grid.t[self.iTime]))
         
         self.iTime += 1
         
@@ -313,8 +302,8 @@ class PlotMovie(object):
             
         tEnd = self.iTime
         
-        xStart = self.grid.tGrid[tStart]
-        xEnd   = self.grid.tGrid[tStart+self.nTime]
+        xStart = self.grid.t[tStart]
+        xEnd   = self.grid.t[tStart+self.nTime]
         
         return tStart, tEnd, xStart, xEnd
     

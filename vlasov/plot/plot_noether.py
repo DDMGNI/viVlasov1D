@@ -39,27 +39,27 @@ class PlotNoether(object):
         self.hamiltonian  = hamiltonian
         self.potential    = potential
         
-        self.partnum   = np.zeros_like(grid.tGrid)
-        self.momentum  = np.zeros_like(grid.tGrid)
-        self.energy    = np.zeros_like(grid.tGrid)
-        self.entropy   = np.zeros_like(grid.tGrid)
+        self.partnum   = np.zeros(grid.nt+1)
+        self.momentum  = np.zeros(grid.nt+1)
+        self.energy    = np.zeros(grid.nt+1)
+        self.entropy   = np.zeros(grid.nt+1)
         
-        self.L2        = np.zeros_like(grid.tGrid)
-        self.L3        = np.zeros_like(grid.tGrid)
-        self.L4        = np.zeros_like(grid.tGrid)
-        self.L5        = np.zeros_like(grid.tGrid)
-        self.L6        = np.zeros_like(grid.tGrid)
-        self.L8        = np.zeros_like(grid.tGrid)
+        self.L2        = np.zeros(grid.nt+1)
+        self.L3        = np.zeros(grid.nt+1)
+        self.L4        = np.zeros(grid.nt+1)
+        self.L5        = np.zeros(grid.nt+1)
+        self.L6        = np.zeros(grid.nt+1)
+        self.L8        = np.zeros(grid.nt+1)
         
-        self.fmin      = np.zeros_like(grid.tGrid)
-        self.fmax      = np.zeros_like(grid.tGrid)
+        self.fmin      = np.zeros(grid.nt+1)
+        self.fmax      = np.zeros(grid.nt+1)
         
         self.x       = np.zeros(grid.nx+1)
         self.n       = np.zeros(grid.nx+1)
         self.phi     = np.zeros(grid.nx+1)
         
-        self.x[0:-1] = self.grid.xGrid
-        self.x[  -1] = self.grid.L
+        self.x[0:-1] = self.grid.x
+        self.x[  -1] = self.grid.xLength()
         
         
         # set up figure/window size
@@ -70,7 +70,7 @@ class PlotNoether(object):
         plt.subplots_adjust(left=0.03, right=0.97, top=0.93, bottom=0.05)
         
         # set up plot title
-        self.title = self.figure.text(0.5, 0.97, 't = 0.0' % (self.grid.tGrid[self.iTime]), horizontalalignment='center') 
+        self.title = self.figure.text(0.5, 0.97, 't = 0.0' % (self.grid.t[self.iTime]), horizontalalignment='center') 
         
         # set up tick formatter
         majorFormatter = ScalarFormatter(useOffset=False)
@@ -116,22 +116,22 @@ class PlotNoether(object):
         # distribution function (filled contour)
         self.axes["f"] = plt.subplot(gs[0:2,0:2])
         self.axes ["f"].set_title('$f (x,v)$')
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
+        self.conts["f"] = self.axes["f"].contourf(self.grid.x, self.grid.v, self.distribution.f.T, 10, norm=self.fnorm)
         self.cbars["f"] = plt.colorbar(self.conts["f"], orientation='vertical')
         
         # Hamilton function (filled contour)
         self.axes["h"] = plt.subplot(gs[2:4,0:2])
         self.axes["h"].set_title('$H (x,v)$')
-        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  10, norm=self.hnorm)
+        self.conts["h"] = self.axes["h"].contourf(self.grid.x, self.grid.v, self.hamiltonian.h.T,  10, norm=self.hnorm)
         self.cbars["h"] = plt.colorbar(self.conts["h"], orientation='vertical')
 
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
 
-        self.lines["N"], = self.axes["N"].plot(self.grid.tGrid[tStart:tEnd], self.partnum [tStart:tEnd])
-        self.lines["P"], = self.axes["P"].plot(self.grid.tGrid[tStart:tEnd], self.momentum[tStart:tEnd])
-        self.lines["E"], = self.axes["E"].plot(self.grid.tGrid[tStart:tEnd], self.energy  [tStart:tEnd])
-        self.lines["S"], = self.axes["S"].plot(self.grid.tGrid[tStart:tEnd], self.entropy [tStart:tEnd])
+        self.lines["N"], = self.axes["N"].plot(self.grid.t[tStart:tEnd], self.partnum [tStart:tEnd])
+        self.lines["P"], = self.axes["P"].plot(self.grid.t[tStart:tEnd], self.momentum[tStart:tEnd])
+        self.lines["E"], = self.axes["E"].plot(self.grid.t[tStart:tEnd], self.energy  [tStart:tEnd])
+        self.lines["S"], = self.axes["S"].plot(self.grid.t[tStart:tEnd], self.entropy [tStart:tEnd])
         
         self.axes ["N"].set_title('$\Delta N (t)$')
         
@@ -154,15 +154,15 @@ class PlotNoether(object):
         self.axes ["S"].yaxis.set_major_formatter(majorFormatter)
         
         
-        self.lines["L2"], = self.axes["L2"].plot(self.grid.tGrid[tStart:tEnd], self.L2[tStart:tEnd])
-        self.lines["L3"], = self.axes["L3"].plot(self.grid.tGrid[tStart:tEnd], self.L3[tStart:tEnd])
-        self.lines["L4"], = self.axes["L4"].plot(self.grid.tGrid[tStart:tEnd], self.L4[tStart:tEnd])
-        self.lines["L5"], = self.axes["L5"].plot(self.grid.tGrid[tStart:tEnd], self.L5[tStart:tEnd])
-        self.lines["L6"], = self.axes["L6"].plot(self.grid.tGrid[tStart:tEnd], self.L6[tStart:tEnd])
-        self.lines["L8"], = self.axes["L8"].plot(self.grid.tGrid[tStart:tEnd], self.L8[tStart:tEnd])
+        self.lines["L2"], = self.axes["L2"].plot(self.grid.t[tStart:tEnd], self.L2[tStart:tEnd])
+        self.lines["L3"], = self.axes["L3"].plot(self.grid.t[tStart:tEnd], self.L3[tStart:tEnd])
+        self.lines["L4"], = self.axes["L4"].plot(self.grid.t[tStart:tEnd], self.L4[tStart:tEnd])
+        self.lines["L5"], = self.axes["L5"].plot(self.grid.t[tStart:tEnd], self.L5[tStart:tEnd])
+        self.lines["L6"], = self.axes["L6"].plot(self.grid.t[tStart:tEnd], self.L6[tStart:tEnd])
+        self.lines["L8"], = self.axes["L8"].plot(self.grid.t[tStart:tEnd], self.L8[tStart:tEnd])
         
-        self.lines["fmin"], = self.axes["fmin"].plot(self.grid.tGrid[tStart:tEnd], self.fmin[tStart:tEnd])
-        self.lines["fmax"], = self.axes["fmax"].plot(self.grid.tGrid[tStart:tEnd], self.fmax[tStart:tEnd])
+        self.lines["fmin"], = self.axes["fmin"].plot(self.grid.t[tStart:tEnd], self.fmin[tStart:tEnd])
+        self.lines["fmax"], = self.axes["fmax"].plot(self.grid.t[tStart:tEnd], self.fmax[tStart:tEnd])
         
         self.axes ["L2"].set_title('$\Delta L^{2} (t)$')
         self.axes ["L3"].set_title('$\Delta L^{3} (t)$')
@@ -239,79 +239,79 @@ class PlotNoether(object):
         
 #        self.fnorm = colors.Normalize(vmin=self.fmin, vmax=self.fmax)
         
-        self.conts["f"] = self.axes["f"].contourf(self.grid.xGrid, self.grid.vGrid, self.distribution.f.T, 10, norm=self.fnorm)
-        self.conts["h"] = self.axes["h"].contourf(self.grid.xGrid, self.grid.vGrid, self.hamiltonian.h.T,  10, norm=self.hnorm)
+        self.conts["f"] = self.axes["f"].contourf(self.grid.x, self.grid.v, self.distribution.f.T, 10, norm=self.fnorm)
+        self.conts["h"] = self.axes["h"].contourf(self.grid.x, self.grid.v, self.hamiltonian.h.T,  10, norm=self.hnorm)
         
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
         
-        self.lines["N"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["N"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["N"].set_ydata(self.partnum[tStart:tEnd])
         self.axes ["N"].relim()
         self.axes ["N"].autoscale_view()
         self.axes ["N"].set_xlim((xStart,xEnd)) 
         
-        self.lines["P"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["P"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["P"].set_ydata(self.momentum[tStart:tEnd])
         self.axes ["P"].relim()
         self.axes ["P"].autoscale_view()
         self.axes ["P"].set_xlim((xStart,xEnd)) 
         
-        self.lines["E"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["E"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["E"].set_ydata(self.energy[tStart:tEnd])
         self.axes ["E"].relim()
         self.axes ["E"].autoscale_view()
         self.axes ["E"].set_xlim((xStart,xEnd)) 
         
-        self.lines["S"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["S"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["S"].set_ydata(self.entropy[tStart:tEnd])
         self.axes ["S"].relim()
         self.axes ["S"].autoscale_view()
         self.axes ["S"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L2"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L2"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L2"].set_ydata(self.L2[tStart:tEnd])
         self.axes ["L2"].relim()
         self.axes ["L2"].autoscale_view()
         self.axes ["L2"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L3"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L3"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L3"].set_ydata(self.L3[tStart:tEnd])
         self.axes ["L3"].relim()
         self.axes ["L3"].autoscale_view()
         self.axes ["L3"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L4"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L4"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L4"].set_ydata(self.L4[tStart:tEnd])
         self.axes ["L4"].relim()
         self.axes ["L4"].autoscale_view()
         self.axes ["L4"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L5"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L5"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L5"].set_ydata(self.L5[tStart:tEnd])
         self.axes ["L5"].relim()
         self.axes ["L5"].autoscale_view()
         self.axes ["L5"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L6"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L6"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L6"].set_ydata(self.L6[tStart:tEnd])
         self.axes ["L6"].relim()
         self.axes ["L6"].autoscale_view()
         self.axes ["L6"].set_xlim((xStart,xEnd)) 
         
-        self.lines["L8"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["L8"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["L8"].set_ydata(self.L8[tStart:tEnd])
         self.axes ["L8"].relim()
         self.axes ["L8"].autoscale_view()
         self.axes ["L8"].set_xlim((xStart,xEnd)) 
         
-        self.lines["fmin"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["fmin"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["fmin"].set_ydata(self.fmin[tStart:tEnd])
         self.axes ["fmin"].relim()
         self.axes ["fmin"].autoscale_view()
         self.axes ["fmin"].set_xlim((xStart,xEnd)) 
         
-        self.lines["fmax"].set_xdata(self.grid.tGrid[tStart:tEnd])
+        self.lines["fmax"].set_xdata(self.grid.t[tStart:tEnd])
         self.lines["fmax"].set_ydata(self.fmax[tStart:tEnd])
         self.axes ["fmax"].relim()
         self.axes ["fmax"].autoscale_view()
@@ -354,7 +354,7 @@ class PlotNoether(object):
         self.fmin[self.iTime] = self.distribution.fmin
         self.fmax[self.iTime] = self.distribution.fmax_error
         
-        self.title.set_text('t = %1.2f' % (self.grid.tGrid[self.iTime]))
+        self.title.set_text('t = %1.2f' % (self.grid.t[self.iTime]))
         
         self.iTime += 1
         
@@ -366,8 +366,8 @@ class PlotNoether(object):
         if tStart < self.iStart:
             tStart = self.iStart
         
-        xStart = self.grid.tGrid[tStart]
-        xEnd   = self.grid.tGrid[tStart+self.nTime]
+        xStart = self.grid.t[tStart]
+        xEnd   = self.grid.t[tStart+self.nTime]
         
         return tStart, tEnd, xStart, xEnd
     
