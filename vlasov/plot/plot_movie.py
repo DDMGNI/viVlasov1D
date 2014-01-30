@@ -215,11 +215,10 @@ class PlotMovie(object):
 #         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
 
         self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
+        
         self.axes["f"].set_xlim((self.x[0], self.x[-1])) 
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
 
-        
-            
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
         
