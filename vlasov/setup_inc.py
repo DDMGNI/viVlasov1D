@@ -67,6 +67,13 @@ if isdir(IMPI_DIR):
     INCLUDE_DIRS += [join(IMPI_DIR, 'include')]
     LIBRARY_DIRS += [join(IMPI_DIR, 'lib')]
 
+# OpenMPI
+if isdir('/opt/local/include/openmpi-mp'):
+    INCLUDE_DIRS += ['/opt/local/include/openmpi-mp']
+if isdir('/opt/local/lib/openmpi-mp'):
+    LIBRARY_DIRS += ['/opt/local/lib/openmpi-mp']
+
+# MPI library
 LIBRARIES    += ['mpi']
 
 
