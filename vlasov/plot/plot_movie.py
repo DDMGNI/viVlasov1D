@@ -19,7 +19,7 @@ class PlotMovie(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMax=0.0, cMax=False, cFac=1.5, write=False):
+    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMin=None, vMax=None, cMax=False, cFac=1.5, write=False):
         '''
         Constructor
         '''
@@ -62,7 +62,18 @@ class PlotMovie(object):
         
         self.x[0:-1] = self.grid.xGrid
         self.x[  -1] = self.grid.L
+
+        if vMax is not None:
+            self.vMax = vMax
+        else:
+            self.vMax = self.grid.vGrid[-1]
+
+        if vMin is not None:
+            self.vMin = vMin
+        else:
+            self.vMin = self.grid.vGrid[0]
         
+
         # set up figure/window size
         self.figure = plt.figure(num=None, figsize=(14,9))
         
@@ -198,13 +209,16 @@ class PlotMovie(object):
 #        
 #        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
         
-        fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
-        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
+#        fint = gaussian_filter(self.f.T, sigma=1.0, order=0)
+#        self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, fint, 100, norm=self.fnorm, extend='neither')
         
 #         self.conts["f"] = self.axes["f"].contourf(self.x, self.grid.vGrid, self.f.T, 100, norm=self.fnorm, extend='neither')
+
+        self.axes["f"].pcolormesh(self.x, self.grid.vGrid, self.f.T, norm=self.fnorm, shading='gouraud')
+        self.axes["f"].set_xlim((self.x[0], self.x[-1])) 
+        self.axes["f"].set_ylim((self.vMin, self.vMax)) 
+
         
-        if self.vMax > 0.0:
-            self.axes["f"].set_ylim((-self.vMax, +self.vMax)) 
             
         
         tStart, tEnd, xStart, xEnd = self.get_timerange()
