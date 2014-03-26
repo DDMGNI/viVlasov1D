@@ -601,8 +601,8 @@ class petscVP1Dbase():
     
     def calculate_potential(self, output=True):
         
-#         if self.poisson_solver == None or self.poisson_ksp == None:
-        if True:
+        if self.poisson_solver == None or self.poisson_ksp == None:
+#         if True:
             # initialise Poisson matrix
             poisson_matrix = self.dax.createMat()
             poisson_matrix.setUp()
