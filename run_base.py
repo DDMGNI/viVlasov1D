@@ -601,7 +601,8 @@ class petscVP1Dbase():
     
     def calculate_potential(self, output=True):
         
-        if self.poisson_solver == None or self.poisson_ksp == None:
+#         if self.poisson_solver == None or self.poisson_ksp == None:
+        if True:
             # initialise Poisson matrix
             poisson_matrix = self.dax.createMat()
             poisson_matrix.setUp()
@@ -617,7 +618,10 @@ class petscVP1Dbase():
             poisson_ksp.setTolerances(rtol=1E-13)
             poisson_ksp.setOperators(poisson_matrix)
             poisson_ksp.setType('cg')
-            poisson_ksp.getPC().setType('hypre')
+#             poisson_ksp.getPC().setType('hypre')
+#             poisson_ksp.setType('preonly')
+            poisson_ksp.getPC().setType('lu')
+            poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
 #             self.poisson_ksp.setNullSpace(self.p_nullspace)
         
             destroy = True

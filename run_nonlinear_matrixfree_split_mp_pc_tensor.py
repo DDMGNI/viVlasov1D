@@ -70,7 +70,9 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')
-        self.poisson_ksp.getPC().setType('hypre')
+#         self.poisson_ksp.getPC().setType('hypre')
+        self.poisson_ksp.getPC().setType('lu')
+        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
 #         self.poisson_ksp.setNullSpace(self.p_nullspace)
             
         
