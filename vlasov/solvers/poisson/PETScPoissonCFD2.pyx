@@ -70,9 +70,9 @@ cdef class PETScPoissonSolver(object):
             col.field = 0
             
             for index, value in [
-                    ((i-1,), -1. * self.grid.hx2_inv),
-                    ((i,  ), +2. * self.grid.hx2_inv),
-                    ((i+1,), -1. * self.grid.hx2_inv),
+                    ((i-1,), -1. * self.hx2_inv),
+                    ((i,  ), +2. * self.hx2_inv),
+                    ((i+1,), -1. * self.hx2_inv),
                 ]:
                 
                 col.index = index
@@ -88,7 +88,7 @@ cdef class PETScPoissonSolver(object):
         cdef int i, ix, iy
         cdef int xs, xe
         
-        cdef double nmean = N.sum() / self.grid.nx
+        cdef double nmean = N.sum() / self.nx
         
         cdef double[:] b = self.dax.getGlobalArray(B)
         cdef double[:] n = self.dax.getLocalArray(N, self.localN)
@@ -97,7 +97,7 @@ cdef class PETScPoissonSolver(object):
         (xs, xe), = self.dax.getRanges()
         
         for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
+            ix = i-xs+self.stencil
             iy = i-xs
             
             b[iy] = - (n[ix] - nmean) * self.charge
@@ -119,7 +119,7 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+self.dax.grid.stencil
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.grid.hx2_inv
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv
         
     
     @cython.boundscheck(False)
@@ -128,7 +128,7 @@ cdef class PETScPoissonSolver(object):
         cdef int i, ix, iy
         cdef int xs, xe
         
-        cdef double nmean = N.sum() / self.grid.nx
+        cdef double nmean = N.sum() / self.nx
         
         (xs, xe), = self.dax.getRanges()
         
@@ -138,10 +138,10 @@ cdef class PETScPoissonSolver(object):
         
         
         for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
+            ix = i-xs+self.stencil
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.grid.hx2_inv \
+            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.hx2_inv \
                   + (n[ix] - nmean) * self.charge            
         
     
