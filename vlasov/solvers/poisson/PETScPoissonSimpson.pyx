@@ -52,8 +52,8 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formMat(self, Mat A):
-        cdef np.int64_t i, j
-        cdef np.int64_t xe, xs
+        cdef int i, j
+        cdef int xe, xs
         
         A.zeroEntries()
         
@@ -86,19 +86,19 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formRHS(self, Vec N, Vec B):
-        cdef np.int64_t i, ix, iy
-        cdef np.int64_t xs, xe
+        cdef int i, ix, iy
+        cdef int xs, xe, sw
         
-        cdef np.float64_t nmean = N.sum() / self.nx
+        cdef double nmean = N.sum() / self.nx
         
-        cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getGlobalArray(B)
-        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
-        
+        cdef double[:] b = self.dax.getGlobalArray(B)
+        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
         
         (xs, xe), = self.dax.getRanges()
+        sw        = self.dax.getStencilWidth()
         
         for i in range(xs, xe):
-            ix = i-xs+self.dax.getStencilWidth()
+            ix = i-xs+sw
             iy = i-xs
             
             b[iy] = - ( n[ix] - nmean) * self.charge
@@ -107,17 +107,17 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
-        cdef np.int64_t i, ix, iy
-        cdef np.int64_t xe, xs
+        cdef int i, ix, iy
+        cdef int xe, xs, w
+        
+        cdef double[:] y = self.dax.getGlobalArray(Y)
+        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
         
         (xs, xe), = self.dax.getRanges()
-        
-        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
-        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
-        
+        sw        = self.dax.getStencilWidth()
         
         for i in range(xs, xe):
-            ix = i-xs+self.dax.getStencilWidth()
+            ix = i-xs+sw
             iy = i-xs
             
             y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12.
@@ -126,20 +126,20 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function_mult(self, Vec X, Vec N, Vec Y):
-        cdef np.int64_t i, ix, iy
-        cdef np.int64_t xe, xs
+        cdef int i, ix, iy
+        cdef int xe, xs, sw
         
         cdef np.float64_t nmean = N.sum() / self.nx
         
+        cdef double[:] y = self.dax.getGlobalArray(Y)
+        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
+        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        
         (xs, xe), = self.dax.getRanges()
-        
-        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
-        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
-        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
-        
+        sw        = self.dax.getStencilWidth()
         
         for i in range(xs, xe):
-            ix = i-xs+self.dax.getStencilWidth()
+            ix = i-xs+sw
             iy = i-xs
             
             y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12. \

@@ -19,13 +19,13 @@ from vlasov.toolbox.VIDA cimport VIDA
 
 cdef class PETScPoissonSolver(object):
 
-    cdef np.uint64_t  nx
-    cdef np.float64_t hx
+    cdef int    nx
+    cdef double hx
     
-    cdef np.float64_t hx2
-    cdef np.float64_t hx2_inv
+    cdef double hx2
+    cdef double hx2_inv
     
-    cdef np.float64_t charge
+    cdef double charge
     
     cdef VIDA dax
     
