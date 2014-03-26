@@ -2,13 +2,13 @@
 #
 #$ -cwd
 #
-#$ -l h_rt=24:00:00
+#$ -l h_rt=01:00:00
 #
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_512x1024.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_512x1024.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_Arakawa4_Poisson4_128x256.$JOB_ID.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_Arakawa4_Poisson4_128x256.$JOB_ID.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=jeans_strong_512x1024
+RUNID=twostream_128x256_Arakawa4_Poisson4
 
 
 module load intel/14.0

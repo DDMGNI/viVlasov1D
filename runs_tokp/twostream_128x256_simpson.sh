@@ -24,9 +24,11 @@ RUNID=twostream_128x256_simpson
 
 module load intel/14.0
 module load mkl/11.1
-module load impi/4.1.0
+module load impi/4.1.3
 module load fftw/3.3.3
-module load hdf5-mpi/1.8.9
+module load hdf5-mpi/1.8.12
+
+export FFTW_HOME=/afs/@cell/common/soft/fftw/fftw-3.3.3/@sys/intel-13.1/impi-4.1
 
 module load py33-python
 module load py33-cython
