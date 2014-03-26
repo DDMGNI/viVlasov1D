@@ -20,18 +20,24 @@ cdef class PETScPoissonSolver(object):
     
     '''
     
-    def __init__(self, VIDA dax, Grid grid, double charge):
+    def __init__(self, VIDA dax, 
+                 np.uint64_t nx, np.float64_t hx,
+                 np.float64_t charge):
         '''
         Constructor
         '''
         
-        # distributed array
+        # disstributed array
         self.dax = dax
         
-        # grid object
-        self.grid = grid
+        # grid
+        self.nx = nx
+        self.hx = hx
         
-        # particle charge
+        self.hx2     = hx**2
+        self.hx2_inv = 1. / self.hx2 
+        
+        # poisson constant
         self.charge = charge
         
         # create local vectors
@@ -46,8 +52,8 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formMat(self, Mat A):
-        cdef int i, j
-        cdef int xs, xe
+        cdef np.int64_t i, j
+        cdef np.int64_t xe, xs
         
         A.zeroEntries()
         
@@ -64,11 +70,12 @@ cdef class PETScPoissonSolver(object):
             col.field = 0
             
             for index, value in [
-                    ((i-1,), -1. * self.grid.hx2_inv),
-                    ((i,  ), +2. * self.grid.hx2_inv),
-                    ((i+1,), -1. * self.grid.hx2_inv),
+                    ((i-2,), +  1. * self.hx2_inv / 12.),
+                    ((i-1,), - 16. * self.hx2_inv / 12.),
+                    ((i,  ), + 30. * self.hx2_inv / 12.),
+                    ((i+1,), - 16. * self.hx2_inv / 12.),
+                    ((i+2,), +  1. * self.hx2_inv / 12.),
                 ]:
-                
                 col.index = index
                 A.setValueStencil(row, col, value)
             
@@ -79,63 +86,63 @@ cdef class PETScPoissonSolver(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def formRHS(self, Vec N, Vec B):
-        cdef int i, ix, iy
-        cdef int xs, xe
+        cdef np.int64_t i, ix, iy
+        cdef np.int64_t xs, xe
         
-        cdef double nmean = N.sum() / self.grid.nx
+        cdef np.float64_t nmean = N.sum() / self.nx
         
-        cdef double[:] b = self.dax.getGlobalArray(B)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        cdef np.ndarray[np.float64_t, ndim=1] b = self.dax.getGlobalArray(B)
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
         
         
         (xs, xe), = self.dax.getRanges()
         
         for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
-            b[iy] = - (n[ix] - nmean) * self.charge
+            b[iy] = - ( n[ix] - nmean) * self.charge
         
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
-        cdef int i, ix, iy
-        cdef int xs, xe
+        cdef np.int64_t i, ix, iy
+        cdef np.int64_t xe, xs
         
         (xs, xe), = self.dax.getRanges()
         
-        cdef double[:] y = self.dax.getGlobalArray(Y)
-        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
+        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
         
         
         for i in range(xs, xe):
-            ix = i-xs+self.dax.grid.stencil
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.grid.hx2_inv
+            y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12.
         
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def function_mult(self, Vec X, Vec N, Vec Y):
-        cdef int i, ix, iy
-        cdef int xs, xe
+        cdef np.int64_t i, ix, iy
+        cdef np.int64_t xe, xs
         
-        cdef double nmean = N.sum() / self.grid.nx
+        cdef np.float64_t nmean = N.sum() / self.nx
         
         (xs, xe), = self.dax.getRanges()
         
-        cdef double[:] y = self.dax.getGlobalArray(Y)
-        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        cdef np.ndarray[np.float64_t, ndim=1] y = self.dax.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=1] x = self.dax.getLocalArray(X, self.localX)
+        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getLocalArray(N, self.localN)
         
         
         for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
+            ix = i-xs+self.dax.getStencilWidth()
             iy = i-xs
             
-            y[iy] = (2. * x[ix] - x[ix-1] - x[ix+1]) * self.grid.hx2_inv \
-                  + (n[ix] - nmean) * self.charge            
+            y[iy] = ( 1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12. \
+                  + ( n[ix] - nmean) * self.charge            
         
     

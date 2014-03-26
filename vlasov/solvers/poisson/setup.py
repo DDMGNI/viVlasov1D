@@ -8,14 +8,21 @@ from vlasov.setup_inc import *
 ext_modules = [
         Extension("PETScPoissonCFD2",
                   sources=["PETScPoissonCFD2.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  include_dirs=INCLUDE_DIRS,
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
         Extension("PETScPoissonCFD4",
                   sources=["PETScPoissonCFD4.pyx"],
-                  include_dirs=INCLUDE_DIRS + [os.curdir],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScPoissonSimpson",
+                  sources=["PETScPoissonSimpson.pyx"],
+                  include_dirs=INCLUDE_DIRS,
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
