@@ -20,7 +20,9 @@ cdef class PETScPoissonSolver(object):
     
     '''
     
-    def __init__(self, VIDA dax, Grid grid, double charge):
+    def __init__(self, VIDA dax, 
+                 np.uint64_t nx, np.float64_t hx,
+                 np.float64_t charge):
         '''
         Constructor
         '''
@@ -28,10 +30,14 @@ cdef class PETScPoissonSolver(object):
         # distributed array
         self.dax = dax
         
-        # grid object
-        self.grid = grid
+        # grid
+        self.nx = nx
+        self.hx = hx
         
-        # particle charge
+        self.hx2     = hx**2
+        self.hx2_inv = 1. / self.hx2 
+        
+        # poisson constant
         self.charge = charge
         
         # create local vectors
