@@ -67,7 +67,7 @@ class petscVP1Dmatrixfree(petscVP1Dbasesplit):
         del self.poisson_ksp
         del self.poisson_solver
             
-        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.nx, self.hx, self.charge)
+        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
         self.poisson_solver.formMat(self.poisson_matrix)
         
         self.poisson_mf = PETSc.Mat().createPython([self.p.getSizes(), self.pb.getSizes()], 

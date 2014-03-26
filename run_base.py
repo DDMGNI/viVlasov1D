@@ -608,7 +608,7 @@ class petscVP1Dbase():
             poisson_matrix.setNullSpace(self.p_nullspace)
             
             # create Poisson object
-            poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid, self.charge)
+            poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
             poisson_solver.formMat(poisson_matrix)
             
             # create Poisson solver
