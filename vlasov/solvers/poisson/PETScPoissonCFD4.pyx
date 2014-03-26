@@ -27,7 +27,7 @@ cdef class PETScPoissonSolver(object):
         Constructor
         '''
         
-        # disstributed array
+        # distributed array
         self.dax = dax
         
         # grid
@@ -101,7 +101,7 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+sw
             iy = i-xs
             
-            b[iy] = - ( n[ix] - nmean) * self.charge
+            b[iy] = - (n[ix] - nmean) * self.charge
         
 
     @cython.boundscheck(False)

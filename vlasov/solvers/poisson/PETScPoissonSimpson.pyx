@@ -27,7 +27,7 @@ cdef class PETScPoissonSolver(object):
         Constructor
         '''
         
-        # disstributed array
+        # distributed array
         self.dax = dax
         
         # grid
@@ -101,14 +101,14 @@ cdef class PETScPoissonSolver(object):
             ix = i-xs+sw
             iy = i-xs
             
-            b[iy] = - ( n[ix] - nmean) * self.charge
+            b[iy] = - (n[ix] - nmean) * self.charge
         
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef int i, ix, iy
-        cdef int xe, xs, w
+        cdef int xe, xs, sw
         
         cdef double[:] y = self.dax.getGlobalArray(Y)
         cdef double[:] x = self.dax.getLocalArray(X, self.localX)
@@ -129,7 +129,7 @@ cdef class PETScPoissonSolver(object):
         cdef int i, ix, iy
         cdef int xe, xs, sw
         
-        cdef np.float64_t nmean = N.sum() / self.nx
+        cdef double nmean = N.sum() / self.nx
         
         cdef double[:] y = self.dax.getGlobalArray(Y)
         cdef double[:] x = self.dax.getLocalArray(X, self.localX)
