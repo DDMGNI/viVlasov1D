@@ -52,7 +52,7 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
         self.poisson_matrix.setUp()
         self.poisson_matrix.setNullSpace(self.p_nullspace)
         
-        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+        self.poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid, self.charge)
         self.poisson_solver.formMat(self.poisson_matrix)
         
         self.poisson_mf = PETSc.Mat().createPython([self.pc_int.getSizes(), self.pb.getSizes()], 
@@ -83,9 +83,10 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
     
     def __exit__(self,ext_type,exc_value,traceback):
         self.poisson_ksp.destroy()
-        self.snes.destroy()
-        
         self.poisson_mf.destroy()
+        self.poisson_matrix.destroy()
+        
+        self.snes.destroy()
         self.Jmf.destroy()
         
         del self.poisson_solver
