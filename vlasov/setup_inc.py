@@ -12,7 +12,7 @@ import numpy
 import os
 from os.path import join, isdir
 
-INCLUDE_DIRS = []
+INCLUDE_DIRS = [os.curdir]
 LIBRARY_DIRS = []
 LIBRARIES    = []
 CARGS        = ['-O3','-axavx', '-std=c99']

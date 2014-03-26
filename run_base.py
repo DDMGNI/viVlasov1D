@@ -474,7 +474,7 @@ class petscVP1Dbase():
         
         
         # use h5py to store attributes
-        hdf5out = h5py.File(hdf_out_filename, 'w')
+        hdf5out = h5py.File(hdf_out_filename, 'w', driver='mpio', comm=PETSc.COMM_WORLD))
         hdf5out.attrs['charge'] = self.charge
         hdf5out.close()        
         
@@ -595,8 +595,8 @@ class petscVP1Dbase():
         self.copy_xvec_to_seq(self.A, self.ac)
         
         if potential:
-            self.calculate_potential(output)         # calculate initial potential
-            self.copy_pint_to_h()                    # copy potential to Hamiltonian
+            self.calculate_potential(output)
+            self.copy_pint_to_h()
     
     
     def calculate_potential(self, output=True):
@@ -608,9 +608,10 @@ class petscVP1Dbase():
             poisson_matrix.setNullSpace(self.p_nullspace)
             
             # create Poisson object
-            poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid.nx, self.grid.hx, self.charge)
+            poisson_solver = self.poisson_object.PETScPoissonSolver(self.dax, self.grid, self.charge)
             poisson_solver.formMat(poisson_matrix)
             
+            # create Poisson solver
             poisson_ksp = PETSc.KSP().create()
             poisson_ksp.setFromOptions()
             poisson_ksp.setTolerances(rtol=1E-13)
@@ -635,10 +636,10 @@ class petscVP1Dbase():
             poisson_matrix.destroy()
             
             del poisson_solver
-        
+            
         
         if output:
-            phisum = self.pc.sum()
+            phisum = self.pc_int.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
                 print("  Poisson:                               sum(phi) = %24.16E" % (phisum))
