@@ -53,7 +53,7 @@ cdef class PETScPoissonSolver(object):
     @cython.wraparound(False)
     def formMat(self, Mat A):
         cdef int i, j
-        cdef int xe, xs
+        cdef int xs, xe
         
         A.zeroEntries()
         
@@ -108,7 +108,7 @@ cdef class PETScPoissonSolver(object):
     @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef int i, ix, iy
-        cdef int xe, xs, sw
+        cdef int xs, xe, sw
         
         cdef double[:] y = self.dax.getGlobalArray(Y)
         cdef double[:] x = self.dax.getLocalArray(X, self.localX)
@@ -127,7 +127,7 @@ cdef class PETScPoissonSolver(object):
     @cython.wraparound(False)
     def function_mult(self, Vec X, Vec N, Vec Y):
         cdef int i, ix, iy
-        cdef int xe, xs, sw
+        cdef int xs, xe, sw
         
         cdef double nmean = N.sum() / self.nx
         
