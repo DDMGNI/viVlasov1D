@@ -474,7 +474,7 @@ class petscVP1Dbase():
         
         
         # use h5py to store attributes
-        hdf5out = h5py.File(hdf_out_filename, 'w', driver='mpio', comm=PETSc.COMM_WORLD)
+        hdf5out = h5py.File(hdf_out_filename, 'w', driver='mpio', comm=PETSc.COMM_WORLD.tompi4py())
         hdf5out.attrs['charge'] = self.charge
         hdf5out.close()        
         
