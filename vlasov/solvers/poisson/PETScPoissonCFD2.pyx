@@ -70,11 +70,11 @@ cdef class PETScPoissonSolver(object):
             col.field = 0
             
             for index, value in [
-                    ((i-2,), 0),
-                    ((i-1,), -1. * self.hx2_inv),
-                    ((i,  ), +2. * self.hx2_inv),
-                    ((i+1,), -1. * self.hx2_inv),
-                    ((i+2,), 0),
+                    ((i-2,),   0),
+                    ((i-1,), - 1. * self.hx2_inv),
+                    ((i,  ), + 2. * self.hx2_inv),
+                    ((i+1,), - 1. * self.hx2_inv),
+                    ((i+2,),   0),
                 ]:
                 
                 col.index = index

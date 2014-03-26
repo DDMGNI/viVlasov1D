@@ -76,6 +76,7 @@ cdef class PETScPoissonSolver(object):
                     ((i+1,), - 32. * self.hx2_inv / 12.),
                     ((i+2,), +  5. * self.hx2_inv / 12.),
                 ]:
+                
                 col.index = index
                 A.setValueStencil(row, col, value)
             
