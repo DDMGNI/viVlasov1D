@@ -16,20 +16,8 @@ from petsc4py.PETSc cimport Mat, Vec
 
 from vlasov.toolbox.VIDA cimport VIDA
 
+from vlasov.solvers.poisson.PETScPoissonSolver cimport PETScPoissonSolverBase
 
-cdef class PETScPoissonSolver(object):
 
-    cdef int    nx
-    cdef double hx
-    
-    cdef double hx2
-    cdef double hx2_inv
-    
-    cdef double charge
-    
-    cdef VIDA dax
-    
-    cdef Vec localX
-    cdef Vec localN
-    
-    
+cdef class PETScPoissonSolver(PETScPoissonSolverBase):
+    pass

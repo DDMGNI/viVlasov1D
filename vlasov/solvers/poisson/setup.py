@@ -6,6 +6,13 @@ from vlasov.setup_inc import *
 
 
 ext_modules = [
+        Extension("PETScPoissonSolver",
+                  sources=["PETScPoissonSolver.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScPoissonCFD2",
                   sources=["PETScPoissonCFD2.pyx"],
                   include_dirs=INCLUDE_DIRS,

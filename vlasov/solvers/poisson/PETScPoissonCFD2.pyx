@@ -15,35 +15,10 @@ from petsc4py cimport PETSc
 from petsc4py.PETSc cimport Mat, Vec
 
 
-cdef class PETScPoissonSolver(object):
+cdef class PETScPoissonSolver(PETScPoissonSolverBase):
     '''
     
     '''
-    
-    def __init__(self, VIDA dax, 
-                 np.uint64_t nx, np.float64_t hx,
-                 np.float64_t charge):
-        '''
-        Constructor
-        '''
-        
-        # distributed array
-        self.dax = dax
-        
-        # grid
-        self.nx = nx
-        self.hx = hx
-        
-        self.hx2     = hx**2
-        self.hx2_inv = 1. / self.hx2 
-        
-        # poisson constant
-        self.charge = charge
-        
-        # create local vectors
-        self.localX = dax.createLocalVec()
-        self.localN = dax.createLocalVec()
-        
     
     def mult(self, Mat mat, Vec X, Vec Y):
         self.matrix_mult(X, Y)
