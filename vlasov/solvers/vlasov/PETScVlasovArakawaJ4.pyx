@@ -63,6 +63,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef double[:,:] hh = h0 + h1h + h2h
         
+        cdef double[:] v  = self.grid.v
+        cdef double[:] up = self.Up.getArray()
+        cdef double[:] ap = self.Ap.getArray()
+        
         
 #         cdef double time_fac    = 0.
 #         cdef double arak_fac_J1 = 0.
@@ -82,19 +86,19 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         row = Mat.Stencil()
         col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
         
         
         # Vlasov Equation
         for i in range(xs, xe):
             ix = i-xs+2
             
-            row.index = (i,)
-                
             for j in range(ys, ye):
                 jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                row.field = j
+                row.index = (i,j)
                 
                 # Dirichlet boundary conditions
                 if j <= 1 or j >= self.grid.nv-2:
@@ -102,41 +106,40 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     
                 else:
                     
-                    for index, field, value in [
-                            ((i-2,), j  , - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
-                            ((i-1,), j-1, - (hh[ix-1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
-                                          - (hh[ix-2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
-                                          - (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
-                            ((i-1,), j  , - (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
-                                          - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J1),
-                            ((i-1,), j+1, - (hh[ix,   jx+1] - hh[ix-1, jx  ]) * arak_fac_J1 \
-                                          - (hh[ix,   jx+2] - hh[ix-2, jx  ]) * arak_fac_J2 \
-                                          - (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,  ), j-2, + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,  ), j-1, + (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
-                                          + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J1 \
-                                          - coll1_fac * ( self.v[jx-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                    for index, value in [
+                            ((i-2, j  ), - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i-1, j-1), - (hh[ix-1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                         - (hh[ix-2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
+                                         - (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
+                            ((i-1, j  ), - (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                         - (hh[ix-1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J1),
+                            ((i-1, j+1), - (hh[ix,   jx+1] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                         - (hh[ix,   jx+2] - hh[ix-2, jx  ]) * arak_fac_J2 \
+                                         - (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-2), + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-1), + (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                         + (hh[ix+1, jx-1] - hh[ix-1, jx-1]) * arak_fac_J1 \
+                                          - coll1_fac * ( v[jx-1] - up[ix  ] ) * ap[ix  ] \
                                           + coll2_fac),
-                            ((i,  ), j  , + time_fac \
+                            ((i,   j  ), + time_fac \
                                           - 2. * coll2_fac),
-                            ((i,  ), j+1, - (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
-                                          - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J1 \
-                                          + coll1_fac * ( self.v[jx+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i,   j+1), - (hh[ix+1, jx  ] - hh[ix-1, jx  ]) * arak_fac_J1 \
+                                         - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J1 \
+                                          + coll1_fac * ( v[jx+1] - up[ix  ] ) * ap[ix  ] \
                                           + coll2_fac),
-                            ((i,  ), j+2, - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J2),
-                            ((i+1,), j-1, + (hh[ix+1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
-                                          + (hh[ix+2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
-                                          + (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
-                            ((i+1,), j  , + (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
-                                          + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J1),
-                            ((i+1,), j+1, + (hh[ix,   jx+1] - hh[ix+1, jx  ]) * arak_fac_J1 \
-                                          + (hh[ix,   jx+2] - hh[ix+2, jx  ]) * arak_fac_J2 \
-                                          + (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
-                            ((i+2,), j  , + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
+                            ((i,   j+2), - (hh[ix+1, jx+1] - hh[ix-1, jx+1]) * arak_fac_J2),
+                            ((i+1, j-1), + (hh[ix+1, jx  ] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                         + (hh[ix+2, jx  ] - hh[ix,   jx-2]) * arak_fac_J2 \
+                                         + (hh[ix+1, jx+1] - hh[ix-1, jx-1]) * arak_fac_J2),
+                            ((i+1, j  ), + (hh[ix,   jx+1] - hh[ix,   jx-1]) * arak_fac_J1 \
+                                         + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J1),
+                            ((i+1, j+1), + (hh[ix,   jx+1] - hh[ix+1, jx  ]) * arak_fac_J1 \
+                                         + (hh[ix,   jx+2] - hh[ix+2, jx  ]) * arak_fac_J2 \
+                                         + (hh[ix-1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
+                            ((i+2, j  ), + (hh[ix+1, jx+1] - hh[ix+1, jx-1]) * arak_fac_J2),
                         ]:
 
                         col.index = index
-                        col.field = field
                         A.setValueStencil(row, col, value)
                         
         
