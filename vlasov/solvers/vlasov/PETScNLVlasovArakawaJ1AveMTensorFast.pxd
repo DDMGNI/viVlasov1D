@@ -13,6 +13,8 @@ from vlasov.toolbox.VIDA cimport VIDA
 
 cimport vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast
 
+ctypedef np.complex128_t dcomplex
+
 
 cdef class PETScVlasovSolver(vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast.PETScVlasovSolver):
     pass
