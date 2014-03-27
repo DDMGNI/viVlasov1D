@@ -20,6 +20,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("PETScPoissonCFD2Ave",
+                  sources=["PETScPoissonCFD2Ave.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PETScPoissonCFD4",
                   sources=["PETScPoissonCFD4.pyx"],
                   include_dirs=INCLUDE_DIRS,
@@ -29,6 +36,13 @@ ext_modules = [
                  ),
         Extension("PETScPoissonSimpson",
                   sources=["PETScPoissonSimpson.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
+        Extension("PETScPoissonSimpsonAve",
+                  sources=["PETScPoissonSimpsonAve.pyx"],
                   include_dirs=INCLUDE_DIRS,
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
