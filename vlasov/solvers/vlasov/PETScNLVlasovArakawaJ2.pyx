@@ -31,6 +31,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
+        cdef double[:] v  = self.grid.v
+        cdef double[:] up = self.Up.getArray()
+        cdef double[:] ap = self.Ap.getArray()
+        
         
 #         cdef double time_fac    = 0.
 #         cdef double arak_fac_J1 = 0.
@@ -49,26 +53,26 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         row = Mat.Stencil()
         col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
         
         
         # Vlasov Equation
         for i in range(xs, xe):
             ix = i-xs+self.grid.stencil
             
-            row.index = (i,)
-                
             for j in range(ys, ye):
                 jx = j-ys+self.grid.stencil
                 jy = j-ys
 
-                row.field = j
+                row.index = (i,j)
                 
                 # Dirichlet boundary conditions
                 if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
                     A.setValueStencil(row, row, 1.0)
                     
                 else:
-                    for index, field, value in [
+                    for index, value in [
                             ((i-2, j  ), - (h_ave[ix-1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
                             ((i-1, j-1), - (h_ave[ix-2, jx  ] - h_ave[ix,   jx-2]) * arak_fac_J2 \
                                          - (h_ave[ix-1, jx+1] - h_ave[ix+1, jx-1]) * arak_fac_J2),
@@ -76,13 +80,13 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                             ((i-1, j+1), - (h_ave[ix,   jx+2] - h_ave[ix-2, jx  ]) * arak_fac_J2 \
                                          - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
                             ((i,   j-2), + (h_ave[ix+1, jx-1] - h_ave[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,   j-1), - coll_drag_fac * ( self.grid.v[j-1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i,   j-1), - coll_drag_fac * ( v[j-1] - up[ix  ] ) * ap[ix  ] \
                                          + coll_diff_fac \
                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
                             ((i,   j  ), + time_fac \
                                          - 2. * coll_diff_fac \
                                          + 2. * self.grid.ht * self.regularisation * (self.grid.hx2_inv + self.grid.hv2_inv)),
-                            ((i,   j+1), + coll_drag_fac * ( self.grid.v[j+1] - self.up[ix  ] ) * self.ap[ix  ] \
+                            ((i,   j+1), + coll_drag_fac * ( v[j+1] - up[ix  ] ) * ap[ix  ] \
                                          + coll_diff_fac \
                                          - self.grid.ht * self.regularisation * self.grid.hv2_inv),
                             ((i,   j+2), - (h_ave[ix+1, jx+1] - h_ave[ix-1, jx+1]) * arak_fac_J2),
@@ -95,7 +99,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                         ]:
 
                         col.index = index
-                        col.field = field
                         A.setValueStencil(row, col, value)
                         
         
