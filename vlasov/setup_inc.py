@@ -61,7 +61,7 @@ INCLUDE_DIRS += [petsc4py.get_include()]
 
 
 # Intel MPI
-IMPI_DIR = '/afs/@cell/common/soft/intel/impi/4.1.0/intel64'
+IMPI_DIR = '/afs/@cell/common/soft/intel/ics2013/impi/4.1.3/intel64'
 
 if isdir(IMPI_DIR):
     INCLUDE_DIRS += [join(IMPI_DIR, 'include')]

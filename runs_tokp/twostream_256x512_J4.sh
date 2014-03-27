@@ -2,13 +2,13 @@
 #
 #$ -cwd
 #
-#$ -l h_rt=01:59:00
+#$ -l h_rt=24:00:00
 #
-#$ -P  debug
+#$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_128x256_Arakawa2_Poisson2_AveM.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_128x256_Arakawa2_Poisson2_AveM.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_256x512_J4.$JOB_ID.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_256x512_J4.$JOB_ID.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,16 +19,14 @@
 #
 
 
-RUNID=twostream_128x256_Arakawa2_Poisson2_AveM
+RUNID=twostream_256x512_J4
 
 
 module load intel/14.0
 module load mkl/11.1
-module load impi/4.1.3
+module load impi/4.1.0
 module load fftw/3.3.3
-module load hdf5-mpi/1.8.12
-
-export FFTW_HOME=/afs/@cell/common/soft/fftw/fftw-3.3.3/@sys/intel-13.1/impi-4.1
+module load hdf5-mpi/1.8.9
 
 module load py33-python
 module load py33-cython
