@@ -90,6 +90,15 @@ extensions = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
+        Extension("PETScNLVlasovArakawaJ4AveA",
+                  sources=["PETScNLVlasovArakawaJ4AveA.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
         Extension("PETScNLVlasovArakawaJ4AveS",
                   sources=["PETScNLVlasovArakawaJ4AveS.pyx"],
                   include_dirs=INCLUDE_DIRS,
