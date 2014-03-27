@@ -7,8 +7,8 @@
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_128x256_Arakawa4_Poisson2_AveM.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_128x256_Arakawa4_Poisson2_AveM.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_Arakawa4_Poisson4_AveS_128x256.$JOB_ID.out
+#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/twostream_Arakawa4_Poisson4_AveS_128x256.$JOB_ID.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=twostream_128x256_Arakawa4_Poisson2_AveM
+RUNID=twostream_128x256_Arakawa4_Poisson4_AveS
 
 
 module load intel/14.0

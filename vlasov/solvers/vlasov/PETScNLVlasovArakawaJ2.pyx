@@ -42,7 +42,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 #         cdef double coll1_fac   = 0.
 #         cdef double coll2_fac   = 0.
         
-        cdef double time_fac    = 1.0  / self.grid.ht
+        cdef double time_fac    = self.grid.ht_inv
         cdef double arak_fac_J2 = 0.5 / (24. * self.grid.hx * self.grid.hv)
         
         cdef double coll_drag_fac = - 0.5 * self.nu * self.coll_drag * self.grid.hv_inv * 0.5

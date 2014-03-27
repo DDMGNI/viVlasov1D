@@ -77,7 +77,7 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
             ix = i-xs+sw
             iy = i-xs
             
-            b[iy] = - ((n[ix-1] + 4. * n[ix] + n[ix+1])/6. - nmean) * self.charge
+            b[iy] = - ((n[ix-2] + 8. * n[ix-1] + 18. * n[ix] + 8. * n[ix+1] + n[ix+2]) / 36. - nmean) * self.charge
         
 
     @cython.boundscheck(False)
@@ -119,6 +119,6 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
             iy = i-xs
             
             y[iy] = (1. * x[ix-2] - 16. * x[ix-1] + 30. * x[ix] - 16. * x[ix+1] + 1. * x[ix+2]) * self.hx2_inv / 12. \
-                  + ((n[ix-1] + 4. * n[ix] + n[ix+1])/6. - nmean) * self.charge            
+                  + ((n[ix-2] + 8. * n[ix-1] + 18. * n[ix] + 8. * n[ix+1] + n[ix+2]) / 36. - nmean) * self.charge            
         
     
