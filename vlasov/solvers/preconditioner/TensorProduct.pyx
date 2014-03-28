@@ -158,13 +158,13 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         
     
     cpdef jacobian(self, Vec F, Vec Y):
-        self.jacobianSolver(F, self.X)
+        self.jacobian_solver(F, self.X)
         self.tensorProduct(self.X, Y)
 #         self.tensorProduct(F, Y)
     
     
     cpdef function(self, Vec F, Vec Y):
-        self.functionSolver(F, self.B)
+        self.function_solver(F, self.B)
         self.tensorProduct(self.B, Y)
 #         self.tensorProduct(F, Y)
         
