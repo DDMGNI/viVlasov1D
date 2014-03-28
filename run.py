@@ -80,6 +80,10 @@ if __name__ == '__main__':
                     print("ERROR: preconditioner type is set to %s, but preconditioner scheme is not set." % cfg['solver']['preconditioner_type'])
                 sys.exit()
             
+        if cfg['solver']['dissipation_type'] != None:
+            if cfg['solver']['dissipation_type'] == 'double_bracket':
+                run_script += "_db" 
+
     
     if PETSc.COMM_WORLD.getRank() == 0:
         print("")

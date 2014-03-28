@@ -83,7 +83,11 @@ class petscVP1Dbase():
             
             if cfg['solver']['timestepping'] != 'mp': 
                 self.vlasov_module += self.cfg['solver']['timestepping'].upper()
-        
+            
+            if cfg['solver']['dissipation_type'] != None:
+                if cfg['solver']['dissipation_type'] == 'double_bracket':
+                    self.vlasov_module += "DB" 
+
         
         self.poisson_module  = "vlasov.solvers.poisson.PETScPoisson"
         self.poisson_module += self.cfg['solver']['poisson_scheme']
@@ -690,7 +694,7 @@ class petscVP1Dbase():
         self.toolbox.potential_to_hamiltonian(self.pc_ext, self.h2c)
         
         
-    def make_history(self):
+    def make_history(self, update_solver=True):
         self.fc.copy(self.fh)
         self.h1c.copy(self.h1h)
         self.h2c.copy(self.h2h)
@@ -703,7 +707,7 @@ class petscVP1Dbase():
         self.ec.copy(self.eh)
         self.ac.copy(self.ah)
         
-        if self.vlasov_solver != None:
+        if update_solver and self.vlasov_solver != None:
             self.vlasov_solver.update_history(self.fc)
         
     
