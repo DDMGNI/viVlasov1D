@@ -5,8 +5,8 @@ all:
 	$(MAKE) -C explicit
 	$(MAKE) -C full
 	$(MAKE) -C poisson
-	$(MAKE) -C preconditioner
 	$(MAKE) -C vlasov
+	$(MAKE) -C preconditioner
 	
 
 clean:
@@ -18,6 +18,6 @@ clean:
 	$(MAKE) clean -C explicit
 	$(MAKE) clean -C full
 	$(MAKE) clean -C poisson
-	$(MAKE) clean -C preconditioner
 	$(MAKE) clean -C vlasov
+	$(MAKE) clean -C preconditioner
 	

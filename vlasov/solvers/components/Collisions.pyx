@@ -43,7 +43,7 @@ cdef class Collisions(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef collT(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+    cdef void collT(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
         '''
         Collision Operator
         '''
@@ -83,7 +83,7 @@ cdef class Collisions(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef collE(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+    cdef void collE(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
         '''
         Collision Operator
         '''

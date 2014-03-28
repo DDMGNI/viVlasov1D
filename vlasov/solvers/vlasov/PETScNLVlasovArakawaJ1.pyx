@@ -105,33 +105,6 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
 
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def jacobian(self, Vec F, Vec Y):
-        Y.set(0.)
-        self.poisson_bracket.arakawa_J1(F, self.Have, Y, 0.5)
-        self.time_derivative.time_derivative(F, Y)
-        self.collisions.collT(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.regularisation.regularisation(F, Y, 1.0)
-    
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def function(self, Vec F, Vec Y):
-        self.Fave.set(0.)
-        self.Fave.axpy(0.5, self.Fh)
-        self.Fave.axpy(0.5, F)
-        
-        self.Fder.set(0.)
-        self.Fder.axpy(+1, F)
-        self.Fder.axpy(-1, self.Fh)
-        
-        Y.set(0.)
-        
-        self.poisson_bracket.arakawa_J1(self.Fave, self.Have, Y, 1.0)
-        self.time_derivative.time_derivative(self.Fder, Y)
-        self.collisions.collT(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.collisions.collT(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
-#         self.regularisation.regularisation(F, Y, 1.0)
+    cdef call_poisson_bracket(self, Vec F, Vec H, Vec Y, double factor):
+        self.poisson_bracket.arakawa_J1(F, H, Y, factor)
         

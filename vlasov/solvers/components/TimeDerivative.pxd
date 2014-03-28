@@ -21,9 +21,9 @@ cdef class TimeDerivative(object):
     cdef Vec localF
 
 
-    cpdef arakawa_J1(self, Vec F, Vec Y)
-    cpdef arakawa_J2(self, Vec F, Vec Y)
-    cpdef arakawa_J4(self, Vec F, Vec Y)
-    cpdef midpoint(self, Vec F, Vec Y)
-    cpdef Simpson(self, Vec F, Vec Y)
-    cpdef time_derivative(self, Vec F, Vec Y)
+    cdef void arakawa_J1(self, Vec F, Vec Y)
+    cdef void arakawa_J2(self, Vec F, Vec Y)
+    cdef void arakawa_J4(self, Vec F, Vec Y)
+    cdef void midpoint(self, Vec F, Vec Y)
+    cdef void simpson(self, Vec F, Vec Y)
+    cdef void time_derivative(self, Vec F, Vec Y)

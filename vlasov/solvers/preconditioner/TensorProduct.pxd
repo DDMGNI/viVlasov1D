@@ -40,8 +40,8 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef Vec Zfft
     
     
-    cpdef jacobian(self, Vec F, Vec Y)
-    cpdef function(self, Vec F, Vec Y)
+#     cpdef jacobian(self, Vec F, Vec Y)
+#     cpdef function(self, Vec F, Vec Y)
 
     cdef tensorProduct(self, Vec X, Vec Y)
     
@@ -56,5 +56,5 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
 
     cdef solve(self, Vec X)
     
-    cdef jacobianSolver(self, Vec F, Vec Y)
-    cdef functionSolver(self, Vec F, Vec Y)
+#     cdef jacobianSolver(self, Vec F, Vec Y)
+#     cdef functionSolver(self, Vec F, Vec Y)

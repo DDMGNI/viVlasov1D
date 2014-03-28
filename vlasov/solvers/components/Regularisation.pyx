@@ -37,7 +37,7 @@ cdef class Regularisation(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef regularisation(self, Vec F, Vec Y, double factor):
+    cdef void regularisation(self, Vec F, Vec Y, double factor):
         '''
         Collision Operator
         '''

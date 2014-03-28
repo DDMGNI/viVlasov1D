@@ -25,5 +25,5 @@ cdef class Collisions(object):
     cdef Vec localF
     
     
-    cpdef collT(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
-    cpdef collE(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
+    cdef void collT(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
+    cdef void collE(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)

@@ -22,13 +22,13 @@ cdef class PoissonBracket(object):
     cdef Vec localH
     
     
-    cpdef arakawa_J1(self, Vec X, Vec H, Vec Y, double factor)
-    cpdef arakawa_J2(self, Vec X, Vec H, Vec Y, double factor)
-    cpdef arakawa_J4(self, Vec X, Vec H, Vec Y, double factor)
+    cdef void arakawa_J1(self, Vec X, Vec H, Vec Y, double factor)
+    cdef void arakawa_J2(self, Vec X, Vec H, Vec Y, double factor)
+    cdef void arakawa_J4(self, Vec X, Vec H, Vec Y, double factor)
     
-    cpdef arakawa_J1_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
-    cpdef arakawa_J2_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
-    cpdef arakawa_J4_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
+    cdef void arakawa_J1_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
+    cdef void arakawa_J2_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
+    cdef void arakawa_J4_array(self, double[:,:] x, double[:,:] y, double[:,:] h, double factor)
     
     cdef double arakawa_J1_point(self, double[:,:] f, double[:,:] h, int i, int j)
     cdef double arakawa_J2_point(self, double[:,:] f, double[:,:] h, int i, int j)

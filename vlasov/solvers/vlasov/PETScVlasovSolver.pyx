@@ -129,22 +129,69 @@ cdef class PETScVlasovSolverBase(object):
         self.Have.axpy(.5, self.H2h)
         
     
-    cpdef snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.jacobian(X, Y)
+    cpdef jacobian(self, Vec F, Vec Y):
+        self.jacobian_solver(F, Y)
+    
+    
+    cpdef function(self, Vec F, Vec Y):
+        self.function_solver(F, Y)
         
     
-    cpdef mult(self, Mat mat, Vec X, Vec Y):
-        self.jacobian(X, Y)
+    cpdef snes_mult(self, SNES snes, Vec F, Vec Y):
+        self.jacobian(F, Y)
         
     
-    cpdef jacobian_mult(self, Vec X, Vec Y):
-        self.jacobian(X, Y)
+    cpdef mult(self, Mat mat, Vec F, Vec Y):
+        self.jacobian(F, Y)
         
     
-    cpdef function_snes_mult(self, SNES snes, Vec X, Vec Y):
-        self.function(X, Y)
+    cpdef jacobian_mult(self, Vec F, Vec Y):
+        self.jacobian(F, Y)
         
     
-    cpdef function_mult(self, Vec X, Vec Y):
-        self.function(X, Y)
+    cpdef function_snes_mult(self, SNES snes, Vec F, Vec Y):
+        self.function(F, Y)
         
+    
+    cpdef function_mult(self, Vec F, Vec Y):
+        self.function(F, Y)
+        
+
+    cdef jacobian_solver(self, Vec F, Vec Y):
+        Y.set(0.)
+        
+        self.call_poisson_bracket(F, self.Have, Y, 0.5)
+        self.call_time_derivative(F, Y)
+        self.call_collision_operator(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+        self.call_regularisation(F, Y, 1.0)
+    
+    
+    cdef function_solver(self, Vec F, Vec Y):
+        self.Fave.set(0.)
+        self.Fave.axpy(0.5, self.Fh)
+        self.Fave.axpy(0.5, F)
+        
+        self.Fder.set(0.)
+        self.Fder.axpy(+1, F)
+        self.Fder.axpy(-1, self.Fh)
+        
+        Y.set(0.)
+        
+        self.call_poisson_bracket(self.Fave, self.Have, Y, 1.0)
+        self.call_time_derivative(self.Fder, Y)
+        self.call_collision_operator(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+        self.call_collision_operator(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
+        
+    
+    cdef call_poisson_bracket(self, Vec F, Vec H, Vec Y, double factor):
+        print("ERROR: function not implemented.")
+    
+    cdef call_time_derivative(self, Vec F, Vec Y):
+        self.time_derivative.time_derivative(F, Y)
+        
+    cdef call_collision_operator(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+        self.collisions.collT(F, Y, N, U, E, A, factor)
+    
+    cdef call_regularisation(self, Vec F, Vec Y, double factor):
+        self.regularisation.regularisation(F, Y, factor)
+

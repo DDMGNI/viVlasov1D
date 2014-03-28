@@ -18,7 +18,7 @@ from pyfftw.pyfftw          cimport FFTW
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-from vlasov.solvers.vlasov.PETScVlasovPreconditioner cimport PETScVlasovPreconditioner
+from vlasov.solvers.preconditioner.TensorProduct cimport PETScVlasovPreconditioner
 
 
 cdef class PETScVlasovSolver(PETScVlasovPreconditioner):

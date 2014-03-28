@@ -23,4 +23,4 @@ cdef class Regularisation(object):
     cdef Vec localF
     
     
-    cpdef regularisation(self, Vec F, Vec Y, double factor)
+    cdef void regularisation(self, Vec F, Vec Y, double factor)

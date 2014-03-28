@@ -11,8 +11,8 @@ from petsc4py.PETSc         cimport Vec
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-cimport vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast
+cimport vlasov.solvers.preconditioner.TensorProductFast
 
 
-cdef class PETScVlasovSolver(vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4TensorFast.PETScVlasovSolver):
+cdef class PETScVlasovSolver(vlasov.solvers.preconditioner.TensorProductFast.PETScVlasovSolver):
     pass

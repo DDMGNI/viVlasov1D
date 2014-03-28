@@ -34,7 +34,7 @@ cdef class PoissonBracket(object):
         
         
     
-    cpdef arakawa_J1(self, Vec F, Vec H, Vec Y, double factor):
+    cdef void arakawa_J1(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
@@ -42,14 +42,14 @@ cdef class PoissonBracket(object):
         self.arakawa_J1_array(f, h, y, factor)
         
 
-    cpdef arakawa_J2(self, Vec F, Vec H, Vec Y, double factor):
+    cdef void arakawa_J2(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
         
         self.arakawa(f, h, y, factor)
 
-    cpdef arakawa_J4(self, Vec F, Vec H, Vec Y, double factor):
+    cdef void arakawa_J4(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
@@ -60,7 +60,7 @@ cdef class PoissonBracket(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef arakawa_J1_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void arakawa_J1_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef double jpp, jpc, jcp, result, arakawa_factor
         cdef int i, j, ix, iy, jx, jy
@@ -99,7 +99,7 @@ cdef class PoissonBracket(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef arakawa_J2_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void arakawa_J2_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef double jcc, jpc, jcp, result, arakawa_factor
         cdef int i, j, ix, iy, jx, jy
@@ -139,7 +139,7 @@ cdef class PoissonBracket(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef arakawa_J4_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void arakawa_J4_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef int i, j, ix, iy, jx, jy
         cdef int xs, xe, ys, ye
@@ -204,7 +204,7 @@ cdef class PoissonBracket(object):
         Arakawa Bracket J1 (second order)
         '''
         
-        cdef np.float64_t jpp, jpc, jcp, result
+        cdef double jpp, jpc, jcp
         
         jpp = (f[i+1, j  ] - f[i-1, j  ]) * (h[i,   j+1] - h[i,   j-1]) \
             - (f[i,   j+1] - f[i,   j-1]) * (h[i+1, j  ] - h[i-1, j  ])
@@ -219,9 +219,7 @@ cdef class PoissonBracket(object):
             - f[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
             + f[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
         
-        result = (jpp + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 12.
-        
-        return result
+        return (jpp + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 12.
     
     
     @cython.boundscheck(False)
@@ -231,7 +229,7 @@ cdef class PoissonBracket(object):
         Arakawa Bracket
         '''
         
-        cdef np.float64_t jcc, jpc, jcp, result
+        cdef double jcc, jpc, jcp
         
         jcc = (f[i+1, j+1] - f[i-1, j-1]) * (h[i-1, j+1] - h[i+1, j-1]) \
             - (f[i-1, j+1] - f[i+1, j-1]) * (h[i+1, j+1] - h[i-1, j-1])
@@ -246,9 +244,7 @@ cdef class PoissonBracket(object):
             - f[i-1, j+1] * (h[i,   j+2] - h[i-2, j  ]) \
             + f[i+1, j-1] * (h[i+2, j  ] - h[i,   j-2])
         
-        result = (jcc + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 24.
-        
-        return result
+        return (jcc + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 24.
     
     
     
@@ -257,6 +253,6 @@ cdef class PoissonBracket(object):
         Arakawa Bracket 4th order
         '''
         
-        return 2.0 * self.arakawa_J1(f, h, i, j) - self.arakawa_J2(f, h, i, j)
+        return 2.0 * self.arakawa_J1_point(f, h, i, j) - self.arakawa_J2_point(f, h, i, j)
     
     
