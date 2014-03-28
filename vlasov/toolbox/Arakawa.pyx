@@ -101,9 +101,9 @@ cdef class Arakawa(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h):
+    cpdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h):
         
         cdef np.float64_t jpp, jpc, jcp, result
         cdef np.uint64_t i, j, ix, iy, jx, jy
@@ -145,9 +145,9 @@ cdef class Arakawa(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h):
+    cpdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h):
         
         cdef np.float64_t jcc, jpc, jcp, result
         cdef np.uint64_t i, j, ix, iy, jx, jy
@@ -189,9 +189,9 @@ cdef class Arakawa(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h):
+    cpdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h):
         
         cdef np.uint64_t i, j, ix, iy, jx, jy
         cdef np.uint64_t xs, xe, ys, ye

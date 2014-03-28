@@ -7,9 +7,8 @@ Created on Jan 25, 2013
 cimport cython
 cimport numpy as np
 
-from vlasov.core.Grid cimport Grid
-
-from VIDA cimport VIDA
+from vlasov.core.Grid    cimport Grid
+from vlasov.toolbox.VIDA cimport VIDA
 
 from petsc4py.PETSc cimport Vec
 
@@ -34,17 +33,17 @@ cdef class Arakawa(object):
                                        np.uint64_t i, np.uint64_t j)
     
     
-    cdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h)
+    cpdef arakawa_J1_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h)
     
-    cdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h)
+    cpdef arakawa_J2_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h)
 
-    cdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
-                                   np.ndarray[np.float64_t, ndim=2] y,
-                                   np.ndarray[np.float64_t, ndim=2] h)
+    cpdef arakawa_J4_timestep(self, np.ndarray[np.float64_t, ndim=2] x,
+                                    np.ndarray[np.float64_t, ndim=2] y,
+                                    np.ndarray[np.float64_t, ndim=2] h)
     
     
     cdef np.float64_t time_derivative(self, np.ndarray[np.float64_t, ndim=2] f,
