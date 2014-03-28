@@ -235,10 +235,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.Fave.axpy(0.5, self.Fh)
         self.Fave.axpy(0.5, F)
         
+        self.Fder.set(0.)
+        self.Fder.axpy(+1, F)
+        self.Fder.axpy(-1, self.Fh)
+        
         cdef double[:,:] y     = self.da1.getGlobalArray(Y)
         cdef double[:,:] fp    = self.da1.getLocalArray(F, self.localFp)
         cdef double[:,:] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
         cdef double[:,:] f_ave = self.da1.getLocalArray(self.Fave, self.localFave)
+        cdef double[:,:] f_der = self.da1.getLocalArray(self.Fder, self.localFder)
         cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
         cdef double[:] v  = self.grid.v
@@ -315,7 +320,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                        + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
                     
                     # solution
-                    y[iy, jy] = (fp[ix, jx] - fh[ix, jx]) * self.grid.ht_inv \
+                    y[iy, jy] = f_der[ix, jx] * self.grid.ht_inv \
                               + poisson \
                               + collisions \
                               + regularisation

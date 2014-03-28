@@ -245,7 +245,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef double jpp_J1, jpc_J1, jcp_J1
         cdef double jcc_J2, jpc_J2, jcp_J2
-        cdef double result_J1, result_J2, result_J4, poisson, time_deriv_p, time_deriv_h
+        cdef double result_J1, result_J2, result_J4, poisson, time_deriv
         cdef double coll_drag, coll_diff
         cdef double collisions     = 0.
         cdef double regularisation = 0.
@@ -256,10 +256,15 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.Fave.axpy(0.5, self.Fh)
         self.Fave.axpy(0.5, F)
         
+        self.Fder.set(0.)
+        self.Fder.axpy(+1, F)
+        self.Fder.axpy(-1, self.Fh)
+        
         cdef double[:,:] y     = self.da1.getGlobalArray(Y)
         cdef double[:,:] fp    = self.da1.getLocalArray(F, self.localFp)
         cdef double[:,:] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
         cdef double[:,:] f_ave = self.da1.getLocalArray(self.Fave, self.localFave)
+        cdef double[:,:] f_der = self.da1.getLocalArray(self.Fder, self.localFder)
         cdef double[:,:] h_ave = self.da1.getLocalArray(self.Have, self.localHave)
         
         cdef double[:] v  = self.grid.v
@@ -284,19 +289,12 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                     iy = i-xs
             
                     # time derivative
-                    time_deriv_p = ( 0. * fp[ix-2, jx-2] + 0. * fp[ix-1, jx-2] + 1. * fp[ix, jx-2] + 0. * fp[ix+1, jx-2] + 0. * fp[ix+2, jx-2]
-                                   + 0. * fp[ix-2, jx-1] + 2. * fp[ix-1, jx-1] + 8. * fp[ix, jx-1] + 2. * fp[ix+1, jx-1] + 0. * fp[ix+2, jx-1]
-                                   + 1. * fp[ix-2, jx  ] + 8. * fp[ix-1, jx  ] +20. * fp[ix, jx  ] + 8. * fp[ix+1, jx  ] + 1. * fp[ix+2, jx  ]
-                                   + 0. * fp[ix-2, jx+1] + 2. * fp[ix-1, jx+1] + 8. * fp[ix, jx+1] + 2. * fp[ix+1, jx+1] + 0. * fp[ix+2, jx+1]
-                                   + 0. * fp[ix-2, jx+2] + 0. * fp[ix-1, jx+2] + 1. * fp[ix, jx+2] + 0. * fp[ix+1, jx+2] + 0. * fp[ix+2, jx+2]
-                                   ) * self.grid.ht_inv / 64.
-                    
-                    time_deriv_h = ( 0. * fh[ix-2, jx-2] + 0. * fh[ix-1, jx-2] + 1. * fh[ix, jx-2] + 0. * fh[ix+1, jx-2] + 0. * fh[ix+2, jx-2]
-                                   + 0. * fh[ix-2, jx-1] + 2. * fh[ix-1, jx-1] + 8. * fh[ix, jx-1] + 2. * fh[ix+1, jx-1] + 0. * fh[ix+2, jx-1]
-                                   + 1. * fh[ix-2, jx  ] + 8. * fh[ix-1, jx  ] +20. * fh[ix, jx  ] + 8. * fh[ix+1, jx  ] + 1. * fh[ix+2, jx  ]
-                                   + 0. * fh[ix-2, jx+1] + 2. * fh[ix-1, jx+1] + 8. * fh[ix, jx+1] + 2. * fh[ix+1, jx+1] + 0. * fh[ix+2, jx+1]
-                                   + 0. * fh[ix-2, jx+2] + 0. * fh[ix-1, jx+2] + 1. * fh[ix, jx+2] + 0. * fh[ix+1, jx+2] + 0. * fh[ix+2, jx+2]
-                                   ) * self.grid.ht_inv / 64.
+                    time_deriv = ( 0. * f_der[ix-2, jx-2] + 0. * f_der[ix-1, jx-2] + 1. * f_der[ix, jx-2] + 0. * f_der[ix+1, jx-2] + 0. * f_der[ix+2, jx-2]
+                                 + 0. * f_der[ix-2, jx-1] + 2. * f_der[ix-1, jx-1] + 8. * f_der[ix, jx-1] + 2. * f_der[ix+1, jx-1] + 0. * f_der[ix+2, jx-1]
+                                 + 1. * f_der[ix-2, jx  ] + 8. * f_der[ix-1, jx  ] +20. * f_der[ix, jx  ] + 8. * f_der[ix+1, jx  ] + 1. * f_der[ix+2, jx  ]
+                                 + 0. * f_der[ix-2, jx+1] + 2. * f_der[ix-1, jx+1] + 8. * f_der[ix, jx+1] + 2. * f_der[ix+1, jx+1] + 0. * f_der[ix+2, jx+1]
+                                 + 0. * f_der[ix-2, jx+2] + 0. * f_der[ix-1, jx+2] + 1. * f_der[ix, jx+2] + 0. * f_der[ix+1, jx+2] + 0. * f_der[ix+2, jx+2]
+                                 ) * self.grid.ht_inv / 64.
                     
                     
                     # Arakawa's J1
@@ -352,7 +350,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                                        + self.grid.ht * self.regularisation * self.grid.hv2_inv * ( 2. * fp[ix, jx] - fp[ix, jx+1] - fp[ix, jx-1] )
                     
                     # solution
-                    y[iy, jy] = time_deriv_p - time_deriv_h \
+                    y[iy, jy] = time_deriv \
                               + poisson \
                               + collisions \
                               + regularisation

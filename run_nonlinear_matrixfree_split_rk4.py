@@ -24,7 +24,8 @@ class petscVP1Drunscript(petscVP1DbasesplitRK4):
         self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
                                                self.da2, self.da1, self.grid,
                                                self.h0,  self.h1c, self.h1h, self.h2c, self.h2h,
-                                               self.h11, self.h12, self.h21, self.h22)
+                                               self.h11, self.h12, self.h21, self.h22,
+                                               charge=self.charge)
         
         self.vlasov_solver.set_moments(self.nc, self.uc, self.ec, self.ac,
                                        self.nh, self.uh, self.eh, self.ah)
