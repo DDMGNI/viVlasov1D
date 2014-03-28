@@ -24,7 +24,7 @@ class movie(object):
     '''
 
 
-    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMin=None, vMax=None, cMax=False, cFac=1.0):
+    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMin=None, vMax=None, cMax=False, cFac=1.0, interpolate=False):
         '''
         Constructor
         '''
@@ -51,7 +51,7 @@ class movie(object):
         
         self.plot = PlotMovie(self.grid, self.distribution, self.hamiltonian, self.potential,
                               nTime=nTime, nPlot=nPlot, ntMax=self.nt,
-                              vMin=vMin, vMax=vMax, cMax=cMax, cFac=cFac, write=True)
+                              vMin=vMin, vMax=vMax, cMax=cMax, cFac=cFac, write=True, interpolate=interpolate)
         
     
     def __del__(self):
