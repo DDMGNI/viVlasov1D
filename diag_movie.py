@@ -100,6 +100,8 @@ if __name__ == '__main__':
                         help='multiply max value of initial data in contour plots')
     parser.add_argument('-fps', metavar='i', type=int, default=1,
                         help='frames per second')    
+    parser.add_argument('-int', '--interpolate',  action='store_true', required=False,
+                        help='Interpolate distribution function')
     
     args = parser.parse_args()
     
@@ -111,9 +113,9 @@ if __name__ == '__main__':
         vMax = +args.v
     else:
         if args.vmin is not None:
-            vMin = args.vmin 
+            vMin = args.vmin
         if args.vmax is not None:
-            vMax = args.vmax 
+            vMax = args.vmax
      
     
     print
@@ -121,7 +123,7 @@ if __name__ == '__main__':
     print
     
     pyvp = movie(args.hdf5_file, ntMax=args.ntmax, nTime=args.nt, nPlot=args.np,
-                 vMin=vMin, vMax=vMax, cMax=args.cmax, cFac=args.cfac)
+                 vMin=vMin, vMax=vMax, cMax=args.cmax, cFac=args.cfac, interpolate=args.interpolate)
     
     pyvp.run()
     

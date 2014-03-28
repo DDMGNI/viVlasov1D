@@ -19,7 +19,7 @@ class PlotMovie(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMin=None, vMax=None, cMax=False, cFac=1.5, write=False):
+    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMin=None, vMax=None, cMax=False, cFac=1.5, write=False, interpolate=False):
         '''
         Constructor
         '''
@@ -30,6 +30,7 @@ class PlotMovie(object):
         self.distribution = distribution
         self.hamiltonian  = hamiltonian
         self.potential    = potential
+        self.interpolate  = interpolate
         
         self.dpi = 100
         
@@ -227,11 +228,15 @@ class PlotMovie(object):
 #         self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm)
         
         # colormesh with spline interpolation
-        fspl = interp2d(self.x, self.v, self.f.T, kind='cubic')        
-        fint = fspl(self.xint, self.vint) 
         
         self.axes["f"].cla()
-        self.axes["f"].pcolormesh(self.xint, self.vint, fint, norm=self.fnorm)
+        
+        if self.interpolate:
+            fspl = interp2d(self.x, self.v, self.f.T, kind='cubic')        
+            fint = fspl(self.xint, self.vint) 
+            self.axes["f"].pcolormesh(self.xint, self.vint, fint, norm=self.fnorm)
+        else:
+            self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm)
         
         self.axes["f"].set_xlim((self.xMin, self.xMax))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
