@@ -11,8 +11,6 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.toolbox.Arakawa import Arakawa
-
 
 cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
     '''
@@ -78,7 +76,7 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
                     
                 else:
                     # Vlasov equation
-                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J1(fh1, hh, ix, j)
+                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J1_point(fh1, hh, ix, j)
     
     
     def leapfrog4(self, Vec Y):
@@ -112,6 +110,6 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
                     
                 else:
                     # Vlasov equation
-                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4(fh1, hh, ix, j)
+                    y[iy, jy] = fh2[ix, jx] - 2. * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh1, hh, ix, j)
     
     

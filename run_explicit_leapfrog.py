@@ -12,8 +12,8 @@ from petsc4py import PETSc
 
 from run_base_split import petscVP1Dbasesplit
 
-from vlasov.explicit.PETScArakawaLeapfrog   import PETScArakawaLeapfrog
-from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
+from vlasov.solvers.explicit.PETScArakawaLeapfrog   import PETScArakawaLeapfrog
+from vlasov.solvers.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
 
 
 class petscVP1Drunscript(petscVP1Dbasesplit):

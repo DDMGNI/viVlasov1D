@@ -8,6 +8,11 @@ cimport cython
 
 from petsc4py import PETSc
 
+from vlasov.solvers.components.Collisions     import Collisions
+from vlasov.solvers.components.PoissonBracket import PoissonBracket
+from vlasov.solvers.components.Regularisation import Regularisation
+from vlasov.solvers.components.TimeDerivative import TimeDerivative
+
 
 cdef class PETScVlasovSolverBase(object):
     '''
@@ -38,19 +43,8 @@ cdef class PETScVlasovSolverBase(object):
         self.da1  = da1
         self.grid = grid
         
-        
         # charge
         self.charge = charge
-        
-        # collision operator
-        self.nu = coll_freq
-        
-        self.coll_diff = coll_diff
-        self.coll_drag = coll_drag
-        
-        # regularisation parameter
-        self.regularisation = regularisation
-        
         
         # Hamiltonians
         self.H0  = H0
@@ -87,6 +81,12 @@ cdef class PETScVlasovSolverBase(object):
         self.localFave = self.da1.createLocalVec()
         self.localFder = self.da1.createLocalVec()
         self.localHave = self.da1.createLocalVec()
+        
+        # create components
+        self.poisson_bracket = PoissonBracket(self.da1, self.grid)
+        self.time_derivative = TimeDerivative(self.da1, self.grid)
+        self.collisions      = Collisions(self.da1, self.grid, coll_freq, coll_diff, coll_drag)
+        self.regularisation  = Regularisation(self.da1, self.grid, regularisation)
         
         
     def __dealloc__(self):

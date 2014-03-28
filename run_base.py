@@ -19,9 +19,9 @@ from vlasov.core.Grid    import Grid
 from vlasov.toolbox.VIDA    import VIDA
 from vlasov.toolbox.Toolbox import Toolbox
 
-from vlasov.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
-from vlasov.explicit.PETScArakawaGear       import PETScArakawaGear
-from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
+from vlasov.solvers.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
+from vlasov.solvers.explicit.PETScArakawaGear       import PETScArakawaGear
+from vlasov.solvers.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
 
 class petscVP1Dbase():

@@ -9,14 +9,20 @@ from petsc4py.PETSc cimport SNES, Mat, Vec
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
+from vlasov.solvers.components.Collisions     cimport Collisions
+from vlasov.solvers.components.PoissonBracket cimport PoissonBracket
+from vlasov.solvers.components.Regularisation cimport Regularisation
+from vlasov.solvers.components.TimeDerivative cimport TimeDerivative
+
 
 cdef class PETScVlasovSolverBase(object):
 
+    cdef PoissonBracket poisson_bracket
+    cdef TimeDerivative time_derivative
+    cdef Regularisation regularisation
+    cdef Collisions     collisions
+    
     cdef double charge
-    cdef double nu
-    cdef double coll_diff
-    cdef double coll_drag
-    cdef double regularisation
     
     cdef VIDA da1
     cdef Grid grid
@@ -27,13 +33,6 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec H2p
     cdef Vec H2h
     
-    cdef Vec Fave
-    cdef Vec Fder
-    cdef Vec Have
-    
-    cdef Vec Fp
-    cdef Vec Fh
-    
     cdef Vec Np
     cdef Vec Up
     cdef Vec Ep
@@ -43,6 +42,13 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec Uh
     cdef Vec Eh
     cdef Vec Ah
+    
+    cdef Vec Fave
+    cdef Vec Fder
+    cdef Vec Have
+    
+    cdef Vec Fp
+    cdef Vec Fh
     
     cdef Vec localFave
     cdef Vec localFder

@@ -37,7 +37,7 @@ class petscVP1DbasesplitDB(petscVP1Dbasesplit):
                                        sizes=[self.grid.nx, self.grid.nv],
                                        proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic', 'ghosted'),
-                                       stencil_width=2,
+                                       stencil_width=self.grid.stencil,
                                        stencil_type='box')
         
         # initialise grid

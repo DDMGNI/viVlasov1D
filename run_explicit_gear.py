@@ -12,7 +12,7 @@ from petsc4py import PETSc
 
 from run_base_split import petscVP1Dbasesplit
 
-from vlasov.explicit.PETScArakawaGear import PETScArakawaGear
+from vlasov.solvers.explicit.PETScArakawaGear import PETScArakawaGear
 
 
 class petscVP1Drunscript(petscVP1Dbasesplit):

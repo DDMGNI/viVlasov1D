@@ -11,9 +11,8 @@ from petsc4py.PETSc cimport Vec
 
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
-from vlasov.toolbox.Arakawa cimport Arakawa
 
-from vlasov.explicit.PETScExplicitSolver cimport PETScExplicitSolver
+from vlasov.solvers.explicit.PETScExplicitSolver cimport PETScExplicitSolver
 
 
 cdef class PETScArakawaRungeKutta(PETScExplicitSolver):

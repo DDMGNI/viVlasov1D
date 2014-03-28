@@ -7,9 +7,9 @@ from vlasov.setup_inc import *
 
 ext_modules = [
               ]
-                
+
 setup(
-    name = 'PETSc Vlasov-Poisson Explicit Predictor',
+    name = 'PETSc Variational Vlasov-Poisson Solver',
     cmdclass = {'build_ext': build_ext},
     ext_modules = ext_modules
 )

@@ -192,6 +192,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         cdef double[:,:,:] k  = self.da2.getGlobalArray(K)
         cdef double[:,:,:] y  = self.da2.getGlobalArray(Y)
+        
         cdef np.ndarray[dtype=np.float64_t, ndim=2] ft = self.da1.getGlobalArray(self.Ft)
         cdef np.ndarray[dtype=np.float64_t, ndim=2] gt = self.da1.getGlobalArray(self.Gt)
         

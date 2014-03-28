@@ -11,7 +11,7 @@ from petsc4py.PETSc cimport Vec
 
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
-from vlasov.toolbox.Arakawa cimport Arakawa
+from vlasov.solvers.components.PoissonBracket cimport PoissonBracket
 
 
 cdef class PETScArakawaSymplectic(object):
@@ -33,4 +33,4 @@ cdef class PETScArakawaSymplectic(object):
     
     cdef Vec localX
     
-    cdef Arakawa arakawa
+    cdef PoissonBracket arakawa

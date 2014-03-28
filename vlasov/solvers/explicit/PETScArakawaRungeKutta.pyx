@@ -11,8 +11,6 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.toolbox.Arakawa import Arakawa
-
 
 cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
     '''
@@ -36,19 +34,19 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         
         x   = self.da1.getLocalArray(X,       self.localX )
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.arakawa.arakawa_J1_timestep(x, tx1, h)
+        self.arakawa.arakawa_J1_array(x, tx1, h, 1.0)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.arakawa.arakawa_J1_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h)
+        self.arakawa.arakawa_J1_array(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.arakawa.arakawa_J1_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h)
+        self.arakawa.arakawa_J1_array(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.arakawa.arakawa_J1_timestep(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h)
+        self.arakawa.arakawa_J1_array(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)
@@ -76,19 +74,19 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         
         x   = self.da1.getLocalArray(X,       self.localX )
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.arakawa.arakawa_J2_timestep(x, tx1, h)
+        self.arakawa.arakawa_J2_array(x, tx1, h, 1.0)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.arakawa.arakawa_J2_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h)
+        self.arakawa.arakawa_J2_array(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.arakawa.arakawa_J2_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h)
+        self.arakawa.arakawa_J2_array(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.arakawa.arakawa_J2_timestep(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h)
+        self.arakawa.arakawa_J2_array(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)
@@ -116,19 +114,19 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         
         x   = self.da1.getLocalArray(X,       self.localX )
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.arakawa.arakawa_J4_timestep(x, tx1, h)
+        self.arakawa.arakawa_J4_array(x, tx1, h, 1.0)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.arakawa.arakawa_J4_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h)
+        self.arakawa.arakawa_J4_array(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.arakawa.arakawa_J4_timestep(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h)
+        self.arakawa.arakawa_J4_array(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.arakawa.arakawa_J4_timestep(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h)
+        self.arakawa.arakawa_J4_array(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)
@@ -157,19 +155,19 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         
         x   = self.da1.getLocalArray(X,       self.localX )
         tx1 = self.da1.getGlobalArray(self.X1)
-        self.arakawa.arakawa_J4_timestep(x, tx1, h)
+        self.arakawa.arakawa_J4_array(x, tx1, h, 1.0)
         
         tx1 = self.da1.getLocalArray(self.X1, self.localX1)
         tx2 = self.da1.getGlobalArray(self.X2)
-        self.arakawa.arakawa_J4_timestep(x + 1./3. * self.grid.ht / float(self.niter) * tx1, tx2, h)
+        self.arakawa.arakawa_J4_array(x + 1./3. * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
         tx2 = self.da1.getLocalArray(self.X2, self.localX2)
         tx3 = self.da1.getGlobalArray(self.X3)
-        self.arakawa.arakawa_J4_timestep(x - 1./3. * self.grid.ht / float(self.niter) * tx1 + self.grid.ht / float(self.niter) * tx2, tx3, h)
+        self.arakawa.arakawa_J4_array(x - 1./3. * self.grid.ht / float(self.niter) * tx1 + self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
         tx3 = self.da1.getLocalArray(self.X3, self.localX3)
         tx4 = self.da1.getGlobalArray(self.X4)
-        self.arakawa.arakawa_J4_timestep(x + self.grid.ht / float(self.niter) * tx1 - self.grid.ht / float(self.niter) * tx2 + self.grid.ht / float(self.niter) * tx3, tx4, h)
+        self.arakawa.arakawa_J4_array(x + self.grid.ht / float(self.niter) * tx1 - self.grid.ht / float(self.niter) * tx2 + self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
         x   = self.da1.getGlobalArray(X)
         tx1 = self.da1.getGlobalArray(self.X1)

@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.toolbox.Arakawa import Arakawa
+from vlasov.solvers.components.PoissonBracket import PoissonBracket
 
 
 cdef class PETScArakawaSymplectic(object):
@@ -54,7 +54,7 @@ cdef class PETScArakawaSymplectic(object):
         self.localX  = da1.createLocalVec()
         
         # create toolbox object
-        self.arakawa = Arakawa(da1, grid)
+        self.arakawa = PoissonBracket(da1, grid)
         
     
     
@@ -68,7 +68,7 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getLocalArray(X,       self.localX)
         y  = self.da1.getGlobalArray(self.Y)
         
-        self.arakawa.arakawa_J4_timestep_h(x, y, h0)
+        self.arakawa.arakawa_J4_array(x, y, h0, 1.0)
         
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)
@@ -88,7 +88,7 @@ cdef class PETScArakawaSymplectic(object):
         x  = self.da1.getLocalArray(X,       self.localX)
         y  = self.da1.getGlobalArray(self.Y)
         
-        self.arakawa.arakawa_J4_timestep_h(x, y, h1+h2)
+        self.arakawa.arakawa_J4_array(x, y, h1+h2, 1.0)
         
         x  = self.da1.getGlobalArray(X)
         y  = self.da1.getGlobalArray(self.Y)

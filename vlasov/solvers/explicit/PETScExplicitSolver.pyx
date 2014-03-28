@@ -11,7 +11,7 @@ cimport numpy as np
 
 from petsc4py.PETSc cimport Vec
 
-from vlasov.toolbox.Arakawa import Arakawa
+from vlasov.solvers.components.PoissonBracket import PoissonBracket
 
 
 cdef class PETScExplicitSolver(object):
@@ -26,7 +26,7 @@ cdef class PETScExplicitSolver(object):
                  Vec H0    not None,
                  Vec H1    not None,
                  Vec H2    not None,
-                 niter=1):
+                 int niter=1):
         '''
         Constructor
         '''
@@ -55,6 +55,6 @@ cdef class PETScExplicitSolver(object):
         self.localH2   = da1.createLocalVec()
         
         # create toolbox object
-        self.arakawa = Arakawa(da1, grid)
+        self.arakawa = PoissonBracket(da1, grid)
     
     

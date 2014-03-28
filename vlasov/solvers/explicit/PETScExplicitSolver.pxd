@@ -11,12 +11,12 @@ from petsc4py.PETSc cimport Vec
 
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
-from vlasov.toolbox.Arakawa cimport Arakawa
+from vlasov.solvers.components.PoissonBracket cimport PoissonBracket
 
 
 cdef class PETScExplicitSolver(object):
     
-    cdef np.uint64_t niter 
+    cdef int niter 
     
     cdef VIDA da1
     cdef Grid grid
@@ -40,4 +40,4 @@ cdef class PETScExplicitSolver(object):
     cdef Vec localH1
     cdef Vec localH2
     
-    cdef Arakawa arakawa
+    cdef PoissonBracket arakawa

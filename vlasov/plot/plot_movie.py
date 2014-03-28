@@ -236,7 +236,7 @@ class PlotMovie(object):
             fint = fspl(self.xint, self.vint) 
             self.axes["f"].pcolormesh(self.xint, self.vint, fint, norm=self.fnorm)
         else:
-            self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm)
+            self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm, shading='gouraud')
         
         self.axes["f"].set_xlim((self.xMin, self.xMax))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
