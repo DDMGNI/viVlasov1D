@@ -65,6 +65,7 @@ cdef class PETScVlasovSolverBase(object):
         
         # averages
         self.Fave = self.da1.createGlobalVec()
+        self.Fder = self.da1.createGlobalVec()
         self.Have = self.da1.createGlobalVec()
         
         # moments
@@ -84,6 +85,7 @@ cdef class PETScVlasovSolverBase(object):
         self.localFd  = da1.createLocalVec()
         
         self.localFave = self.da1.createLocalVec()
+        self.localFder = self.da1.createLocalVec()
         self.localHave = self.da1.createLocalVec()
         
         

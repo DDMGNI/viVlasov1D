@@ -28,6 +28,7 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec H2h
     
     cdef Vec Fave
+    cdef Vec Fder
     cdef Vec Have
     
     cdef Vec Fp
@@ -44,6 +45,7 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec Ah
     
     cdef Vec localFave
+    cdef Vec localFder
     cdef Vec localHave
     
     cdef Vec localFp
