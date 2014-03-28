@@ -47,7 +47,7 @@ cdef class PoissonBracket(object):
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
         
-        self.arakawa(f, h, y, factor)
+        self.arakawa_J2_array(f, h, y, factor)
 
     cdef void arakawa_J4(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)

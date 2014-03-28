@@ -61,27 +61,6 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def formRHS(self, Vec N, Vec B):
-        cdef int i, ix, iy
-        cdef int xs, xe, sw
-        
-        cdef double nmean = N.sum() / self.nx
-        
-        cdef double[:] b = self.dax.getGlobalArray(B)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
-        
-        (xs, xe), = self.dax.getRanges()
-        sw        = self.dax.getStencilWidth()
-        
-        for i in range(xs, xe):
-            ix = i-xs+sw
-            iy = i-xs
-            
-            b[iy] = - (n[ix] - nmean) * self.charge
-        
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     def matrix_mult(self, Vec X, Vec Y):
         cdef int i, ix, iy
         cdef int xs, xe, sw
