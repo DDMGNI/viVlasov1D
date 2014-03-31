@@ -109,8 +109,26 @@ extensions = [
                   extra_link_args=LARGS
                  ),
               
-        Extension("PETScNLVlasovArakawaJ1DB",
-                  sources=["PETScNLVlasovArakawaJ1DB.pyx"],
+        Extension("PETScNLVlasovArakawaJ1DB2",
+                  sources=["PETScNLVlasovArakawaJ1DB2.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
+        Extension("PETScNLVlasovArakawaJ1DBf",
+                  sources=["PETScNLVlasovArakawaJ1DBf.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
+        Extension("PETScNLVlasovArakawaJ1DBh",
+                  sources=["PETScNLVlasovArakawaJ1DBh.pyx"],
                   include_dirs=INCLUDE_DIRS,
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,
