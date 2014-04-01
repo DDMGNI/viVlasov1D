@@ -18,7 +18,6 @@ cdef class TimeDerivative(object):
     '''
     
     def __init__(self,
-                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None):
         '''
@@ -31,160 +30,34 @@ cdef class TimeDerivative(object):
         
         # create local vectors
         self.localF = da1.createLocalVec()
+    
+    
+    @staticmethod
+    def create(str  type not None,
+               VIDA da1  not None,
+               Grid grid not None):
         
-        # set time derivative functions
-        if config.is_averaging_operator_none():
-            self.time_derivative_function = &self.point
-            self.time_derivative_jacobian = &self.point_jacobian
-        elif config.is_averaging_operator_midpoint():
-            self.time_derivative_function = &self.midpoint
-#             self.time_derivative_jacobian = &self.midpoint_jacobian
-            self.time_derivative_jacobian = NULL
-        elif config.is_averaging_operator_simpson():
-            self.time_derivative_function = &self.simpson
-#             self.time_derivative_jacobian = &self.simpson_jacobian
-            self.time_derivative_jacobian = NULL
-        elif config.is_averaging_operator_arakawa_J1():
-            self.time_derivative_function = &self.arakawa_J1
-#             self.time_derivative_jacobian = &self.arakawa_J1_jacobian
-            self.time_derivative_jacobian = NULL
-        elif config.is_averaging_operator_arakawa_J2():
-            self.time_derivative_function = &self.arakawa_J2
-#             self.time_derivative_jacobian = &self.arakawa_J2_jacobian
-            self.time_derivative_jacobian = NULL
-        elif config.is_averaging_operator_arakawa_J4():
-            self.time_derivative_function = &self.arakawa_J4
-#             self.time_derivative_jacobian = &self.arakawa_J4_jacobian
-            self.time_derivative_jacobian = NULL
+        if type == 'point':
+            return TimeDerivative(da1, grid) 
+        elif type == 'midpoint':
+            return TimeDerivativeMidpoint(da1, grid)
+        elif type == 'simpson':
+            return TimeDerivativeSimpson(da1, grid)
+        elif type == 'arakawa_J1':
+            return TimeDerivativeArakawaJ1(da1, grid)
+        elif type == 'arakawa_J2':
+            return TimeDerivativeArakawaJ2(da1, grid)
+        elif type == 'arakawa_J4':
+            return TimeDerivativeArakawaJ4(da1, grid)
         else:
-            self.time_derivative_function = NULL
-            self.time_derivative_jacobian = NULL
+            return None
         
 
-    cdef void call_function(self, Vec F, Vec Y):
-        print("time derivative in")
-        self.time_derivative_function(self, F, Y)
-        print("time derivative out")
-        
-    
-    cdef void call_jacobian(self, Mat J):
-        self.time_derivative_jacobian(self, J)
-        
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void point(self, Vec F, Vec Y):
+    cdef void function(self, Vec F, Vec Y):
         Y.axpy(self.grid.ht_inv, F)
+        
     
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void midpoint(self, Vec F, Vec Y):
-        cdef int i, j, ix, iy, jx, jy
-        cdef int xs, xe, ys, ye
-        
-        cdef double time_fac = self.grid.ht_inv / 16.
-        
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for j in range(ys, ye):
-            jx = j-ys+self.grid.stencil
-            jy = j-ys
-            
-            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                y[iy, jy] += self.grid.ht_inv * f[ix, jx]
-            else:
-                for i in range(xs, xe):
-                    ix = i-xs+self.grid.stencil
-                    iy = i-xs
-                    
-                    y[iy, jy] += ( 1. * f[ix-1, jx-1] + 2. * f[ix, jx-1] + 1. * f[ix+1, jx-1] \
-                                 + 2. * f[ix-1, jx  ] + 4. * f[ix, jx  ] + 2. * f[ix+1, jx  ] \
-                                 + 1. * f[ix-1, jx+1] + 2. * f[ix, jx+1] + 1. * f[ix+1, jx+1] \
-                                 ) * time_fac
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void simpson(self, Vec F, Vec Y):
-        cdef int i, j, ix, iy, jx, jy
-        cdef int xs, xe, ys, ye
-        
-        cdef double time_fac = self.grid.ht_inv / 36.
-        
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for j in range(ys, ye):
-            jx = j-ys+self.grid.stencil
-            jy = j-ys
-            
-            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                y[iy, jy] += self.grid.ht_inv * f[ix, jx]
-            else:
-                for i in range(xs, xe):
-                    ix = i-xs+self.grid.stencil
-                    iy = i-xs
-                    
-                    y[iy, jy] += ( 1. * f[ix-1, jx-1] + 4. * f[ix, jx-1] + 1. * f[ix+1, jx-1] \
-                                 + 4. * f[ix-1, jx  ] +16. * f[ix, jx  ] + 4. * f[ix+1, jx  ] \
-                                 + 1. * f[ix-1, jx+1] + 4. * f[ix, jx+1] + 1. * f[ix+1, jx+1] \
-                                 ) * time_fac
-
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J1(self, Vec F, Vec Y):
-        self.midpoint(F,Y)
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J2(self, Vec F, Vec Y):
-        pass
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J4(self, Vec F, Vec Y):
-        cdef int i, j, ix, iy, jx, jy
-        cdef int xs, xe, ys, ye
-        
-        cdef double time_fac = self.grid.ht_inv / 64.
-        
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        for j in range(ys, ye):
-            jx = j-ys+self.grid.stencil
-            jy = j-ys
-            
-            if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
-                y[iy, jy] += self.grid.ht_inv * f[ix, jx]
-            else:
-                for i in range(xs, xe):
-                    ix = i-xs+self.grid.stencil
-                    iy = i-xs
-                    
-                    y[iy, jy] += (                                           1. * f[ix, jx-2] \
-                                                      + 2. * f[ix-1, jx-1] + 8. * f[ix, jx-1] + 2. * f[ix+1, jx-1] \
-                                 + 1. * f[ix-2, jx  ] + 8. * f[ix-1, jx  ] +20. * f[ix, jx  ] + 8. * f[ix+1, jx  ] + 1. * f[ix+2, jx  ] \
-                                                      + 2. * f[ix-1, jx+1] + 8. * f[ix, jx+1] + 2. * f[ix+1, jx+1] \
-                                                                           + 1. * f[ix, jx+2] \
-                                 ) * time_fac
-
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void point_jacobian(self, Mat J):
+    cdef void jacobian(self, Mat J):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         
@@ -207,9 +80,42 @@ cdef class TimeDerivative(object):
                 J.setValueStencil(row, row, time_fac, addv=PETSc.InsertMode.ADD_VALUES)
 
 
+
+cdef class TimeDerivativeMidpoint(TimeDerivative):
+    
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void midpoint_jacobian(self, Mat J):
+    cdef void function(self, Vec F, Vec Y):
+        cdef int i, j, ix, iy, jx, jy
+        cdef int xs, xe, ys, ye
+        
+        cdef double time_fac = self.grid.ht_inv / 16.
+        
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
+            
+            for i in range(xs, xe):
+                ix = i-xs+self.grid.stencil
+                iy = i-xs
+                
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                    y[iy, jy] += self.grid.ht_inv * f[ix, jx]
+                else:
+                    y[iy, jy] += ( 1. * f[ix-1, jx-1] + 2. * f[ix, jx-1] + 1. * f[ix+1, jx-1] \
+                                 + 2. * f[ix-1, jx  ] + 4. * f[ix, jx  ] + 2. * f[ix+1, jx  ] \
+                                 + 1. * f[ix-1, jx+1] + 2. * f[ix, jx+1] + 1. * f[ix+1, jx+1] \
+                                 ) * time_fac
+    
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void jacobian(self, Mat J):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         
@@ -250,9 +156,42 @@ cdef class TimeDerivative(object):
                         J.setValueStencil(row, col, value * time_fac, addv=PETSc.InsertMode.ADD_VALUES)
                         
 
+
+cdef class TimeDerivativeSimpson(TimeDerivative):
+    
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void simpson_jacobian(self, Mat J):
+    cdef void function(self, Vec F, Vec Y):
+        cdef int i, j, ix, iy, jx, jy
+        cdef int xs, xe, ys, ye
+        
+        cdef double time_fac = self.grid.ht_inv / 36.
+        
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
+            
+            for i in range(xs, xe):
+                ix = i-xs+self.grid.stencil
+                iy = i-xs
+                    
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                    y[iy, jy] += self.grid.ht_inv * f[ix, jx]
+                else:
+                    y[iy, jy] += ( 1. * f[ix-1, jx-1] + 4. * f[ix, jx-1] + 1. * f[ix+1, jx-1] \
+                                 + 4. * f[ix-1, jx  ] +16. * f[ix, jx  ] + 4. * f[ix+1, jx  ] \
+                                 + 1. * f[ix-1, jx+1] + 4. * f[ix, jx+1] + 1. * f[ix+1, jx+1] \
+                                 ) * time_fac
+    
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void jacobian(self, Mat J):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         
@@ -293,17 +232,53 @@ cdef class TimeDerivative(object):
                         J.setValueStencil(row, col, value * time_fac, addv=PETSc.InsertMode.ADD_VALUES)
                       
       
-    cdef void arakawa_J1_jacobian(self, Mat J):
-        self.midpoint_jacobian(J)
+    
+cdef class TimeDerivativeArakawaJ1(TimeDerivativeMidpoint):
+    pass
+    
+
+cdef class TimeDerivativeArakawaJ2(TimeDerivative):
+    pass
     
     
-    cdef void arakawa_J2_jacobian(self, Mat J):
-        pass
-        
+    
+cdef class TimeDerivativeArakawaJ4(TimeDerivative):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void arakawa_J4_jacobian(self, Mat J):
+    cdef void function(self, Vec F, Vec Y):
+        cdef int i, j, ix, iy, jx, jy
+        cdef int xs, xe, ys, ye
+        
+        cdef double time_fac = self.grid.ht_inv / 64.
+        
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
+            
+            for i in range(xs, xe):
+                ix = i-xs+self.grid.stencil
+                iy = i-xs
+                    
+                if j < self.grid.stencil or j >= self.grid.nv-self.grid.stencil:
+                    y[iy, jy] += self.grid.ht_inv * f[ix, jx]
+                else:
+                    y[iy, jy] += (                                           1. * f[ix, jx-2] \
+                                                      + 2. * f[ix-1, jx-1] + 8. * f[ix, jx-1] + 2. * f[ix+1, jx-1] \
+                                 + 1. * f[ix-2, jx  ] + 8. * f[ix-1, jx  ] +20. * f[ix, jx  ] + 8. * f[ix+1, jx  ] + 1. * f[ix+2, jx  ] \
+                                                      + 2. * f[ix-1, jx+1] + 8. * f[ix, jx+1] + 2. * f[ix+1, jx+1] \
+                                                                           + 1. * f[ix, jx+2] \
+                                 ) * time_fac
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void jacobian(self, Mat J):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         

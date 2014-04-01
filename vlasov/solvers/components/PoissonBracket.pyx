@@ -18,7 +18,6 @@ cdef class PoissonBracket(object):
     '''
     
     def __init__(self,
-                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None):
         '''
@@ -33,62 +32,52 @@ cdef class PoissonBracket(object):
         self.localF = da1.createLocalVec()
         self.localH = da1.createLocalVec()
         
-        # set poisson bracket functions
-        if config.is_poisson_bracket_arakawa_J1():
-            self.poisson_bracket_function = &self.arakawa_J1
-            self.poisson_bracket_jacobian = &self.arakawa_J1_jacobian
-        elif config.is_poisson_bracket_arakawa_J2():
-            self.poisson_bracket_function = &self.arakawa_J2
-            self.poisson_bracket_jacobian = &self.arakawa_J2_jacobian
-        elif config.is_poisson_bracket_arakawa_J4():
-            self.poisson_bracket_function = &self.arakawa_J4
-            self.poisson_bracket_jacobian = &self.arakawa_J4_jacobian
-        elif config.is_poisson_bracket_simpson():
-#             self.poisson_bracket_function = &self.simpson
-            self.poisson_bracket_function = NULL
-            self.poisson_bracket_jacobian = NULL
+        
+    @staticmethod
+    def create(str  type not None,
+               VIDA da1  not None,
+               Grid grid not None):
+        
+        if type == 'simpson':
+            return PoissonBracketSimpson(da1, grid)
+        elif type == 'arakawaj1':
+            return PoissonBracketArakawaJ1(da1, grid)
+        elif type == 'arakawaj2':
+            return PoissonBracketArakawaJ2(da1, grid)
+        elif type == 'arakawaj4':
+            return PoissonBracketArakawaJ4(da1, grid)
         else:
-            self.poisson_bracket_function = NULL
-            self.poisson_bracket_jacobian = NULL
+            return PoissonBracket(da1, grid)
         
+
     
-    cdef void call_function(self, Vec F, Vec H, Vec Y, double factor):
-        print("poisson bracket in")
-        self.poisson_bracket_function(self, F, H, Y, factor)
-        print("poisson bracket out")
+    cdef void function(self, Vec F, Vec H, Vec Y, double factor):
+        print("ERROR: function not implemented!")
+    
+    cdef void jacobian(self, Mat J, Vec H, double factor):
+        print("ERROR: function not implemented!")
+
+    cdef void poisson_bracket_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+        print("ERROR: function not implemented!")
+ 
+    cdef double poisson_bracket_point(self, double[:,:] f, double[:,:] h, int i, int j):
+        print("ERROR: function not implemented!")
     
 
-    cdef void call_jacobian(self, Mat J, Vec H, double factor):
-        self.poisson_bracket_jacobian(self, J, H, factor)
-    
 
-    cdef void arakawa_J1(self, Vec F, Vec H, Vec Y, double factor):
+cdef class PoissonBracketArakawaJ1(PoissonBracket):
+    
+    cdef void function(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
         cdef double[:,:] y = self.da1.getGlobalArray(Y)
         
-        self.arakawa_J1_array(f, h, y, factor)
+        self.poisson_bracket_array(f, h, y, factor)
         
 
-    cdef void arakawa_J2(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
-        
-        self.arakawa_J2_array(f, h, y, factor)
-
-    cdef void arakawa_J4(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
-        
-        self.arakawa_J4_array(f, h, y, factor)
-
-    
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void arakawa_J1_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void poisson_bracket_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef double jpp, jpc, jcp, result, arakawa_factor
         cdef int i, j, ix, iy, jx, jy
@@ -107,7 +96,7 @@ cdef class PoissonBracket(object):
                 for i in range(xs, xe):
                     ix = i-xs+self.grid.stencil
                     iy = i-xs
-            
+                    
                     jpp = (x[ix+1, jx  ] - x[ix-1, jx  ]) * (h[ix,   jx+1] - h[ix,   jx-1]) \
                         - (x[ix,   jx+1] - x[ix,   jx-1]) * (h[ix+1, jx  ] - h[ix-1, jx  ])
                     
@@ -123,11 +112,92 @@ cdef class PoissonBracket(object):
         
                     y[iy, jy] += factor * (jpp + jpc + jcp) * arakawa_factor
                     
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef double poisson_bracket_point(self, double[:,:] f, double[:,:] h, int i, int j):
+        '''
+        Arakawa Bracket J1 (second order)
+        '''
+        
+        cdef double jpp, jpc, jcp
+        
+        jpp = (f[i+1, j  ] - f[i-1, j  ]) * (h[i,   j+1] - h[i,   j-1]) \
+            - (f[i,   j+1] - f[i,   j-1]) * (h[i+1, j  ] - h[i-1, j  ])
+        
+        jpc = f[i+1, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
+            - f[i-1, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
+            - f[i,   j+1] * (h[i+1, j+1] - h[i-1, j+1]) \
+            + f[i,   j-1] * (h[i+1, j-1] - h[i-1, j-1])
+        
+        jcp = f[i+1, j+1] * (h[i,   j+1] - h[i+1, j  ]) \
+            - f[i-1, j-1] * (h[i-1, j  ] - h[i,   j-1]) \
+            - f[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
+            + f[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
+        
+        return (jpp + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 12.
     
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void arakawa_J2_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void jacobian(self, Mat J, Vec H, double factor):
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        
+        cdef double arak_fac_J1 = factor * self.grid.hx_inv * self.grid.hv_inv / 12.
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
+        
+        for i in range(xs, xe):
+            ix = i-xs+self.grid.stencil
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+
+                row.index = (i,j)
+                
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for index, value in [
+                            ((i-1, j-1), - (h[ix-1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
+                            ((i-1, j  ), - (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
+                                         - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J1),
+                            ((i-1, j+1), - (h[ix,   jx+1] - h[ix-1, jx  ]) * arak_fac_J1),
+                            ((i,   j-1), + (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
+                                         + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J1),
+                            ((i,   j+1), - (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
+                                         - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J1),
+                            ((i+1, j-1), + (h[ix+1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
+                            ((i+1, j  ), + (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
+                                         + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J1),
+                            ((i+1, j+1), + (h[ix,   jx+1] - h[ix+1, jx  ]) * arak_fac_J1),
+                        ]:
+    
+                        col.index = index
+                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        
+    
+
+cdef class PoissonBracketArakawaJ2(PoissonBracket):
+    
+    cdef void function(self, Vec F, Vec H, Vec Y, double factor):
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        self.poisson_bracket_array(f, h, y, factor)
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void poisson_bracket_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef double jcc, jpc, jcp, result, arakawa_factor
         cdef int i, j, ix, iy, jx, jy
@@ -164,10 +234,105 @@ cdef class PoissonBracket(object):
                     y[iy, jy] += factor * (jcc + jpc + jcp) * arakawa_factor
                     
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef double poisson_bracket_point(self, double[:,:] f, double[:,:] h, int i, int j):
+        '''
+        Arakawa Bracket
+        '''
+        
+        cdef double jcc, jpc, jcp
+        
+        jcc = (f[i+1, j+1] - f[i-1, j-1]) * (h[i-1, j+1] - h[i+1, j-1]) \
+            - (f[i-1, j+1] - f[i+1, j-1]) * (h[i+1, j+1] - h[i-1, j-1])
+        
+        jpc = f[i+2, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
+            - f[i-2, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
+            - f[i,   j+2] * (h[i+1, j+1] - h[i-1, j+1]) \
+            + f[i,   j-2] * (h[i+1, j-1] - h[i-1, j-1])
+        
+        jcp = f[i+1, j+1] * (h[i,   j+2] - h[i+2, j  ]) \
+            - f[i-1, j-1] * (h[i-2, j  ] - h[i,   j-2]) \
+            - f[i-1, j+1] * (h[i,   j+2] - h[i-2, j  ]) \
+            + f[i+1, j-1] * (h[i+2, j  ] - h[i,   j-2])
+        
+        return (jcc + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 24.
+    
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void arakawa_J4_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+    cdef void jacobian(self, Mat J, Vec H, double factor):
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        
+        cdef double arak_fac_J2 = factor * self.grid.hx_inv * self.grid.hv_inv / 24.
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
+        
+        for i in range(xs, xe):
+            ix = i-xs+self.grid.stencil
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+
+                row.index = (i,j)
+                
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for index, value in [
+                            ((i-2, j  ), - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i-1, j-1), - (h[ix-2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
+                                         - (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                            ((i-1, j+1), - (h[ix,   jx+2] - h[ix-2, jx  ]) * arak_fac_J2 \
+                                         - (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-2), + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j+2), - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J2),
+                            ((i+1, j-1), + (h[ix+2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
+                                         + (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i+1, j+1), + (h[ix,   jx+2] - h[ix+2, jx  ]) * arak_fac_J2 \
+                                         + (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                            ((i+2, j),   + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                        ]:
+    
+                        col.index = index
+                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        
+    
+
+cdef class PoissonBracketArakawaJ4(PoissonBracket):
+    
+    cdef PoissonBracket arakawaJ1
+    cdef PoissonBracket arakawaJ2
+    
+    
+    def __init__(self,
+                 VIDA da1  not None,
+                 Grid grid not None):
+
+        super().__init__(da1, grid)
+        
+        self.arakawaJ1 = PoissonBracketArakawaJ1(da1, grid)
+        self.arakawaJ2 = PoissonBracketArakawaJ2(da1, grid)
+    
+    
+    cdef void function(self, Vec F, Vec H, Vec Y, double factor):
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        self.poisson_bracket_array(f, h, y, factor)
+
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void poisson_bracket_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
         
         cdef int i, j, ix, iy, jx, jy
         cdef int xs, xe, ys, ye
@@ -224,161 +389,19 @@ cdef class PoissonBracket(object):
                     y[iy, jy] += factor * (2. * result_J1 - result_J2)
     
     
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef double arakawa_J1_point(self, double[:,:] f, double[:,:] h, int i, int j):
-        '''
-        Arakawa Bracket J1 (second order)
-        '''
-        
-        cdef double jpp, jpc, jcp
-        
-        jpp = (f[i+1, j  ] - f[i-1, j  ]) * (h[i,   j+1] - h[i,   j-1]) \
-            - (f[i,   j+1] - f[i,   j-1]) * (h[i+1, j  ] - h[i-1, j  ])
-        
-        jpc = f[i+1, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
-            - f[i-1, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
-            - f[i,   j+1] * (h[i+1, j+1] - h[i-1, j+1]) \
-            + f[i,   j-1] * (h[i+1, j-1] - h[i-1, j-1])
-        
-        jcp = f[i+1, j+1] * (h[i,   j+1] - h[i+1, j  ]) \
-            - f[i-1, j-1] * (h[i-1, j  ] - h[i,   j-1]) \
-            - f[i-1, j+1] * (h[i,   j+1] - h[i-1, j  ]) \
-            + f[i+1, j-1] * (h[i+1, j  ] - h[i,   j-1])
-        
-        return (jpp + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 12.
-    
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef double arakawa_J2_point(self, double[:,:] f, double[:,:] h, int i, int j):
-        '''
-        Arakawa Bracket
-        '''
-        
-        cdef double jcc, jpc, jcp
-        
-        jcc = (f[i+1, j+1] - f[i-1, j-1]) * (h[i-1, j+1] - h[i+1, j-1]) \
-            - (f[i-1, j+1] - f[i+1, j-1]) * (h[i+1, j+1] - h[i-1, j-1])
-        
-        jpc = f[i+2, j  ] * (h[i+1, j+1] - h[i+1, j-1]) \
-            - f[i-2, j  ] * (h[i-1, j+1] - h[i-1, j-1]) \
-            - f[i,   j+2] * (h[i+1, j+1] - h[i-1, j+1]) \
-            + f[i,   j-2] * (h[i+1, j-1] - h[i-1, j-1])
-        
-        jcp = f[i+1, j+1] * (h[i,   j+2] - h[i+2, j  ]) \
-            - f[i-1, j-1] * (h[i-2, j  ] - h[i,   j-2]) \
-            - f[i-1, j+1] * (h[i,   j+2] - h[i-2, j  ]) \
-            + f[i+1, j-1] * (h[i+2, j  ] - h[i,   j-2])
-        
-        return (jcc + jpc + jcp) * self.grid.hx_inv * self.grid.hv_inv / 24.
-    
-    
-    
-    cdef double arakawa_J4_point(self, double[:,:] f, double[:,:] h, int i, int j):
+    cdef double poisson_bracket_point(self, double[:,:] f, double[:,:] h, int i, int j):
         '''
         Arakawa Bracket 4th order
         '''
         
-        return 2.0 * self.arakawa_J1_point(f, h, i, j) - self.arakawa_J2_point(f, h, i, j)
+        return 2.0 * self.arakawaJ1.poisson_bracket_point(f, h, i, j) - self.arakawaJ2.poisson_bracket_point(f, h, i, j)
     
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J1_jacobian(self, Mat J, Vec H, double factor):
-        cdef int i, j, ix, jx
-        cdef int xe, xs, ye, ys
-        
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        
-        cdef double arak_fac_J1 = factor * self.grid.hx_inv * self.grid.hv_inv / 12.
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        row = Mat.Stencil()
-        col = Mat.Stencil()
-        row.field = 0
-        col.field = 0
-        
-        for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
-            
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+    cdef void jacobian(self, Mat J, Vec H, double factor):
+        self.arakawaJ1.jacobian(J, H, +2. * factor)
+        self.arakawaJ2.jacobian(J, H, -1. * factor)
+    
 
-                row.index = (i,j)
-                
-                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
-                    for index, value in [
-                            ((i-1, j-1), - (h[ix-1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
-                            ((i-1, j  ), - (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
-                                         - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J1),
-                            ((i-1, j+1), - (h[ix,   jx+1] - h[ix-1, jx  ]) * arak_fac_J1),
-                            ((i,   j-1), + (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
-                                         + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J1),
-                            ((i,   j+1), - (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
-                                         - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J1),
-                            ((i+1, j-1), + (h[ix+1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
-                            ((i+1, j  ), + (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
-                                         + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J1),
-                            ((i+1, j+1), + (h[ix,   jx+1] - h[ix+1, jx  ]) * arak_fac_J1),
-                        ]:
-    
-                        col.index = index
-                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
-                        
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J2_jacobian(self, Mat J, Vec H, double factor):
-        cdef int i, j, ix, jx
-        cdef int xe, xs, ye, ys
-        
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        
-        cdef double arak_fac_J2 = factor * self.grid.hx_inv * self.grid.hv_inv / 24.
-        
-        (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        row = Mat.Stencil()
-        col = Mat.Stencil()
-        row.field = 0
-        col.field = 0
-        
-        for i in range(xs, xe):
-            ix = i-xs+self.grid.stencil
-            
-            for j in range(ys, ye):
-                jx = j-ys+self.grid.stencil
-                jy = j-ys
+cdef class PoissonBracketSimpson(PoissonBracket):
+    pass
 
-                row.index = (i,j)
-                
-                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
-                    for index, value in [
-                            ((i-2, j  ), - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
-                            ((i-1, j-1), - (h[ix-2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
-                                         - (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
-                            ((i-1, j+1), - (h[ix,   jx+2] - h[ix-2, jx  ]) * arak_fac_J2 \
-                                         - (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,   j-2), + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J2),
-                            ((i,   j+2), - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J2),
-                            ((i+1, j-1), + (h[ix+2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
-                                         + (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
-                            ((i+1, j+1), + (h[ix,   jx+2] - h[ix+2, jx  ]) * arak_fac_J2 \
-                                         + (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
-                            ((i+2, j),   + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
-                        ]:
-    
-                        col.index = index
-                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
-                        
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void arakawa_J4_jacobian(self, Mat J, Vec H, double factor):
-        self.arakawa_J1_jacobian(J, H, +2. * factor)
-        self.arakawa_J2_jacobian(J, H, -1. * factor)
-    

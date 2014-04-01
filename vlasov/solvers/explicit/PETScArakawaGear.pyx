@@ -159,8 +159,8 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                     y[iy, jy] = 2./3. * (
                                          + 2.  * fh1[ix, jx]
                                          - 0.5 * fh2[ix, jx]
-                                         - 2.  * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh1, hh1, ix, j)
-                                         + 1.  * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh2, hh2, ix, j)
+                                         - 2.  * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh1, hh1, ix, j)
+                                         + 1.  * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh2, hh2, ix, j)
                                        )
     
     
@@ -203,9 +203,9 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                                          + 3.   * fh1[ix, jx]
                                          - 1.5  * fh2[ix, jx]
                                          + 1./3.* fh3[ix, jx]
-                                         - 3.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh1, hh1, ix, j)
-                                         + 3.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh2, hh2, ix, j)
-                                         - 1.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh3, hh3, ix, j)
+                                         - 3.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh1, hh1, ix, j)
+                                         + 3.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh2, hh2, ix, j)
+                                         - 1.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh3, hh3, ix, j)
                                        )
 
 
@@ -252,8 +252,8 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
                                          - 3.   * fh2[ix, jx]
                                          + 4./3.* fh3[ix, jx]
                                          - 0.25 * fh4[ix, jx]
-                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh1, hh1, ix, j)
-                                         + 6.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh2, hh2, ix, j)
-                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh3, hh3, ix, j)
-                                         + 1.   * self.grid.ht / float(self.niter) * self.arakawa.arakawa_J4_point(fh4, hh4, ix, j)
+                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh1, hh1, ix, j)
+                                         + 6.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh2, hh2, ix, j)
+                                         - 4.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh3, hh3, ix, j)
+                                         + 1.   * self.grid.ht / float(self.niter) * self.arakawa.poisson_bracket_point(fh4, hh4, ix, j)
                                        )

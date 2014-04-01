@@ -84,8 +84,8 @@ cdef class PETScVlasovSolverBase(object):
         self.localHave = self.da1.createLocalVec()
         
         # create components
-        self.time_derivative    = TimeDerivative(config, da1, grid)
-        self.poisson_bracket    = PoissonBracket(config, da1, grid)
+        self.time_derivative    = TimeDerivative.create(config.get_averaging_operator(), da1, grid)
+        self.poisson_bracket    = PoissonBracket.create(config.get_poisson_bracket(), da1, grid)
         self.collision_operator = CollisionOperator(config, da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
         

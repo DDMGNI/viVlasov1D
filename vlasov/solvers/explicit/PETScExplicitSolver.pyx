@@ -56,6 +56,6 @@ cdef class PETScExplicitSolver(object):
         self.localH2   = da1.createLocalVec()
         
         # create toolbox object
-        self.arakawa = PoissonBracket(config, da1, grid)
+        self.arakawa = PoissonBracket.create(config.get_poisson_bracket(), da1, grid)
     
     

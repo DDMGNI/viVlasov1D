@@ -76,7 +76,7 @@ class petscVP1Dbase():
             if cfg['solver']['mode'] == 'split':
                 self.vlasov_module += "Vlasov"
         
-            self.vlasov_module += self.cfg['solver']['scheme']
+            self.vlasov_module += self.cfg['solver']['poisson_bracket']
         
             if cfg['solver']['preconditioner_type'] != None and cfg['solver']['preconditioner_scheme'] != None:
                 self.vlasov_module += self.cfg['solver']['preconditioner_scheme']

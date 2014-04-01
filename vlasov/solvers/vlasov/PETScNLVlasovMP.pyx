@@ -22,10 +22,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     def formJacobian(self, Mat J):
         J.zeroEntries()
         
-        self.time_derivative.call_jacobian(J)
-        self.poisson_bracket.call_jacobian(J, self.Have, 0.5)
-        self.collision_operator.call_jacobian(J, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.regularisation.call_jacobian(J, 0.5)
+        self.time_derivative.jacobian(J)
+        self.poisson_bracket.jacobian(J, self.Have, 0.5)
+#         self.collision_operator.call_jacobian(J, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+#         self.regularisation.call_jacobian(J, 0.5)
         
         J.assemble()
         
@@ -33,10 +33,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     cdef jacobian_solver(self, Vec F, Vec Y):
         Y.set(0.)
         
-        self.time_derivative.call_function(F, Y)
-        self.poisson_bracket.call_function(F, self.Have, Y, 0.5)
-        self.collision_operator.call_function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.regularisation.call_function(F, Y, 1.0)
+        self.time_derivative.function(F, Y)
+        self.poisson_bracket.function(F, self.Have, Y, 0.5)
+#         self.collision_operator.call_function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+#         self.regularisation.call_function(F, Y, 1.0)
         
     
     cdef function_solver(self, Vec F, Vec Y):
@@ -50,9 +50,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         Y.set(0.)
         
-        self.time_derivative.call_function(self.Fder, Y)
-        self.poisson_bracket.call_function(self.Fave, self.Have, Y, 1.0)
-        self.collision_operator.call_function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.collision_operator.call_function(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
+        self.time_derivative.function(self.Fder, Y)
+        self.poisson_bracket.function(self.Fave, self.Have, Y, 1.0)
+#         self.collision_operator.call_function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+#         self.collision_operator.call_function(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
         
         
