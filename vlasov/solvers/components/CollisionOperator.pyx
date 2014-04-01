@@ -91,7 +91,7 @@ cdef class CollisionOperator(object):
                         ix = i-xs+self.grid.stencil
                         iy = i-xs
             
-                        coll_drag = ( (v[j+1] - u[i]) * f[ix, jx+1] - (v[j-1] - u[i]) * f[ix, jx-1] ) * a[i]
+                        coll_drag = ( (v[j+1] - u[i] / n[i]) * f[ix, jx+1] - (v[j-1] - u[i] / n[i]) * f[ix, jx-1] ) * a[i]
                         coll_diff = ( f[ix, jx+1] - 2. * f[ix, jx] + f[ix, jx-1] )
                         
                         y[iy, jy] -= factor * self.coll_freq * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5
@@ -132,8 +132,8 @@ cdef class CollisionOperator(object):
                         ix = i-xs+self.grid.stencil
                         iy = i-xs
             
-                        coll_drag = ( (n[i] * v[j+1] - u[i]) * f[ix, jx+1] - (n[i] * v[j-1] - u[i]) * f[ix, jx-1] ) * a[i]
-                        coll_diff = ( f[ix, jx+1] - 2. * f[ix, jx] + f[ix, jx-1] )
+                        coll_drag = ( (v[j+1] - u[i] / n[i]) * f[ix, jx+1] - (v[j-1] - u[i] / n[i]) * f[ix, jx-1] ) 
+                        coll_diff = ( f[ix, jx+1] - 2. * f[ix, jx] + f[ix, jx-1] ) / a[i]
                         
                         y[iy, jy] -= factor * self.coll_freq * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5
                         y[iy, jy] -= factor * self.coll_freq * self.coll_diff * coll_diff * self.grid.hv2_inv
@@ -174,13 +174,13 @@ cdef class CollisionOperator(object):
                         row.index = (i,j)
                     
                         for index, value in [
-                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[ix] ) * a[ix] \
+                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[ix] / n[i] ) * a[ix] \
                                              + coll_diff_fac),
                                 ((i,   j  ), - 2. * coll_diff_fac),
-                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[ix] ) * a[ix] \
+                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[ix] / n[i] ) * a[ix] \
                                              + coll_diff_fac),
                             ]:
-    
+                            
                             col.index = index
                             J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
                         
@@ -188,4 +188,43 @@ cdef class CollisionOperator(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void collE_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor):
-        pass
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:] v, u, a
+        
+        cdef double coll_drag_fac = - factor * self.coll_freq * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef double coll_diff_fac = - factor * self.coll_freq * self.coll_diff * self.grid.hv2_inv
+        
+        if self.coll_freq > 0.:
+            v = self.grid.v
+            u = U.getArray()
+            a = A.getArray()
+        
+            (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+            row = Mat.Stencil()
+            col = Mat.Stencil()
+            row.field = 0
+            col.field = 0
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+    
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for i in range(xs, xe):
+                        ix = i-xs+self.grid.stencil
+                
+                        row.index = (i,j)
+                    
+                        for index, value in [
+                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[ix] / n[i] ) \
+                                             + coll_diff_fac / a[ix]),
+                                ((i,   j  ), - 2. * coll_diff_fac / a[ix]),
+                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[ix] / n[i] ) * a[ix] \
+                                             + coll_diff_fac / a[ix]),
+                            ]:
+                            
+                            col.index = index
+                            J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)

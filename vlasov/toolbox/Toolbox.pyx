@@ -165,7 +165,7 @@ cdef class Toolbox(object):
         (xs, xe), = self.dax.getRanges()
         
         for i in range(0, xe-xs):
-            a[i] = n[i]**2 / (n[i] * e[i] - u[i]**2)
+            a[i] = n[i] * n[i] / (n[i] * e[i] - u[i] * u[i])
     
     
     def initialise_kinetic_hamiltonian(self, Vec H, np.float64_t mass):
