@@ -80,8 +80,8 @@ if __name__ == '__main__':
                     print("ERROR: preconditioner type is set to %s, but preconditioner scheme is not set." % cfg['solver']['preconditioner_type'])
                 sys.exit()
             
-        if cfg['solver']['dissipation_type'] != None:
-            if cfg['solver']['dissipation_type'] == 'double_bracket':
+        if not cfg.is_dissipation_none:
+            if cfg['solver']['dissipation'] == 'double_bracket':
                 run_script += "_db" 
 
     

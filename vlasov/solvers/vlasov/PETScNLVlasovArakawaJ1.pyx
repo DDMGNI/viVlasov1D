@@ -98,7 +98,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
                         ]:
     
                         col.index = index
-                        A.setValueStencil(row, col, value)
+                        A.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
                         
         
         A.assemble()

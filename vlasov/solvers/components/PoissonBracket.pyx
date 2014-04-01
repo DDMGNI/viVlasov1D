@@ -9,7 +9,7 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from libc.math cimport exp, pow, sqrt
+from petsc4py import PETSc
 
 
 cdef class PoissonBracket(object):
@@ -17,9 +17,10 @@ cdef class PoissonBracket(object):
     
     '''
     
-    def __cinit__(self,
-                  VIDA da1  not None,
-                  Grid grid not None):
+    def __init__(self,
+                 config    not None,
+                 VIDA da1  not None,
+                 Grid grid not None):
         '''
         Constructor
         '''
@@ -32,8 +33,35 @@ cdef class PoissonBracket(object):
         self.localF = da1.createLocalVec()
         self.localH = da1.createLocalVec()
         
+        # set poisson bracket functions
+        if config.is_poisson_bracket_arakawa_J1():
+            self.poisson_bracket_function = &self.arakawa_J1
+            self.poisson_bracket_jacobian = &self.arakawa_J1_jacobian
+        elif config.is_poisson_bracket_arakawa_J2():
+            self.poisson_bracket_function = &self.arakawa_J2
+            self.poisson_bracket_jacobian = &self.arakawa_J2_jacobian
+        elif config.is_poisson_bracket_arakawa_J4():
+            self.poisson_bracket_function = &self.arakawa_J4
+            self.poisson_bracket_jacobian = &self.arakawa_J4_jacobian
+        elif config.is_poisson_bracket_simpson():
+#             self.poisson_bracket_function = &self.simpson
+            self.poisson_bracket_function = NULL
+            self.poisson_bracket_jacobian = NULL
+        else:
+            self.poisson_bracket_function = NULL
+            self.poisson_bracket_jacobian = NULL
         
     
+    cdef void call_function(self, Vec F, Vec H, Vec Y, double factor):
+        print("poisson bracket in")
+        self.poisson_bracket_function(self, F, H, Y, factor)
+        print("poisson bracket out")
+    
+
+    cdef void call_jacobian(self, Mat J, Vec H, double factor):
+        self.poisson_bracket_jacobian(self, J, H, factor)
+    
+
     cdef void arakawa_J1(self, Vec F, Vec H, Vec Y, double factor):
         cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
         cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
@@ -255,4 +283,102 @@ cdef class PoissonBracket(object):
         
         return 2.0 * self.arakawa_J1_point(f, h, i, j) - self.arakawa_J2_point(f, h, i, j)
     
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void arakawa_J1_jacobian(self, Mat J, Vec H, double factor):
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        
+        cdef double arak_fac_J1 = factor * self.grid.hx_inv * self.grid.hv_inv / 12.
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
+        
+        for i in range(xs, xe):
+            ix = i-xs+self.grid.stencil
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+
+                row.index = (i,j)
+                
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for index, value in [
+                            ((i-1, j-1), - (h[ix-1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
+                            ((i-1, j  ), - (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
+                                         - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J1),
+                            ((i-1, j+1), - (h[ix,   jx+1] - h[ix-1, jx  ]) * arak_fac_J1),
+                            ((i,   j-1), + (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
+                                         + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J1),
+                            ((i,   j+1), - (h[ix+1, jx  ] - h[ix-1, jx  ]) * arak_fac_J1 \
+                                         - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J1),
+                            ((i+1, j-1), + (h[ix+1, jx  ] - h[ix,   jx-1]) * arak_fac_J1),
+                            ((i+1, j  ), + (h[ix,   jx+1] - h[ix,   jx-1]) * arak_fac_J1 \
+                                         + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J1),
+                            ((i+1, j+1), + (h[ix,   jx+1] - h[ix+1, jx  ]) * arak_fac_J1),
+                        ]:
+    
+                        col.index = index
+                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void arakawa_J2_jacobian(self, Mat J, Vec H, double factor):
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        
+        cdef double arak_fac_J2 = factor * self.grid.hx_inv * self.grid.hv_inv / 24.
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        row = Mat.Stencil()
+        col = Mat.Stencil()
+        row.field = 0
+        col.field = 0
+        
+        for i in range(xs, xe):
+            ix = i-xs+self.grid.stencil
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+
+                row.index = (i,j)
+                
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for index, value in [
+                            ((i-2, j  ), - (h[ix-1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i-1, j-1), - (h[ix-2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
+                                         - (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                            ((i-1, j+1), - (h[ix,   jx+2] - h[ix-2, jx  ]) * arak_fac_J2 \
+                                         - (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j-2), + (h[ix+1, jx-1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i,   j+2), - (h[ix+1, jx+1] - h[ix-1, jx+1]) * arak_fac_J2),
+                            ((i+1, j-1), + (h[ix+2, jx  ] - h[ix,   jx-2]) * arak_fac_J2 \
+                                         + (h[ix+1, jx+1] - h[ix-1, jx-1]) * arak_fac_J2),
+                            ((i+1, j+1), + (h[ix,   jx+2] - h[ix+2, jx  ]) * arak_fac_J2 \
+                                         + (h[ix-1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                            ((i+2, j),   + (h[ix+1, jx+1] - h[ix+1, jx-1]) * arak_fac_J2),
+                        ]:
+    
+                        col.index = index
+                        J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void arakawa_J4_jacobian(self, Mat J, Vec H, double factor):
+        self.arakawa_J1_jacobian(J, H, +2. * factor)
+        self.arakawa_J2_jacobian(J, H, -1. * factor)
     

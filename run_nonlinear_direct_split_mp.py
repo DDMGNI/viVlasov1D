@@ -9,6 +9,7 @@ import argparse, time
 from petsc4py import PETSc
 
 from run_base_split import petscVP1Dbasesplit
+from vlasov.solvers.vlasov.PETScNLVlasovMP import PETScVlasovSolver
 
 
 class petscVP1Drunscript(petscVP1Dbasesplit):
@@ -24,7 +25,8 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
             print("Creating solver objects.")
     
         # create solver objects
-        self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
+#         self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
+        self.vlasov_solver = PETScVlasovSolver(
                                                self.da1, self.grid,
                                                self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
                                                self.charge, coll_freq=self.coll_freq)

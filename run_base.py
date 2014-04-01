@@ -84,8 +84,8 @@ class petscVP1Dbase():
             if cfg['solver']['timestepping'] != 'mp': 
                 self.vlasov_module += self.cfg['solver']['timestepping'].upper()
             
-            if cfg['solver']['dissipation_type'] != None:
-                if cfg['solver']['dissipation_type'] == 'double_bracket':
+            if not cfg.is_dissipation_none:
+                if cfg['solver']['dissipation'] == 'double_bracket':
                     self.vlasov_module += "DB" 
 
         
@@ -99,7 +99,7 @@ class petscVP1Dbase():
             print("Loading Poisson solver %s" % (self.poisson_module))
             print("")
         
-        self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
+#         self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
         self.poisson_object = __import__(self.poisson_module, globals(), locals(), ['PETScPoissonSolver'], 0)
         
         
@@ -346,9 +346,9 @@ class petscVP1Dbase():
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Instantiating Initial Guess Objects.")
             
-        self.arakawa_rk4        = PETScArakawaRungeKutta(self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
-        self.arakawa_gear       = PETScArakawaGear      (self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
-        self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
+        self.arakawa_rk4        = PETScArakawaRungeKutta(self.cfg, self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
+        self.arakawa_gear       = PETScArakawaGear      (self.cfg, self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
+        self.arakawa_symplectic = PETScArakawaSymplectic(self.cfg, self.da1, self.grid, self.h0, self.h1h, self.h2h, self.nInitial)
         
         
         # create solver dummies

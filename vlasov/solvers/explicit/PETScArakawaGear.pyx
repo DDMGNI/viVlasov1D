@@ -19,6 +19,7 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
     
     
     def __init__(self, 
+                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None,
                  Vec H0    not None,
@@ -29,7 +30,7 @@ cdef class PETScArakawaGear(PETScExplicitSolver):
         Constructor
         '''
         
-        super().__init__(da1, grid, H0, H1, H2, niter)
+        super().__init__(config, da1, grid, H0, H1, H2, niter)
         
         # potential Hamiltonian history
         self.H1h1 = self.da1.createGlobalVec()

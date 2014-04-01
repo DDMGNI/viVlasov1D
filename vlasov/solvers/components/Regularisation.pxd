@@ -10,7 +10,11 @@ cimport numpy as np
 from vlasov.core.Grid cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-from petsc4py.PETSc cimport Vec
+from petsc4py.PETSc cimport Mat, Vec
+
+
+ctypedef void (*f_regularisation)(Regularisation, Vec, Vec, double)
+ctypedef void (*j_regularisation)(Regularisation, Mat, double)
 
 
 cdef class Regularisation(object):
@@ -22,5 +26,11 @@ cdef class Regularisation(object):
     
     cdef Vec localF
     
+    cdef f_regularisation call_regularisation_function
+    cdef j_regularisation call_regularisation_jacobian
     
-    cdef void regularisation(self, Vec F, Vec Y, double factor)
+    cdef void call_function(self, Vec F, Vec Y, double factor)
+    cdef void call_jacobian(self, Mat J, double factor)
+    
+    cdef void regularisation_function(self, Vec F, Vec Y, double factor)
+    cdef void regularisation_jacobian(self, Mat J, double factor)

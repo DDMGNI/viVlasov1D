@@ -9,15 +9,16 @@ cimport cython
 import  numpy as np
 cimport numpy as np
 
-from libc.math cimport exp, pow, sqrt
+from petsc4py import PETSc
 
 
-cdef class Collisions(object):
+cdef class CollisionOperator(object):
     '''
     
     '''
     
     def __init__(self,
+                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None,
                  double coll_freq=0.,
@@ -39,11 +40,28 @@ cdef class Collisions(object):
         # create local vectors
         self.localF = da1.createLocalVec()
     
+        # set collision operator functions
+        if config.is_dissipation_collisions():
+            self.collision_operator_function = &self.collT_function
+            self.collision_operator_jacobian = &self.collT_jacobian
+        else:
+            self.collision_operator_function = NULL
+            self.collision_operator_jacobian = NULL
+            
+        
+    cdef void call_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+        if self.collision_operator_function != NULL:
+            self.collision_operator_function(self, F, Y, N, U, E, A, factor)
+    
+    
+    cdef void call_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor):
+        if self.collision_operator_jacobian != NULL:
+            self.collision_operator_jacobian(self, J, N, U, E, A, factor)
     
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void collT(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+    cdef void collT_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
         '''
         Collision Operator
         '''
@@ -83,7 +101,7 @@ cdef class Collisions(object):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void collE(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
+    cdef void collE_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
         '''
         Collision Operator
         '''
@@ -120,3 +138,54 @@ cdef class Collisions(object):
                         y[iy, jy] -= factor * self.coll_freq * self.coll_drag * coll_drag * self.grid.hv_inv * 0.5
                         y[iy, jy] -= factor * self.coll_freq * self.coll_diff * coll_diff * self.grid.hv2_inv
                         
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void collT_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor):
+        cdef int i, j, ix, jx
+        cdef int xe, xs, ye, ys
+        
+        cdef double[:] v, u, a
+        
+        cdef double coll_drag_fac = - factor * self.coll_freq * self.coll_drag * self.grid.hv_inv * 0.5
+        cdef double coll_diff_fac = - factor * self.coll_freq * self.coll_diff * self.grid.hv2_inv
+        
+        if self.coll_freq > 0.:
+            v = self.grid.v
+            u = U.getArray()
+            a = A.getArray()
+        
+            (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+            row = Mat.Stencil()
+            col = Mat.Stencil()
+            row.field = 0
+            col.field = 0
+            
+            for j in range(ys, ye):
+                jx = j-ys+self.grid.stencil
+                jy = j-ys
+    
+                if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                    for i in range(xs, xe):
+                        ix = i-xs+self.grid.stencil
+                
+                        row.index = (i,j)
+                    
+                        for index, value in [
+                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[ix] ) * a[ix] \
+                                             + coll_diff_fac),
+                                ((i,   j  ), - 2. * coll_diff_fac),
+                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[ix] ) * a[ix] \
+                                             + coll_diff_fac),
+                            ]:
+    
+                            col.index = index
+                            J.setValueStencil(row, col, value, addv=PETSc.InsertMode.ADD_VALUES)
+                        
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void collE_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor):
+        pass

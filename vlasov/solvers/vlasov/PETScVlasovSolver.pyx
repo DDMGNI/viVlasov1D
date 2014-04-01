@@ -23,6 +23,7 @@ cdef class PETScVlasovSolverBase(object):
     '''
     
     def __init__(self,
+                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None,
                  Vec H0  not None,
@@ -83,12 +84,13 @@ cdef class PETScVlasovSolverBase(object):
         self.localHave = self.da1.createLocalVec()
         
         # create components
-        self.poisson_bracket = PoissonBracket(self.da1, self.grid)
-        self.time_derivative = TimeDerivative(self.da1, self.grid)
-        self.collisions      = Collisions(self.da1, self.grid, coll_freq, coll_diff, coll_drag)
-        self.regularisation  = Regularisation(self.da1, self.grid, regularisation)
+        self.time_derivative    = TimeDerivative(config, da1, grid)
+        self.poisson_bracket    = PoissonBracket(config, da1, grid)
+        self.collision_operator = CollisionOpeator(config, da1, grid, coll_freq, coll_diff, coll_drag)
+        self.regularisation     = Regularisation(config, da1, grid, regularisation)
         
         
+
     def __dealloc__(self):
         self.localFp.destroy()
         self.localFh.destroy()
@@ -158,40 +160,7 @@ cdef class PETScVlasovSolverBase(object):
         
 
     cdef jacobian_solver(self, Vec F, Vec Y):
-        Y.set(0.)
-        
-        self.call_poisson_bracket(F, self.Have, Y, 0.5)
-        self.call_time_derivative(F, Y)
-        self.call_collision_operator(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.call_regularisation(F, Y, 1.0)
-    
-    
-    cdef function_solver(self, Vec F, Vec Y):
-        self.Fave.set(0.)
-        self.Fave.axpy(0.5, self.Fh)
-        self.Fave.axpy(0.5, F)
-        
-        self.Fder.set(0.)
-        self.Fder.axpy(+1, F)
-        self.Fder.axpy(-1, self.Fh)
-        
-        Y.set(0.)
-        
-        self.call_poisson_bracket(self.Fave, self.Have, Y, 1.0)
-        self.call_time_derivative(self.Fder, Y)
-        self.call_collision_operator(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.call_collision_operator(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
-        
-    
-    cdef call_poisson_bracket(self, Vec F, Vec H, Vec Y, double factor):
         print("ERROR: function not implemented.")
-    
-    cdef call_time_derivative(self, Vec F, Vec Y):
-        self.time_derivative.time_derivative(F, Y)
-        
-    cdef call_collision_operator(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor):
-        self.collisions.collT(F, Y, N, U, E, A, factor)
-    
-    cdef call_regularisation(self, Vec F, Vec Y, double factor):
-        self.regularisation.regularisation(F, Y, factor)
-
+ 
+    cdef function_solver(self, Vec F, Vec Y):
+        print("ERROR: function not implemented.")

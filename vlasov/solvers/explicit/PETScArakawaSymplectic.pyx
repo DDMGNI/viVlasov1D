@@ -21,6 +21,7 @@ cdef class PETScArakawaSymplectic(object):
     
     
     def __init__(self, 
+                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None,
                  Vec H0    not None,
@@ -54,7 +55,7 @@ cdef class PETScArakawaSymplectic(object):
         self.localX  = da1.createLocalVec()
         
         # create toolbox object
-        self.arakawa = PoissonBracket(da1, grid)
+        self.arakawa = PoissonBracket(config, da1, grid)
         
     
     

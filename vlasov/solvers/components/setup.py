@@ -6,8 +6,8 @@ from vlasov.setup_inc import *
 
 
 ext_modules = [
-        Extension("Collisions",
-                  sources=["Collisions.pyx"],
+        Extension("CollisionOperator",
+                  sources=["CollisionOperator.pyx"],
                   include_dirs=INCLUDE_DIRS,
                   libraries=LIBRARIES,
                   library_dirs=LIBRARY_DIRS,

@@ -9,29 +9,18 @@ from petsc4py.PETSc cimport SNES, Mat, Vec
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-from vlasov.solvers.components.Collisions     cimport Collisions
-from vlasov.solvers.components.PoissonBracket cimport PoissonBracket
-from vlasov.solvers.components.Regularisation cimport Regularisation
-from vlasov.solvers.components.TimeDerivative cimport TimeDerivative
-
-
-# ctypedef void (*f_poisson_bracket)(Vec, Vec, Vec, double)
-# ctypedef void (*f_time_derivative)(Vec, Vec)
-# ctypedef void (*f_collision_operator)(Vec, Vec, Vec, Vec, Vec, Vec, double)
-# ctypedef void (*f_regularisation)(Vec, Vec, double)
+from vlasov.solvers.components.CollisionOperator cimport CollisionOperator
+from vlasov.solvers.components.PoissonBracket    cimport PoissonBracket
+from vlasov.solvers.components.Regularisation    cimport Regularisation
+from vlasov.solvers.components.TimeDerivative    cimport TimeDerivative
 
 
 cdef class PETScVlasovSolverBase(object):
 
-    cdef PoissonBracket poisson_bracket
-    cdef TimeDerivative time_derivative
-    cdef Regularisation regularisation
-    cdef Collisions     collisions
-    
-#     cdef f_poisson_bracket    poisson_bracket_function
-#     cdef f_time_derivative    time_derivative_function
-#     cdef f_collision_operator collision_operator_function
-#     cdef f_regularisation     regularisation_function
+    cdef PoissonBracket    poisson_bracket
+    cdef TimeDerivative    time_derivative
+    cdef CollisionOperator collision_operator
+    cdef Regularisation    regularisation
     
     cdef double charge
     
@@ -82,9 +71,3 @@ cdef class PETScVlasovSolverBase(object):
 
     cdef jacobian_solver(self, Vec F, Vec Y)
     cdef function_solver(self, Vec F, Vec Y)
-    
-    cdef call_poisson_bracket(self, Vec F, Vec H, Vec Y, double factor)
-    cdef call_time_derivative(self, Vec F, Vec Y)
-    cdef call_collision_operator(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
-    cdef call_regularisation(self, Vec F, Vec Y, double factor)
-    
