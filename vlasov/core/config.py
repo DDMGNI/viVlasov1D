@@ -56,6 +56,9 @@ class Config(ConfigObj):
     def is_timestepping_rk4(self):
         return self['solver']['timestepping'].lower() == 'rk4'
     
+    def get_timestepping(self):
+        return self['solver']['timestepping'].lower()
+    
     
     def is_poisson_bracket_arakawa_J1(self):
         return self['solver']['poisson_bracket'].lower() == 'arakawaj1'
@@ -69,6 +72,9 @@ class Config(ConfigObj):
     def is_poisson_bracket_simpson(self):
         return self['solver']['poisson_bracket'].lower() == 'simpson'
     
+    def get_poisson_bracket(self):
+        return self['solver']['poisson_bracket'].lower()
+    
     
     def is_laplace_operator_CFD2(self):
         return self['solver']['laplace_operator'].lower() == 'cfd2'
@@ -78,6 +84,9 @@ class Config(ConfigObj):
     
     def is_laplace_operator_simpson(self):
         return self['solver']['laplace_operator'].lower() == 'simpson'
+    
+    def get_laplace_operator(self):
+        return self['solver']['laplace_operator'].lower()
     
 
     def is_averaging_operator_none(self):
@@ -97,6 +106,12 @@ class Config(ConfigObj):
     
     def is_averaging_operator_arakawa_J4(self):
         return self['solver']['averaging_operator'].lower() == 'arakawaj4'
+    
+    def get_averaging_operator(self):
+        if self.is_averaging_operator_none():
+            return "point"
+        else:
+            return self['solver']['averaging_operator'].lower()
     
     
     def is_dissipation_none(self):
@@ -118,6 +133,10 @@ class Config(ConfigObj):
             return self['solver']['dissipation'].lower() == 'double_bracket'
     
 
+    def is_regularisation_none(self):
+        return self['solver']['regularisation'] == 0.
+    
+    
 
 if __name__ == '__main__':
     '''
