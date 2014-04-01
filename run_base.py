@@ -135,6 +135,8 @@ class petscVP1Dbase():
         
         self.nInitial  = self.cfg['solver']['initial_iter']          # number of iterations for initial guess
         self.coll_freq = self.cfg['solver']['coll_freq']             # collision frequency
+        self.coll_drag = self.cfg['solver']['coll_drag']             # drag factor
+        self.coll_diff = self.cfg['solver']['coll_diff']             # diff factor
         
         self.charge = self.cfg['initial_data']['charge']             # particle charge
         self.mass   = self.cfg['initial_data']['mass']               # particle mass

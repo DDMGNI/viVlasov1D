@@ -24,6 +24,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     '''
     
     def __init__(self,
+                 config    not None,
                  VIDA da1  not None,
                  Grid grid not None,
                  Vec H0  not None,
@@ -40,7 +41,7 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
         Constructor
         '''
         
-        super().__init__(da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
+        super().__init__(config, da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
         
         # get local x ranges for solver
         (xs, xe), (ys, ye) = self.day.getRanges()

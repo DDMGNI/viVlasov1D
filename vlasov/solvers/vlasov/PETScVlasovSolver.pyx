@@ -8,10 +8,10 @@ cimport cython
 
 from petsc4py import PETSc
 
-from vlasov.solvers.components.Collisions     import Collisions
-from vlasov.solvers.components.PoissonBracket import PoissonBracket
-from vlasov.solvers.components.Regularisation import Regularisation
-from vlasov.solvers.components.TimeDerivative import TimeDerivative
+from vlasov.solvers.components.CollisionOperator import CollisionOperator
+from vlasov.solvers.components.PoissonBracket    import PoissonBracket
+from vlasov.solvers.components.Regularisation    import Regularisation
+from vlasov.solvers.components.TimeDerivative    import TimeDerivative
 
 
 cdef class PETScVlasovSolverBase(object):
@@ -86,7 +86,7 @@ cdef class PETScVlasovSolverBase(object):
         # create components
         self.time_derivative    = TimeDerivative.create(config.get_averaging_operator(), da1, grid)
         self.poisson_bracket    = PoissonBracket.create(config.get_poisson_bracket(), da1, grid)
-        self.collision_operator = CollisionOperator(config, da1, grid, coll_freq, coll_diff, coll_drag)
+        self.collision_operator = CollisionOperator.create(config.get_collision_operator(), da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
         
         
