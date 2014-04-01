@@ -28,14 +28,5 @@ cdef class CollisionOperator(object):
     
     cdef Vec localF
     
-    cdef f_collision_operator collision_operator_function
-    cdef j_collision_operator collision_operator_jacobian
-    
-    cdef void call_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
-    cdef void call_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor)
-        
-    cdef void collT_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
-    cdef void collE_function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
-
-    cdef void collT_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor)
-    cdef void collE_jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor)
+    cdef void function(self, Vec F, Vec Y, Vec N, Vec U, Vec E, Vec A, double factor)
+    cdef void jacobian(self, Mat J, Vec N, Vec U, Vec E, Vec A, double factor)

@@ -52,7 +52,7 @@ cdef class TimeDerivative(object):
         else:
             return None
         
-
+    
     cdef void function(self, Vec F, Vec Y):
         Y.axpy(self.grid.ht_inv, F)
         
