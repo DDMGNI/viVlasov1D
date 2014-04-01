@@ -86,7 +86,7 @@ cdef class PETScVlasovSolverBase(object):
         # create components
         self.time_derivative    = TimeDerivative(config, da1, grid)
         self.poisson_bracket    = PoissonBracket(config, da1, grid)
-        self.collision_operator = CollisionOpeator(config, da1, grid, coll_freq, coll_diff, coll_drag)
+        self.collision_operator = CollisionOperator(config, da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
         
         

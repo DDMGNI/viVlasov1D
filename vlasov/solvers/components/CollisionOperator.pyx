@@ -75,6 +75,7 @@ cdef class CollisionOperator(object):
         
         if self.coll_freq > 0.:
             v = self.grid.v
+            n = N.getArray()
             u = U.getArray()
             a = A.getArray()
             f = self.da1.getLocalArray(F, self.localF)
@@ -153,6 +154,7 @@ cdef class CollisionOperator(object):
         
         if self.coll_freq > 0.:
             v = self.grid.v
+            n = N.getArray()
             u = U.getArray()
             a = A.getArray()
         
@@ -198,6 +200,7 @@ cdef class CollisionOperator(object):
         
         if self.coll_freq > 0.:
             v = self.grid.v
+            n = N.getArray()
             u = U.getArray()
             a = A.getArray()
         
