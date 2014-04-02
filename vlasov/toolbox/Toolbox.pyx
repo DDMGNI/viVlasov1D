@@ -79,23 +79,22 @@ cdef class Toolbox(object):
     cpdef compute_density(self, Vec F, Vec N):
         cdef int i, j
         cdef int xs, xe, ye, ys
-        cdef double n
-        
-        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        cdef double[:]   n = np.zeros(xe-xs)
+        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         N.set(0.)
         N.assemble()
         
         for i in range(0, xe-xs):
-            n = 0.
-            
             for j in range(0, ye-ys):
-                n += f[i,j]
+                n[i] += f[i,j]
+            
+            n[i] *= self.grid.hv
                 
-            N.setValue(i+xs, n*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
-    
+        N.setValues(np.arange(xs, xe, dtype=np.int32), n, addv=PETSc.InsertMode.ADD_VALUES)
         N.assemble()
     
     
@@ -104,24 +103,23 @@ cdef class Toolbox(object):
     cpdef compute_velocity_density(self, Vec F, Vec U):
         cdef int i, j
         cdef int xs, xe, ye, ys
-        cdef double u
-        
-        cdef double[:]   v = self.grid.v
-        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        cdef double[:]   u = np.zeros(xe-xs)
+        cdef double[:]   v = self.grid.v
+        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         U.set(0.)
         U.assemble()
         
         for i in range(0, xe-xs):
-            u = 0.
-            
             for j in range(0, ye-ys):
-                u += v[j+ys] * f[i,j]
+                u[i] += v[j+ys] * f[i,j]
+            
+            u[i] *= self.grid.hv
                 
-            U.setValue(i+xs, u*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
-    
+        U.setValues(np.arange(xs, xe, dtype=np.int32), u, addv=PETSc.InsertMode.ADD_VALUES)
         U.assemble()
         
     
@@ -130,10 +128,10 @@ cdef class Toolbox(object):
     cpdef compute_energy_density(self, Vec F, Vec E):
         cdef int i, j
         cdef int xs, xe, ye, ys
-        cdef double e
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
+        cdef double[:]   e  = np.zeros(xe-xs)
         cdef double[:]   v2 = self.grid.v2
         cdef double[:,:] f  = self.da1.getGlobalArray(F)
         
@@ -141,13 +139,12 @@ cdef class Toolbox(object):
         E.assemble()
         
         for i in range(0, xe-xs):
-            e = 0.
-            
             for j in range(0, ye-ys):
-                e += v2[j+ys] * f[i,j]
+                e[i] += v2[j+ys] * f[i,j]
             
-            E.setValue(i+xs, e*self.grid.hv, addv=PETSc.InsertMode.ADD_VALUES)
-    
+            e[i] *= self.grid.hv
+                
+        E.setValues(np.arange(xs, xe, dtype=np.int32), e, addv=PETSc.InsertMode.ADD_VALUES)
         E.assemble()
         
     
@@ -164,15 +161,14 @@ cdef class Toolbox(object):
         
         (xs, xe), = self.dax.getRanges()
         
-        for i in range(xs, xe):
+        for i in range(0, xe-xs):
             a[i] = n[i] * n[i] / (n[i] * e[i] - u[i] * u[i])
             
 #             try:
 #                 a[i] = n[i] * n[i] / (n[i] * e[i] - u[i] * u[i])
-#                 break
 #             except ZeroDivisionError:
 #                 print("ZeroDivisionError")
-#                 print(i, n[i], u[i], e[i], a[i])
+#                 print(i, n[i], u[i], e[i], a[i], n[i] * e[i], u[i] * u[i], n[i] * e[i] - u[i] * u[i])
             
     
     

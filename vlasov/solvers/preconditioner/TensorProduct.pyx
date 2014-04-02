@@ -237,9 +237,3 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef solve(self, Vec X):
         print("ERROR: function not implemented.")
 
-#     cdef jacobianSolver(self, Vec F, Vec Y):
-#         print("ERROR: function not implemented.")
-# 
-#     cdef functionSolver(self, Vec F, Vec Y):
-#         print("ERROR: function not implemented.")
-
