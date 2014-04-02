@@ -13,6 +13,7 @@ from vlasov.solvers.components.CollisionOperator cimport CollisionOperator
 from vlasov.solvers.components.PoissonBracket    cimport PoissonBracket
 from vlasov.solvers.components.Regularisation    cimport Regularisation
 from vlasov.solvers.components.TimeDerivative    cimport TimeDerivative
+from vlasov.solvers.preconditioner.TensorProduct cimport TensorProductPreconditioner
 
 
 cdef class PETScVlasovSolverBase(object):
@@ -21,6 +22,7 @@ cdef class PETScVlasovSolverBase(object):
     cdef TimeDerivative    time_derivative
     cdef CollisionOperator collision_operator
     cdef Regularisation    regularisation
+    cdef TensorProductPreconditioner preconditioner
     
     cdef double charge
     
@@ -49,6 +51,8 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef Vec Fp
     cdef Vec Fh
+    
+    cdef Vec X
     
     cdef Vec localFave
     cdef Vec localFder

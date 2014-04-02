@@ -76,13 +76,12 @@ class petscVP1Dbase():
             if cfg['solver']['mode'] == 'split':
                 self.vlasov_module += "Vlasov"
         
-            self.vlasov_module += self.cfg['solver']['poisson_bracket']
+#             self.vlasov_module += self.cfg['solver']['poisson_bracket']
         
-            if cfg['solver']['preconditioner_type'] != None and cfg['solver']['preconditioner_scheme'] != None:
-                self.vlasov_module += self.cfg['solver']['preconditioner_scheme']
+#             if cfg['solver']['preconditioner_type'] != None and cfg['solver']['preconditioner_scheme'] != None:
+#                 self.vlasov_module += self.cfg['solver']['preconditioner_scheme']
             
-            if cfg['solver']['timestepping'] != 'mp': 
-                self.vlasov_module += self.cfg['solver']['timestepping'].upper()
+            self.vlasov_module += self.cfg['solver']['timestepping'].upper()
             
             if not cfg.is_dissipation_none:
                 if cfg['solver']['dissipation'] == 'double_bracket':
@@ -99,7 +98,7 @@ class petscVP1Dbase():
             print("Loading Poisson solver %s" % (self.poisson_module))
             print("")
         
-#         self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
+        self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
         self.poisson_object = __import__(self.poisson_module, globals(), locals(), ['PETScPoissonSolver'], 0)
         
         

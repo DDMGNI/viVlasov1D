@@ -71,14 +71,14 @@ if __name__ == '__main__':
         run_script += "_" + cfg['solver']['mode'] 
         run_script += "_" + cfg['solver']['timestepping'] 
     
-        if cfg['solver']['preconditioner_type'] != None:
-            if cfg['solver']['preconditioner_scheme'] != None:
-                run_script += "_pc" 
-                run_script += "_" + cfg['solver']['preconditioner_type']
-            else:  
-                if PETSc.COMM_WORLD.getRank() == 0:
-                    print("ERROR: preconditioner type is set to %s, but preconditioner scheme is not set." % cfg['solver']['preconditioner_type'])
-                sys.exit()
+#         if cfg['solver']['preconditioner_type'] != None:
+#             if cfg['solver']['preconditioner_scheme'] != None:
+#                 run_script += "_pc" 
+#                 run_script += "_" + cfg['solver']['preconditioner_type']
+#             else:  
+#                 if PETSc.COMM_WORLD.getRank() == 0:
+#                     print("ERROR: preconditioner type is set to %s, but preconditioner scheme is not set." % cfg['solver']['preconditioner_type'])
+#                 sys.exit()
             
         if not cfg.is_dissipation_none:
             if cfg['solver']['dissipation'] == 'double_bracket':

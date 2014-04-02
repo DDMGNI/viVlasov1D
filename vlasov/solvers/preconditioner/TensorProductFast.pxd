@@ -18,10 +18,10 @@ from pyfftw.pyfftw          cimport FFTW
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-from vlasov.solvers.preconditioner.TensorProduct cimport PETScVlasovPreconditioner
+from vlasov.solvers.preconditioner.TensorProduct cimport TensorProductPreconditioner
 
 
-cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
+cdef class TensorProductPreconditionerFast(TensorProductPreconditioner):
     
     cdef dcomplex[:,:,:] matrices
     cdef int[:,:] pivots

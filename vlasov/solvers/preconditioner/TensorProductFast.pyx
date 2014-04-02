@@ -19,7 +19,7 @@ from pyfftw.interfaces.scipy_fftpack import fft, ifft
 from petsc4py import PETSc
 
 
-cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
+cdef class TensorProductPreconditionerFast(TensorProductPreconditioner):
     '''
     Implements a variational integrator with second order
     implicit midpoint time-derivative and Arakawa's J4
@@ -27,24 +27,13 @@ cdef class PETScVlasovSolver(PETScVlasovPreconditioner):
     '''
     
     def __init__(self,
-                 config    not None,
                  VIDA da1  not None,
-                 Grid grid not None,
-                 Vec H0  not None,
-                 Vec H1p not None,
-                 Vec H1h not None,
-                 Vec H2p not None,
-                 Vec H2h not None,
-                 double charge=-1.,
-                 double coll_freq=0.,
-                 double coll_diff=1.,
-                 double coll_drag=1.,
-                 double regularisation=0.):
+                 Grid grid not None):
         '''
         Constructor
         '''
         
-        super().__init__(config, da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
+        super().__init__(da1, grid)
         
         cdef int i, j, xs, xe, ys, ye
         

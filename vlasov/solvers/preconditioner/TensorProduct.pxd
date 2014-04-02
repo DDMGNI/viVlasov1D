@@ -9,10 +9,11 @@ from petsc4py.PETSc cimport IS, Scatter, Vec
 from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
-from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
-
-cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
+cdef class TensorProductPreconditioner(object):
+    
+    cdef VIDA da1
+    cdef Grid grid
     
     cdef VIDA dax
     cdef VIDA day
@@ -40,9 +41,6 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef Vec Zfft
     
     
-#     cpdef jacobian(self, Vec F, Vec Y)
-#     cpdef function(self, Vec F, Vec Y)
-
     cdef tensorProduct(self, Vec X, Vec Y)
     
     cdef copy_da1_to_dax(self, Vec X, Vec Y)
@@ -55,6 +53,3 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     cdef ifft(self, Vec X, Vec Y)
 
     cdef solve(self, Vec X)
-    
-#     cdef jacobianSolver(self, Vec F, Vec Y)
-#     cdef functionSolver(self, Vec F, Vec Y)

@@ -12,7 +12,7 @@ cimport numpy as np
 from petsc4py import PETSc
 
 
-cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
+cdef class TensorProductPreconditioner(object):
     '''
     Implements a variational integrator with second order
     implicit midpoint time-derivative and Arakawa's J4
@@ -20,24 +20,15 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
     '''
     
     def __init__(self,
-                 config    not None,
                  VIDA da1  not None,
-                 Grid grid not None,
-                 Vec H0  not None,
-                 Vec H1p not None,
-                 Vec H1h not None,
-                 Vec H2p not None,
-                 Vec H2h not None,
-                 double charge=-1.,
-                 double coll_freq=0.,
-                 double coll_diff=1.,
-                 double coll_drag=1.,
-                 double regularisation=0.):
+                 Grid grid not None):
         '''
         Constructor
         '''
         
-        super().__init__(config, da1, grid, H0, H1p, H1h, H2p, H2h, charge, coll_freq, coll_diff, coll_drag, regularisation)
+        # distributed arrays and grid
+        self.da1  = da1
+        self.grid = grid
         
         # distributed arrays
         self.dax = VIDA().create(dim=2, dof=1,
@@ -158,18 +149,21 @@ cdef class PETScVlasovPreconditioner(PETScVlasovSolverBase):
         self.cay.destroy()
         
     
-    cpdef jacobian(self, Vec F, Vec Y):
-        self.jacobian_solver(F, self.X)
-        self.tensorProduct(self.X, Y)
-#         self.tensorProduct(F, Y)
-    
-    
-    cpdef function(self, Vec F, Vec Y):
-        self.function_solver(F, self.B)
-        self.tensorProduct(self.B, Y)
-#         self.tensorProduct(F, Y)
+    @staticmethod
+    def create(str  type not None,
+               VIDA da1  not None,
+               Grid grid not None):
         
-
+        if type == 'tensorfast':
+            preconditioner_object = __import__("vlasov.solvers.preconditioner.TensorProductFast",  globals(), locals(), ['TensorProductPreconditionerFast'],  0)
+            return preconditioner_object.TensorProductPreconditionerFast(da1, grid)
+        elif type == 'tensorscipy':
+            preconditioner_object = __import__("vlasov.solvers.preconditioner.TensorProductSciPy", globals(), locals(), ['TensorProductPreconditionerSciPy'],  0)
+            return preconditioner_object.TensorProductPreconditionerSciPy(da1, grid)
+        else:
+            return None
+        
+    
     cdef tensorProduct(self, Vec X, Vec Y):
         
         self.copy_da1_to_dax(X, self.F)                  # copy X(da1) to F(dax)

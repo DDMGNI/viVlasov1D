@@ -403,5 +403,90 @@ cdef class PoissonBracketArakawaJ4(PoissonBracket):
     
 
 cdef class PoissonBracketSimpson(PoissonBracket):
-    pass
+
+    cdef void function(self, Vec F, Vec H, Vec Y, double factor):
+        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
+        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        
+        self.poisson_bracket_array(f, h, y, factor)
+
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void poisson_bracket_array(self, double[:,:] x, double[:,:] h, double[:,:] y, double factor):
+        
+        cdef int i, j, ix, iy, jx, jy
+        cdef int xs, xe, ys, ye
+        
+        cdef double bracket, bracket11, bracket12, bracket21, bracket22
+        
+        cdef simpson_factor = factor * self.grid.hx_inv * self.grid.hv_inv / 9.
+        
+        (xs, xe), (ys, ye) = self.da1.getRanges()
+        
+        
+        for j in range(ys, ye):
+            jx = j-ys+self.grid.stencil
+            jy = j-ys
+            
+            if j >= self.grid.stencil and j < self.grid.nv-self.grid.stencil:
+                # Vlasov equation with Dirichlet Boundary Conditions
+                for i in range(xs, xe):
+                    ix = i-xs+self.grid.stencil
+                    iy = i-xs
+            
+                    bracket22 = ( \
+                                  + (x[ix,   jx+2] - x[ix,   jx-2]) * (h[ix-2, jx  ] - h[ix+2, jx  ]) \
+                                  + (x[ix+2, jx  ] - x[ix-2, jx  ]) * (h[ix,   jx+2] - h[ix,   jx-2]) \
+                                  + x[ix,   jx+2] * (h[ix-2, jx+2] - h[ix+2, jx+2]) \
+                                  + x[ix,   jx-2] * (h[ix+2, jx-2] - h[ix-2, jx-2]) \
+                                  + x[ix+2, jx  ] * (h[ix+2, jx+2] - h[ix+2, jx-2]) \
+                                  + x[ix-2, jx  ] * (h[ix-2, jx-2] - h[ix-2, jx+2]) \
+                                  + x[ix+2, jx+2] * (h[ix,   jx+2] - h[ix+2, jx  ]) \
+                                  + x[ix+2, jx-2] * (h[ix+2, jx  ] - h[ix,   jx-2]) \
+                                  + x[ix-2, jx+2] * (h[ix-2, jx  ] - h[ix,   jx+2]) \
+                                  + x[ix-2, jx-2] * (h[ix,   jx-2] - h[ix-2, jx  ]) \
+                                ) / 48.
+                    
+                    bracket12 = ( \
+                                  + (x[ix,   jx+2] - x[ix,   jx-2]) * (h[ix-1, jx  ] - h[ix+1, jx  ]) \
+                                  + (x[ix+1, jx  ] - x[ix-1, jx  ]) * (h[ix,   jx+2] - h[ix,   jx-2]) \
+                                  + x[ix,   jx+2] * (h[ix-1, jx+2] - h[ix+1, jx+2]) \
+                                  + x[ix,   jx-2] * (h[ix+1, jx-2] - h[ix-1, jx-2]) \
+                                  + x[ix+1, jx  ] * (h[ix+1, jx+2] - h[ix+1, jx-2]) \
+                                  + x[ix-1, jx  ] * (h[ix-1, jx-2] - h[ix-1, jx+2]) \
+                                  + x[ix+1, jx+2] * (h[ix,   jx+2] - h[ix+1, jx  ]) \
+                                  + x[ix+1, jx-2] * (h[ix+1, jx  ] - h[ix,   jx-2]) \
+                                  + x[ix-1, jx-2] * (h[ix,   jx-2] - h[ix-1, jx  ]) \
+                                  + x[ix-1, jx+2] * (h[ix-1, jx  ] - h[ix,   jx+2]) \
+                                ) / 24.
+                    
+                    bracket21 = ( \
+                                  + (x[ix,   jx+1] - x[ix,   jx-1]) * (h[ix-2, jx  ] - h[ix+2, jx  ]) \
+                                  + (x[ix+2, jx  ] - x[ix-2, jx  ]) * (h[ix,   jx+1] - h[ix,   jx-1]) \
+                                  + x[ix,   jx+1] * (h[ix-2, jx+1] - h[ix+2, jx+1]) \
+                                  + x[ix,   jx-1] * (h[ix+2, jx-1] - h[ix-2, jx-1]) \
+                                  + x[ix+2, jx  ] * (h[ix+2, jx+1] - h[ix+2, jx-1]) \
+                                  + x[ix-2, jx  ] * (h[ix-2, jx-1] - h[ix-2, jx+1]) \
+                                  + x[ix+2, jx+1] * (h[ix,   jx+1] - h[ix+2, jx  ]) \
+                                  + x[ix+2, jx-1] * (h[ix+2, jx  ] - h[ix,   jx-1]) \
+                                  + x[ix-2, jx+1] * (h[ix-2, jx  ] - h[ix,   jx+1]) \
+                                  + x[ix-2, jx-1] * (h[ix,   jx-1] - h[ix-2, jx  ]) \
+                                ) / 24.
+                    
+                    bracket11 = ( \
+                                  + (x[ix,   jx+1] - x[ix,   jx-1]) * (h[ix-1, jx  ] - h[ix+1, jx  ]) \
+                                  + (x[ix+1, jx  ] - x[ix-1, jx  ]) * (h[ix,   jx+1] - h[ix,   jx-1]) \
+                                  + x[ix,   jx+1] * (h[ix-1, jx+1] - h[ix+1, jx+1]) \
+                                  + x[ix,   jx-1] * (h[ix+1, jx-1] - h[ix-1, jx-1]) \
+                                  + x[ix-1, jx  ] * (h[ix-1, jx-1] - h[ix-1, jx+1]) \
+                                  + x[ix+1, jx  ] * (h[ix+1, jx+1] - h[ix+1, jx-1]) \
+                                  + x[ix+1, jx+1] * (h[ix,   jx+1] - h[ix+1, jx  ]) \
+                                  + x[ix+1, jx-1] * (h[ix+1, jx  ] - h[ix,   jx-1]) \
+                                  + x[ix-1, jx-1] * (h[ix,   jx-1] - h[ix-1, jx  ]) \
+                                  + x[ix-1, jx+1] * (h[ix-1, jx  ] - h[ix,   jx+1]) \
+                                ) / 12.
+                    
+                    y[iy, jy] += ( 25. * bracket11 - 10. * bracket12 - 10. * bracket21 + 4. * bracket22 ) * simpson_factor
 

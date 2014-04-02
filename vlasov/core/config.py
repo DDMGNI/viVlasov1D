@@ -114,6 +114,18 @@ class Config(ConfigObj):
             return self['solver']['averaging_operator'].lower()
     
     
+    def is_preconditioner_none(self):
+        return self['solver']['preconditioner_type']   == None or self['solver']['preconditioner_type'].lower()   == 'none' \
+            or self['solver']['preconditioner_scheme'] == None or self['solver']['preconditioner_scheme'].lower() == 'none'
+    
+    
+    def get_preconditioner(self):
+        if self.is_preconditioner_none():
+            return ''
+        else:
+            return self['solver']['preconditioner_scheme'].lower()
+    
+    
     def is_dissipation_none(self):
         if self['solver']['dissipation_type'] == None or self['solver']['coll_freq'] == 0.:
             return True

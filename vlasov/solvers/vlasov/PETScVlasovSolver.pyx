@@ -12,6 +12,7 @@ from vlasov.solvers.components.CollisionOperator import CollisionOperator
 from vlasov.solvers.components.PoissonBracket    import PoissonBracket
 from vlasov.solvers.components.Regularisation    import Regularisation
 from vlasov.solvers.components.TimeDerivative    import TimeDerivative
+from vlasov.solvers.preconditioner.TensorProduct import TensorProductPreconditioner
 
 
 cdef class PETScVlasovSolverBase(object):
@@ -74,6 +75,9 @@ cdef class PETScVlasovSolverBase(object):
         self.Eh  = None
         self.Ah  = None
         
+        # interim vector
+        self.X   = self.da1.createGlobalVec()
+        
         # create local vectors
         self.localFp  = da1.createLocalVec()
         self.localFh  = da1.createLocalVec()
@@ -88,6 +92,7 @@ cdef class PETScVlasovSolverBase(object):
         self.poisson_bracket    = PoissonBracket.create(config.get_poisson_bracket(), da1, grid)
         self.collision_operator = CollisionOperator.create(config.get_collision_operator(), da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
+        self.preconditioner     = TensorProductPreconditioner.create(config.get_preconditioner(), da1, grid)
         
         
 
@@ -132,11 +137,19 @@ cdef class PETScVlasovSolverBase(object):
         
     
     cpdef jacobian(self, Vec F, Vec Y):
-        self.jacobian_solver(F, Y)
+        if self.preconditioner == None:
+            self.jacobian_solver(F, Y)
+        else:
+            self.jacobian_solver(F, self.X)
+            self.preconditioner.tensorProduct(self.X, Y)
     
     
     cpdef function(self, Vec F, Vec Y):
-        self.function_solver(F, Y)
+        if self.preconditioner == None:
+            self.function_solver(F, Y)
+        else:
+            self.function_solver(F, self.X)
+            self.preconditioner.tensorProduct(self.X, Y)
         
     
     cpdef snes_mult(self, SNES snes, Vec F, Vec Y):
