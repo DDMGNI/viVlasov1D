@@ -77,11 +77,11 @@ cdef class Toolbox(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_density(self, Vec F, Vec N):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe, ys, ye 
-        cdef np.float64_t n
+        cdef int i, j
+        cdef int xs, xe, ye, ys
+        cdef double n
         
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -90,7 +90,7 @@ cdef class Toolbox(object):
         
         for i in range(0, xe-xs):
             n = 0.
-             
+            
             for j in range(0, ye-ys):
                 n += f[i,j]
                 
@@ -102,14 +102,14 @@ cdef class Toolbox(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_velocity_density(self, Vec F, Vec U):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe, ye, ys
-        cdef np.float64_t u
+        cdef int i, j
+        cdef int xs, xe, ye, ys
+        cdef double u
+        
+        cdef double[:]   v = self.grid.v
+        cdef double[:,:] f = self.da1.getGlobalArray(F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
-        
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
         
         U.set(0.)
         U.assemble()
@@ -128,14 +128,14 @@ cdef class Toolbox(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_energy_density(self, Vec F, Vec E):
-        cdef np.uint64_t i, j
-        cdef np.uint64_t xs, xe, ye, ys
-        cdef np.float64_t e
+        cdef int i, j
+        cdef int xs, xe, ye, ys
+        cdef double e
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
-        cdef np.ndarray[np.float64_t, ndim=1] v2 = self.grid.v2
-        cdef np.ndarray[np.float64_t, ndim=2] f  = self.da1.getGlobalArray(F)
+        cdef double[:]   v2 = self.grid.v2
+        cdef double[:,:] f  = self.da1.getGlobalArray(F)
         
         E.set(0.)
         E.assemble()
@@ -154,13 +154,13 @@ cdef class Toolbox(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef compute_collision_factor(self, Vec N, Vec U, Vec E, Vec A):
-        cdef np.uint64_t i
-        cdef np.uint64_t xs, xe
+        cdef int i
+        cdef int xs, xe
         
-        cdef np.ndarray[np.float64_t, ndim=1] n = self.dax.getGlobalArray(N)
-        cdef np.ndarray[np.float64_t, ndim=1] u = self.dax.getGlobalArray(U)
-        cdef np.ndarray[np.float64_t, ndim=1] e = self.dax.getGlobalArray(E)
-        cdef np.ndarray[np.float64_t, ndim=1] a = self.dax.getGlobalArray(A)
+        cdef double[:] n = self.dax.getGlobalArray(N)
+        cdef double[:] u = self.dax.getGlobalArray(U)
+        cdef double[:] e = self.dax.getGlobalArray(E)
+        cdef double[:] a = self.dax.getGlobalArray(A)
         
         (xs, xe), = self.dax.getRanges()
         

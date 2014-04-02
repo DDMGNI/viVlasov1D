@@ -87,7 +87,7 @@ cdef class CollisionOperatorT(CollisionOperator):
         if self.coll_freq != 0. and factor != 0.:
             v = self.grid.v
             n = N.getArray()
-            u = U.getArray()
+            u = U.getArray() / n
             a = A.getArray()
             
             f = self.da1.getLocalArray(F, self.localF)
@@ -104,7 +104,7 @@ cdef class CollisionOperatorT(CollisionOperator):
                         ix = i-xs+self.grid.stencil
                         iy = i-xs
             
-                        coll_drag = ( (v[j+1] - u[i] / n[i]) * f[ix, jx+1] - (v[j-1] - u[i] / n[i]) * f[ix, jx-1] ) * a[i]
+                        coll_drag = ( (v[j+1] - u[i]) * f[ix, jx+1] - (v[j-1] - u[i]) * f[ix, jx-1] ) * a[i]
                         coll_diff = ( f[ix, jx+1] - 2. * f[ix, jx] + f[ix, jx-1] )
                         
                         y[iy, jy] += coll_drag_fac * coll_drag + coll_diff_fac * coll_diff
@@ -124,7 +124,7 @@ cdef class CollisionOperatorT(CollisionOperator):
         if self.coll_freq != 0. and factor != 0.:
             v = self.grid.v
             n = N.getArray()
-            u = U.getArray()
+            u = U.getArray() / n
             a = A.getArray()
         
             (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -145,10 +145,10 @@ cdef class CollisionOperatorT(CollisionOperator):
                         row.index = (i,j)
                     
                         for index, value in [
-                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[i] / n[i] ) * a[i] \
+                                ((i,   j-1), - coll_drag_fac * (v[j-1] - u[i]) * a[i] \
                                              + coll_diff_fac),
                                 ((i,   j  ), - 2. * coll_diff_fac),
-                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[i] / n[i] ) * a[i] \
+                                ((i,   j+1), + coll_drag_fac * (v[j+1] - u[i]) * a[i] \
                                              + coll_diff_fac),
                             ]:
                             
@@ -179,7 +179,7 @@ cdef class CollisionOperatorE(CollisionOperator):
         if self.coll_freq != 0. and factor != 0.:
             v = self.grid.v
             n = N.getArray()
-            u = U.getArray()
+            u = U.getArray() / n
             a = A.getArray()
             
             f = self.da1.getLocalArray(F, self.localF)
@@ -196,7 +196,7 @@ cdef class CollisionOperatorE(CollisionOperator):
                         ix = i-xs+self.grid.stencil
                         iy = i-xs
             
-                        coll_drag = ( (v[j+1] - u[i] / n[i]) * f[ix, jx+1] - (v[j-1] - u[i] / n[i]) * f[ix, jx-1] ) 
+                        coll_drag = (v[j+1] - u[i]) * f[ix, jx+1] - (v[j-1] - u[i]) * f[ix, jx-1]
                         coll_diff = ( f[ix, jx+1] - 2. * f[ix, jx] + f[ix, jx-1] ) / a[i]
                         
                         y[iy, jy] += coll_drag_fac * coll_drag + coll_diff_fac * coll_diff
@@ -217,7 +217,7 @@ cdef class CollisionOperatorE(CollisionOperator):
         if self.coll_freq != 0. and factor != 0.:
             v = self.grid.v
             n = N.getArray()
-            u = U.getArray()
+            u = U.getArray() / n
             a = A.getArray()
         
             (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -238,10 +238,10 @@ cdef class CollisionOperatorE(CollisionOperator):
                         row.index = (i,j)
                     
                         for index, value in [
-                                ((i,   j-1), - coll_drag_fac * ( v[j-1] - u[i] / n[i] ) \
+                                ((i,   j-1), - coll_drag_fac * (v[j-1] - u[i]) \
                                              + coll_diff_fac / a[i]),
                                 ((i,   j  ), - 2. * coll_diff_fac / a[i]),
-                                ((i,   j+1), + coll_drag_fac * ( v[j+1] - u[i] / n[i] ) * a[i] \
+                                ((i,   j+1), + coll_drag_fac * (v[j+1] - u[i]) \
                                              + coll_diff_fac / a[i]),
                             ]:
                             

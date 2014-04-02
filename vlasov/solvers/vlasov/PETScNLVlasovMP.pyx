@@ -52,7 +52,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
         self.time_derivative.function(self.Fder, Y)
         self.poisson_bracket.function(self.Fave, self.Have, Y, 1.0)
-        self.collision_operator.function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
-        self.collision_operator.function(F, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
+        self.collision_operator.function(F,       Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
+        self.collision_operator.function(self.Fh, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
         
         
