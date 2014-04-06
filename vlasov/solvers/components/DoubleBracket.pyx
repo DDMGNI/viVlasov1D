@@ -68,11 +68,11 @@ cdef class DoubleBracketFFH(DoubleBracket):
 
     cdef void jacobian(self, Vec F, Vec Fave, Vec Have, Vec Y, double factor):
         self.bracket.set(0.)
-        self.poisson_bracket.function(Fave, Have, self.bracket, self.coll_freq * factor)
-        self.poisson_bracket.function(F, self.bracket, Y, 0.5)
+        self.poisson_bracket.function(Fave, Have, self.bracket, 1.0)
+        self.poisson_bracket.function(F, self.bracket, Y, self.coll_freq * factor)
         
         self.bracket.set(0.)
-        self.poisson_bracket.function(F, Have, self.bracket, 0.5)
+        self.poisson_bracket.function(F, Have, self.bracket, 1.0)
         self.poisson_bracket.function(Fave, self.bracket, Y, self.coll_freq * factor)
         
         
@@ -87,7 +87,7 @@ cdef class DoubleBracketFHH(DoubleBracket):
     
     cdef void jacobian(self, Vec F, Vec Fave, Vec Have, Vec Y, double factor):
         self.bracket.set(0.)
-        self.poisson_bracket.function(F, Have, self.bracket, 0.5)
+        self.poisson_bracket.function(F, Have, self.bracket, 1.0)
         self.poisson_bracket.function(self.bracket, Have, Y, self.coll_freq * factor)
         
         
