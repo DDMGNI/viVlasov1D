@@ -91,7 +91,7 @@ cdef class PETScVlasovSolverBase(object):
         # create components
         self.time_derivative    = TimeDerivative.create(config.get_averaging_operator(), da1, grid)
         self.poisson_bracket    = PoissonBracket.create(config.get_poisson_bracket(), da1, grid)
-        self.double_bracket     = DoubleBracket.create(config.get_double_bracket(), da1, grid, self.poisson_bracket)
+        self.double_bracket     = DoubleBracket.create(config.get_double_bracket(), da1, grid, self.poisson_bracket, coll_freq)
         self.collision_operator = CollisionOperator.create(config.get_collision_operator(), da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
         self.preconditioner     = TensorProductPreconditioner.create(config.get_preconditioner(), da1, grid)
