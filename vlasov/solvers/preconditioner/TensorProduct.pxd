@@ -38,6 +38,7 @@ cdef class TensorProductPreconditioner(object):
     
     cdef Vec Ffft
     cdef Vec Bfft
+    cdef Vec Cfft
     cdef Vec Zfft
     
     

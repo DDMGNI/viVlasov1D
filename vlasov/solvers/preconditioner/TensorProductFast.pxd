@@ -6,10 +6,9 @@ Created on Jul 10, 2012
 
 cimport numpy as np
 
-from libc.stdint cimport intptr_t
+# from libc.stdint cimport intptr_t
 
 ctypedef np.complex128_t dcomplex
-
 
 from petsc4py.PETSc         cimport Vec
 

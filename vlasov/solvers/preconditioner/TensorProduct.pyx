@@ -68,6 +68,7 @@ cdef class TensorProductPreconditioner(object):
         
         self.Ffft = self.cax.createGlobalVec()
         self.Bfft = self.cay.createGlobalVec()
+        self.Cfft = self.cay.createGlobalVec()
         self.Zfft = self.cax.createGlobalVec()
         
         
@@ -141,6 +142,7 @@ cdef class TensorProductPreconditioner(object):
         
         self.Ffft.destroy()
         self.Bfft.destroy()
+        self.Cfft.destroy()
         self.Zfft.destroy()
         
         self.dax.destroy()
@@ -172,9 +174,9 @@ cdef class TensorProductPreconditioner(object):
         
         self.copy_cax_to_cay(self.Ffft, self.Bfft)       # copy F'(dax) to B'(day)
         
-        self.solve(self.Bfft)                            # solve AC'=B' for each x where C' is saved in B'
+        self.solve(self.Bfft)                            # solve AC'=B' for each x
         
-        self.copy_cay_to_cax(self.Bfft, self.Zfft)       # copy B'(day) to Z'(dax)
+        self.copy_cay_to_cax(self.Bfft, self.Zfft)       # copy C'(day) to Z'(dax)
         
         self.ifft(self.Zfft, self.Z)                     # iFFT Z' for each v
         
