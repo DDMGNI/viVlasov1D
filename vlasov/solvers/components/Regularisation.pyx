@@ -36,22 +36,15 @@ cdef class Regularisation(object):
         # create local vectors
         self.localF = da1.createLocalVec()
         
-        # set regularisation functions
-        if epsilon != 0.:
-            self.call_regularisation_function = &self.regularisation_function
-            self.call_regularisation_jacobian = &self.regularisation_jacobian
-        else:
-            self.call_regularisation_function = NULL
-            self.call_regularisation_jacobian = NULL
             
     
-    cdef void call_function(self, Vec F, Vec Y, double factor):
-        if self.call_regularisation_function != NULL:
+    cdef void function(self, Vec F, Vec Y, double factor):
+        if self.epsilon != 0.:
             self.call_regularisation_function(self, F, Y, factor)
 
     
-    cdef void call_jacobian(self, Mat J, double factor):
-        if self.call_regularisation_jacobian != NULL:
+    cdef void jacobian(self, Mat J, double factor):
+        if self.epsilon != 0.:
             self.call_regularisation_jacobiann(self, J, factor)
 
     

@@ -13,6 +13,13 @@ ext_modules = [
                   library_dirs=LIBRARY_DIRS,
                   runtime_library_dirs=LIBRARY_DIRS
                  ),
+        Extension("DoubleBracket",
+                  sources=["DoubleBracket.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS
+                 ),
         Extension("PoissonBracket",
                   sources=["PoissonBracket.pyx"],
                   include_dirs=INCLUDE_DIRS,

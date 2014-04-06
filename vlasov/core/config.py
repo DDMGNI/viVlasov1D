@@ -154,6 +154,15 @@ class Config(ConfigObj):
             return self['solver']['collision_operator'].lower()
     
     
+    def get_double_bracket(self):
+        if self['solver']['dissipation_type'] == None or self['solver']['coll_freq'] == 0.:
+            return ''
+        elif self['solver']['dissipation_type'].lower() != 'double_bracket': 
+            return ''
+        else:
+            return self['solver']['bracket_operator'].lower()
+    
+    
     def is_regularisation_none(self):
         return self['solver']['regularisation'] == 0.
     

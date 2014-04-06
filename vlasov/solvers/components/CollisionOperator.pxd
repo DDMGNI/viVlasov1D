@@ -13,10 +13,6 @@ from vlasov.toolbox.VIDA cimport VIDA
 from petsc4py.PETSc cimport Mat, Vec
 
 
-ctypedef void (*f_collision_operator)(CollisionOperator, Vec, Vec, Vec, Vec, Vec, Vec, double)
-ctypedef void (*j_collision_operator)(CollisionOperator, Mat, Vec, Vec, Vec, Vec, double)
-
-
 cdef class CollisionOperator(object):
 
     cdef double coll_freq

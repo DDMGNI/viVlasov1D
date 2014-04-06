@@ -10,6 +10,7 @@ from vlasov.core.Grid    cimport Grid
 from vlasov.toolbox.VIDA cimport VIDA
 
 from vlasov.solvers.components.CollisionOperator cimport CollisionOperator
+from vlasov.solvers.components.DoubleBracket     cimport DoubleBracket
 from vlasov.solvers.components.PoissonBracket    cimport PoissonBracket
 from vlasov.solvers.components.Regularisation    cimport Regularisation
 from vlasov.solvers.components.TimeDerivative    cimport TimeDerivative
@@ -20,6 +21,7 @@ cdef class PETScVlasovSolverBase(object):
 
     cdef PoissonBracket    poisson_bracket
     cdef TimeDerivative    time_derivative
+    cdef DoubleBracket     double_bracket
     cdef CollisionOperator collision_operator
     cdef Regularisation    regularisation
     cdef TensorProductPreconditioner preconditioner
