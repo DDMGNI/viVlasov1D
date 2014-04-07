@@ -56,9 +56,11 @@ cdef class PETScVlasovSolverBase(object):
         self.H2p = H2p
         self.H2h = H2h
         
-        # distribution function
+        # distribution function and Hamiltonian
         self.Fp  = self.da1.createGlobalVec()
         self.Fh  = self.da1.createGlobalVec()
+        self.Hp  = self.da1.createGlobalVec()
+        self.Hh  = self.da1.createGlobalVec()
         
         # averages
         self.Fave = self.da1.createGlobalVec()
@@ -136,6 +138,14 @@ cdef class PETScVlasovSolverBase(object):
         self.Have.axpy(.5, self.H1h)
         self.Have.axpy(.5, self.H2p)
         self.Have.axpy(.5, self.H2h)
+        
+        self.H0.copy(self.Hp)
+        self.Hp.axpy(.5, self.H1p)
+        self.Hp.axpy(.5, self.H2p)
+
+        self.H0.copy(self.Hh)
+        self.Hh.axpy(.5, self.H1h)
+        self.Hh.axpy(.5, self.H2h)
         
     
     cpdef jacobian(self, Vec F, Vec Y):

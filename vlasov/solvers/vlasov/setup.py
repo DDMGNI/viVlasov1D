@@ -24,7 +24,17 @@ extensions = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
-              
+        
+        Extension("PETScVlasovMP",
+                  sources=["PETScVlasovMP.pyx"],
+                  include_dirs=INCLUDE_DIRS,
+                  libraries=LIBRARIES,
+                  library_dirs=LIBRARY_DIRS,
+                  runtime_library_dirs=LIBRARY_DIRS,
+                  extra_compile_args=CARGS,
+                  extra_link_args=LARGS
+                 ),
+        
         Extension("PETScNLVlasovMP",
                   sources=["PETScNLVlasovMP.pyx"],
                   include_dirs=INCLUDE_DIRS,
@@ -34,7 +44,7 @@ extensions = [
                   extra_compile_args=CARGS,
                   extra_link_args=LARGS
                  ),
-               
+        
         Extension("PETScNLVlasovArakawaJ4RK2",
                   sources=["PETScNLVlasovArakawaJ4RK2.pyx"],
                   include_dirs=INCLUDE_DIRS,

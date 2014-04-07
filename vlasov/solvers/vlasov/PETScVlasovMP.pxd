@@ -13,9 +13,4 @@ from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 
 
 cdef class PETScVlasovSolver(PETScVlasovSolverBase):
-
-    cdef Vec localH0
-    cdef Vec localH1p
-    cdef Vec localH1h
-    cdef Vec localH2p
-    cdef Vec localH2h
+    pass

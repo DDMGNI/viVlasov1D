@@ -23,7 +23,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         J.zeroEntries()
         
         self.time_derivative.jacobian(J)
-        self.poisson_bracket.jacobian(J, self.Have, 0.5)
+        self.poisson_bracket.jacobian(J, self.Hh, 0.5)
         self.collision_operator.jacobian(J, self.Np, self.Up, self.Ep, self.Ap, 0.5)
         self.regularisation.jacobian(J, 1.0)
         
@@ -34,8 +34,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         Y.set(0.)
         
         self.time_derivative.function(F, Y)
-        self.poisson_bracket.function(F, self.Have, Y, 0.5)
-        self.double_bracket.jacobian (F, self.Fave, self.Have, Y, 0.5)
+        self.poisson_bracket.function(F, self.Hh, Y, 0.5)
+#         self.double_bracket.jacobian(F, self.Fave, self.Have, Y, 0.5)
         self.collision_operator.function(F, Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
         self.regularisation.function(F, Y, 1.0)
         
@@ -52,8 +52,9 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         Y.set(0.)
         
         self.time_derivative.function(self.Fder, Y)
-        self.poisson_bracket.function(self.Fave, self.Have, Y, 1.0)
-        self.double_bracket.function (self.Fave, self.Have, Y, 1.0)
+        self.poisson_bracket.function(F,       self.Hh, Y, 0.5)
+        self.poisson_bracket.function(self.Fh, self.Hp, Y, 0.5)
+#         self.double_bracket.function(self.Fh, self.Hp, Y, 0.5)
         self.collision_operator.function(F,       Y, self.Np, self.Up, self.Ep, self.Ap, 0.5)
         self.collision_operator.function(self.Fh, Y, self.Nh, self.Uh, self.Eh, self.Ah, 0.5)
         

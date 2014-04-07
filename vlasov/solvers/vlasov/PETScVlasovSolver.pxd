@@ -53,6 +53,8 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef Vec Fp
     cdef Vec Fh
+    cdef Vec Hp
+    cdef Vec Hh
     
     cdef Vec X
     
