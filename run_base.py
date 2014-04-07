@@ -732,14 +732,14 @@ class petscVP1Dbase():
         self.hdf5_viewer(self.E)
 
     
-    def initial_guess(self):
+    def initial_guess(self, output=True):
         # backup previous step
         self.fc.copy(self.fl)
         
         # compute norm of previous step
         prev_norm = self.calculate_residual()
         
-        if PETSc.COMM_WORLD.getRank() == 0:
+        if output and PETSc.COMM_WORLD.getRank() == 0:
             print("  Previous Step:                             residual = %24.16E" % (prev_norm))
         
         # calculate initial guess
