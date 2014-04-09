@@ -7,8 +7,8 @@
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /ptmp1/mkraus/petscVlasovPoisson1D/landau_linear_256x512_nu1E-3.out
-#$ -e /ptmp1/mkraus/petscVlasovPoisson1D/landau_linear_256x512_nu1E-3.err
+#$ -o /tokp/scratch/mkraus/viVlasov1D/landau_linear_256x512_nu1E-3.out
+#$ -e /tokp/scratch/mkraus/viVlasov1D/landau_linear_256x512_nu1E-3.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
