@@ -2,13 +2,13 @@
 #
 #$ -cwd
 #
-#$ -l h_rt=01:00:00
+#$ -l h_rt=24:00:00
 #
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/viVlasov1D/twostream_128x256_Arakawa2_Poisson2_DB.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/viVlasov1D/twostream_128x256_Arakawa2_Poisson2_DB.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/viVlasov1D/landau_linear_256x512_nu1E-5.out
+#$ -e /tokp/scratch/mkraus/viVlasov1D/landau_linear_256x512_nu1E-5.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
@@ -19,7 +19,7 @@
 #
 
 
-RUNID=twostream_128x256_Arakawa2_Poisson2_DB
+RUNID=landau_linear_256x512_nu1E-5
 
 
 module load intel/14.0
