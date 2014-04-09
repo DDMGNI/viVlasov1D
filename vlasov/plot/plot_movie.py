@@ -72,7 +72,7 @@ class PlotMovie(object):
             for i in range(len(self.x)):
                 for j in range(len(self.v)):
                     self.fmax[i,j] = np.exp( - 0.5 * self.v[j]**2 )
-            
+        
         
         self.xMin = self.x[0]
         self.xMax = self.x[-1]
@@ -200,8 +200,8 @@ class PlotMovie(object):
         
         
         if self.cMax and self.distribution.fMin != 0. and self.distribution.fMax != 0.:
-            self.fmin = self.distribution.fMin
-            self.fmax = self.distribution.fMax
+            fmin = self.distribution.fMin
+            fmax = self.distribution.fMax
         else:
             if self.deltaf:
                 f  = self.distribution.f  - self.fmax[0:-1, :]
@@ -212,14 +212,14 @@ class PlotMovie(object):
                 f0 = self.distribution.f0
                 fl = self.distribution.fl
             
-            self.fmin = min(fmin, f.min(), f0.min(), fl.min() )
-            self.fmax = max(fmax, f.max(), f0.max(), fl.max() )
-            self.fmax *= self.cFac
+            fmin = min(fmin, f.min(), f0.min(), fl.min() )
+            fmax = max(fmax, f.max(), f0.max(), fl.max() )
+            fmax *= self.cFac
 
-        deltaf = (self.fmax-self.fmin)
+        deltaf = (fmax-fmin)
         
-        self.fnorm  = colors.Normalize(vmin=self.fmin-0.05*deltaf, vmax=self.fmax+0.01*deltaf)
-        self.crange = np.linspace(-0.05*deltaf, self.fmax+0.01*deltaf, 100)
+        self.fnorm  = colors.Normalize(vmin=fmin-0.05*deltaf, vmax=fmax+0.01*deltaf)
+        self.crange = np.linspace(-0.05*deltaf, fmax+0.01*deltaf, 100)
         
     
     def update(self, final=False):
