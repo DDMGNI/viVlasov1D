@@ -89,7 +89,7 @@ class petscVP1Dbase():
 
         
         self.poisson_module  = "vlasov.solvers.poisson.PETScPoisson"
-        self.poisson_module += self.cfg['solver']['poisson_scheme']
+        self.poisson_module += self.cfg['solver']['laplace_operator']
         
         
         # importing solver modules
