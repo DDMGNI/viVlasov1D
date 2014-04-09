@@ -94,15 +94,15 @@ if __name__ == '__main__':
                         help='set lower limit of velocity domain to vmin')
     parser.add_argument('-vmax', metavar='f', type=float, default=None,
                         help='set upper limit of velocity domain to vmax')
-    parser.add_argument('-cmax', metavar='b', type=bool, default=False,
+    parser.add_argument('-cmax', metavar='b', action='store_true', required=False,
                         help='use max values of simulation in contour plots')
     parser.add_argument('-cfac', metavar='f', type=float, default=1.0,
                         help='multiply max value of initial data in contour plots')
     parser.add_argument('-fps', metavar='i', type=int, default=1,
                         help='frames per second')    
-    parser.add_argument('-int', '--interpolate',  action='store_true', required=False,
+    parser.add_argument('-int', '--interpolate', action='store_true', required=False,
                         help='Interpolate distribution function')
-    parser.add_argument('-df', '--deltaf',  action='store_true', required=False,
+    parser.add_argument('-df', '--deltaf', action='store_true', required=False,
                         help='Plot distribution function minus Maxwellian')
     
     args = parser.parse_args()
