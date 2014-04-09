@@ -19,7 +19,7 @@
 #
 
 
-RUNID=landau_linear_256x512_nu8E-4
+RUNID=landau_linear_256x512_nu8E-4_db
 
 
 module load intel/14.0
