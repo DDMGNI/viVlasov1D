@@ -69,9 +69,9 @@ class PlotMovie(object):
         
         if self.deltaf:
             self.fmax = np.zeros_like(self.f)
-            for i in range(len(self.x)):
-                for j in range(len(self.v)):
-                    self.fmax[i,j] = np.exp( - 0.5 * self.v[j]**2 )
+            for j in range(len(self.v)):
+                self.fmax[:,j] = np.exp( - 0.5 * self.v[j]**2 )
+            self.fmax /= self.fmax[0,j].sum() 
         
         
         self.xMin = self.x[0]
