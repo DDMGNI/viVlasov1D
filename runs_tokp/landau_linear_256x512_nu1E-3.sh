@@ -2,8 +2,9 @@
 #
 #$ -cwd
 #
-#$ -l h_cpu=96:00:00
+#$ -l h_rt=24:00:00
 #
+#$ -P  tokp
 #$ -pe impi_hydra 16
 #
 #$ -o /ptmp1/mkraus/petscVlasovPoisson1D/landau_linear_256x512_nu1E-3.out
