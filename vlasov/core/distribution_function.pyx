@@ -88,7 +88,8 @@ class DistributionFunction(object):
         
         self.set_hdf5_file(hdf5)
         
-        self.f0   = hdf5['f'][0,:,:].T
+        self.f0   = hdf5['f'][ 0,:,:].T
+        self.fl   = hdf5['f'][-1,:,:].T
         self.fMin = hdf5['f'][:,:,:].min()
         self.fMax = hdf5['f'][:,:,:].max()
 
