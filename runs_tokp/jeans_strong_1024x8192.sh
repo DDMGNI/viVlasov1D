@@ -7,8 +7,8 @@
 #$ -P  tokp
 #$ -pe impi_hydra 16
 #
-#$ -o /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_1024x8192.$JOB_ID.out
-#$ -e /tokp/scratch/mkraus/petscVlasovPoisson1D/jeans_strong_1024x8192.$JOB_ID.err
+#$ -o /tokp/scratch/mkraus/viVlasov1D/jeans_strong_1024x8192.$JOB_ID.out
+#$ -e /tokp/scratch/mkraus/viVlasov1D/jeans_strong_1024x8192.$JOB_ID.err
 #
 #$ -m e
 #$ -M michael.kraus@ipp.mpg.de
