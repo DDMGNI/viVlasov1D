@@ -205,9 +205,9 @@ class PlotMovie(object):
         else:
             
             if self.deltaf:
-                f  = self.distribution.f  - self.fmax[0:-2, :]
-                f0 = self.distribution.f0 - self.fmax[0:-2, :]
-                fl = self.distribution.fl - self.fmax[0:-2, :]
+                f  = self.distribution.f  - self.fmax[0:-1, :]
+                f0 = self.distribution.f0 - self.fmax[0:-1, :]
+                fl = self.distribution.fl - self.fmax[0:-1, :]
             else:
                 f  = self.distribution.f
                 f0 = self.distribution.f0
