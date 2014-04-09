@@ -71,9 +71,9 @@ class potential(object):
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.09, top=0.94, wspace=0.1, hspace=0.2)
         
         # plot
-        plt.semilogy(self.grid.tGrid, self.energy)
+        plt.semilogy(self.grid.t, self.energy)
         plt.plot(tMax, EMax, 'ro')
-        plt.plot(self.grid.tGrid, np.exp(fit_fn(self.grid.tGrid)), '--k')
+        plt.plot(self.grid.t, np.exp(fit_fn(self.grid.t)), '--k')
         
 #        plt.title("Damping of the Electrostatic Field", fontsize=24)
         plt.xlabel("$t$", labelpad=15, fontsize=22)
