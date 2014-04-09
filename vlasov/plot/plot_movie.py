@@ -71,7 +71,7 @@ class PlotMovie(object):
             self.fmax = np.zeros_like(self.f)
             for j in range(len(self.v)):
                 self.fmax[:,j] = np.exp( - 0.5 * self.v[j]**2 )
-            self.fmax /= self.fmax[0,:].sum() 
+            self.fmax /= self.fmax[0,:].sum() * self.grid.hv
         
         
         self.xMin = self.x[0]
