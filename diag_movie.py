@@ -24,7 +24,7 @@ class movie(object):
     '''
 
 
-    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMin=None, vMax=None, cMax=False, cFac=1.0, interpolate=False):
+    def __init__(self, hdf5_file, ntMax=0, nTime=0, iStart=0, nPlot=1, vMin=None, vMax=None, cMax=False, cFac=1.0, interpolate=False, deltaf=False):
         '''
         Constructor
         '''
@@ -51,7 +51,7 @@ class movie(object):
         
         self.plot = PlotMovie(self.grid, self.distribution, self.hamiltonian, self.potential,
                               nTime=nTime, nPlot=nPlot, ntMax=self.nt,
-                              vMin=vMin, vMax=vMax, cMax=cMax, cFac=cFac, write=True, interpolate=interpolate)
+                              vMin=vMin, vMax=vMax, cMax=cMax, cFac=cFac, write=True, interpolate=interpolate, deltaf=deltaf)
         
     
     def __del__(self):
@@ -102,6 +102,8 @@ if __name__ == '__main__':
                         help='frames per second')    
     parser.add_argument('-int', '--interpolate',  action='store_true', required=False,
                         help='Interpolate distribution function')
+    parser.add_argument('-df', '--deltaf',  action='store_true', required=False,
+                        help='Plot distribution function minus Maxwellian')
     
     args = parser.parse_args()
     
@@ -123,7 +125,7 @@ if __name__ == '__main__':
     print
     
     pyvp = movie(args.hdf5_file, ntMax=args.ntmax, nTime=args.nt, nPlot=args.np,
-                 vMin=vMin, vMax=vMax, cMax=args.cmax, cFac=args.cfac, interpolate=args.interpolate)
+                 vMin=vMin, vMax=vMax, cMax=args.cmax, cFac=args.cfac, interpolate=args.interpolate, deltaf=args.deltaf)
     
     pyvp.run()
     

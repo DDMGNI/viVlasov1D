@@ -19,7 +19,7 @@ class PlotMovie(object):
     classdocs
     '''
 
-    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMin=None, vMax=None, cMax=False, cFac=1.5, write=False, interpolate=False):
+    def __init__(self, grid, distribution, hamiltonian, potential, nTime=0, nPlot=1, ntMax=0, vMin=None, vMax=None, cMax=False, cFac=1.5, write=False, interpolate=False, deltaf=False):
         '''
         Constructor
         '''
@@ -31,6 +31,7 @@ class PlotMovie(object):
         self.hamiltonian  = hamiltonian
         self.potential    = potential
         self.interpolate  = interpolate
+        self.deltaf       = deltaf
         
         self.dpi = 100
         
@@ -43,8 +44,8 @@ class PlotMovie(object):
         else:
             self.nTime = ntMax
         
-        if self.nTime > 20000:
-            self.nTime = 20000
+        if self.nTime > 10000:
+            self.nTime = 10000
         
         
         self.iTime = 0
@@ -65,6 +66,13 @@ class PlotMovie(object):
         self.x[0:-1] = self.grid.x
         self.x[  -1] = self.grid.xMin() + self.grid.xLength()
         self.v       = self.grid.v
+        
+        if self.deltaf:
+            self.fmax = np.zeros_like(self.f)
+            for i in range(len(self.x)):
+                for j in range(len(self.v)):
+                    self.fmax[i,j] = np.exp( - 0.5 * self.v[j]**2 )
+            
         
         self.xMin = self.x[0]
         self.xMax = self.x[-1]
@@ -231,12 +239,23 @@ class PlotMovie(object):
         
         self.axes["f"].cla()
         
-        if self.interpolate:
-            fspl = interp2d(self.x, self.v, self.f.T, kind='cubic')        
-            fint = fspl(self.xint, self.vint) 
-            self.axes["f"].pcolormesh(self.xint, self.vint, fint, norm=self.fnorm)
+        if self.deltaf:
+            f = (self.f - self.fmax).T
         else:
-            self.axes["f"].pcolormesh(self.x, self.v, self.f.T, norm=self.fnorm, shading='gouraud')
+            f = self.f.T
+        
+        if self.interpolate:
+            x = self.xint
+            v = self.vint
+        
+            fspl = interp2d(self.x, self.v, f, kind='linear')
+            f    = fspl(self.xint, self.vint)
+            
+        else:
+            x = self.x
+            v = self.v
+        
+        self.axes["f"].pcolormesh(x, v, f, norm=self.fnorm) # , shading='gouraud')
         
         self.axes["f"].set_xlim((self.xMin, self.xMax))
         self.axes["f"].set_ylim((self.vMin, self.vMax)) 
