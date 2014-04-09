@@ -94,7 +94,7 @@ if __name__ == '__main__':
                         help='set lower limit of velocity domain to vmin')
     parser.add_argument('-vmax', metavar='f', type=float, default=None,
                         help='set upper limit of velocity domain to vmax')
-    parser.add_argument('-cmax', metavar='b', action='store_true', required=False,
+    parser.add_argument('-cmax', action='store_true', required=False,
                         help='use max values of simulation in contour plots')
     parser.add_argument('-cfac', metavar='f', type=float, default=1.0,
                         help='multiply max value of initial data in contour plots')
