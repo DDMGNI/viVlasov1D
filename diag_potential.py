@@ -39,7 +39,7 @@ class potential(object):
         
         for itime in range(0, self.grid.nt+1):
             self.potential.read_from_hdf5(itime)
-            self.energy[itime] = np.sqrt(self.potential.E)
+            self.energy[itime] = np.sqrt(self.potential.charge * self.potential.E)
 
         tMax = []
         EMax = []
@@ -50,7 +50,7 @@ class potential(object):
             itp = (it+1+self.grid.nt+1) % (self.grid.nt+1)
             
             if self.energy[it] > self.energy[itm] and self.energy[it] > self.energy[itp]:
-                tMax.append(self.grid.tGrid[it])
+                tMax.append(self.grid.t[it])
                 EMax.append(self.energy[it])
         
         # fit maxima
