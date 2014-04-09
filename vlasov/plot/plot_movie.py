@@ -195,16 +195,22 @@ class PlotMovie(object):
         
     
     def update_boundaries(self):
-        self.fmin = +1e40
-        self.fmax = -1e40
+        fmin = +1e40
+        fmax = -1e40
         
         
         if self.cMax and self.distribution.fMin != 0. and self.distribution.fMax != 0.:
             self.fmin = self.distribution.fMin
             self.fmax = self.distribution.fMax
         else:
-            self.fmin = min(self.fmin, self.distribution.f.min() )
-            self.fmax = max(self.fmax, self.distribution.f.max() )
+            
+            if self.deltaf:
+                f = self.f - self.fmax
+            else:
+                f = self.f
+            
+            self.fmin = min(fmin, f.min() )
+            self.fmax = max(fmax, f.max() )
             self.fmax *= self.cFac
 
         deltaf = (self.fmax-self.fmin)
