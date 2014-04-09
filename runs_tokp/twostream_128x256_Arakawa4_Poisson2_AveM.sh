@@ -4,7 +4,7 @@
 #
 #$ -l h_rt=01:59:00
 #
-#$ -P  debug
+#$ -P  tokp
 #$ -pe impi_hydra 16
 #
 #$ -o /tokp/scratch/mkraus/viVlasov1D/twostream_128x256_Arakawa4_Poisson2_AveM.$JOB_ID.out
