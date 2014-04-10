@@ -4,7 +4,7 @@ Created on Mar 23, 2012
 @author: Michael Kraus (michael.kraus@ipp.mpg.de)
 '''
 
-import argparse, time
+import argparse, sys, time
 
 from petsc4py import PETSc
 
@@ -156,6 +156,11 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
                         self.calculate_moments(output=False)
                     
                     break
+                
+                if pred_norm > 10.:
+                    if PETSc.COMM_WORLD.getRank() == 0:
+                        print("ERROR: Residual of nonlinear solver too large.")
+                    sys.exit(1)
             
             # save to hdf5
             self.save_to_hdf5(itime)
