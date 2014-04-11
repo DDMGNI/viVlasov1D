@@ -157,10 +157,10 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
                     
                     break
                 
-                if pred_norm > 10.:
-                    if PETSc.COMM_WORLD.getRank() == 0:
-                        print("ERROR: Residual of nonlinear solver too large.")
-                    sys.exit(1)
+            if pred_norm > 10.:
+                if PETSc.COMM_WORLD.getRank() == 0:
+                    print("ERROR: Residual of nonlinear solver too large.")
+                sys.exit(1)
             
             # save to hdf5
             self.save_to_hdf5(itime)

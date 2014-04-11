@@ -149,10 +149,10 @@ class petscVP1Drunscript(petscVP1DbasesplitRK2):
                     
                     break
                 
-                if pred_norm > 10.:
-                    if PETSc.COMM_WORLD.getRank() == 0:
-                        print("ERROR: Residual of nonlinear solver too large.")
-                    sys.exit(1)
+            if pred_norm > 10.:
+                if PETSc.COMM_WORLD.getRank() == 0:
+                    print("ERROR: Residual of nonlinear solver too large.")
+                sys.exit(1)
             
             # compute final distribution function, potential and moments
 #             self.fh.copy(self.f)
