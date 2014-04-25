@@ -97,6 +97,17 @@ class petscVP1Dbase():
             print("Loading Vlasov  solver %s" % (self.vlasov_module))
             print("Loading Poisson solver %s" % (self.poisson_module))
             print("")
+            
+            if not self.cfg.is_preconditioner_none():
+                print("Using Preconditioner %s" % (self.cfg.get_preconditioner()))
+            
+            if not self.cfg.is_dissipation_none():
+                if self.cfg.is_dissipation_collisions():
+                    print("Using Collision Operator %s" % (self.cfg.get_collision_operator()))
+                if self.cfg.is_dissipation_double_bracket():
+                    print("Using Double Bracket %s" % (self.cfg.get_double_bracket()))
+
+            print("")
         
         self.vlasov_object  = __import__(self.vlasov_module,  globals(), locals(), ['PETScVlasovSolver'],  0)
         self.poisson_object = __import__(self.poisson_module, globals(), locals(), ['PETScPoissonSolver'], 0)
