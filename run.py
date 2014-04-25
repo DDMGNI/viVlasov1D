@@ -100,5 +100,5 @@ if __name__ == '__main__':
     
     if args.profiler:
         s = pstats.Stats("profile.prof")
-        s.strip_dirs().sort_stats("time").print_stats()
+        s.strip_dirs().sort_stats("cumulative").print_stats()
     

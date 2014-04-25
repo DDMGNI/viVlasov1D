@@ -187,8 +187,8 @@ cdef class TensorProductPreconditioner(object):
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         
-        cdef np.ndarray[double, ndim=1] x
-        cdef np.ndarray[double, ndim=1] y
+        cdef double[:] x
+        cdef double[:] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()
@@ -204,8 +204,8 @@ cdef class TensorProductPreconditioner(object):
         (xsx, xex), (ysx, yex) = self.dax.getRanges()
         (xs1, xe1), (ys1, ye1) = self.da1.getRanges()
         
-        cdef np.ndarray[double, ndim=1] x
-        cdef np.ndarray[double, ndim=1] y
+        cdef double[:] x
+        cdef double[:] y
         
         if xs1 == xsx and xe1 == xex and ys1 == ysx and ye1 == yex:
             x = X.getArray()

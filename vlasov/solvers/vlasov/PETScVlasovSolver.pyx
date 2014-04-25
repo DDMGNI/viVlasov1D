@@ -182,6 +182,11 @@ cdef class PETScVlasovSolverBase(object):
     
     cpdef function_mult(self, Vec F, Vec Y):
         self.function(F, Y)
+    
+    
+    cpdef double function_norm(self, Vec F, Vec Y):
+        self.function_solver(F, Y)
+        return Y.norm()
         
 
     cdef jacobian_solver(self, Vec F, Vec Y):

@@ -132,6 +132,10 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
             # nonlinear solve
             i = 0
             pred_norm = self.calculate_residual()
+            
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("  Initial Residual:                          residual = %24.16E" % (pred_norm))
+        
             while True:
                 i+=1
                 

@@ -588,8 +588,7 @@ class petscVP1Dbase():
 
     
     def calculate_residual(self):
-        self.vlasov_solver.function_mult(self.fc, self.fb)
-        fnorm = self.fb.norm()
+        fnorm = self.vlasov_solver.function_norm(self.fc, self.fb)
         
         self.poisson_solver.function_mult(self.pc_int, self.N, self.pb)
         pnorm = self.pb.norm()
@@ -744,25 +743,26 @@ class petscVP1Dbase():
 
     
     def initial_guess(self, output=True):
-        # backup previous step
-        self.fc.copy(self.fl)
+        if self.initial_guess_method != self.initial_guess_none:
+            # backup previous step
+            self.fc.copy(self.fl)
+            
+            # compute norm of previous step
+            prev_norm = self.calculate_residual()
+            
+            if output and PETSc.COMM_WORLD.getRank() == 0:
+                print("  Previous Step:                             residual = %24.16E" % (prev_norm))
         
-        # compute norm of previous step
-        prev_norm = self.calculate_residual()
-        
-        if output and PETSc.COMM_WORLD.getRank() == 0:
-            print("  Previous Step:                             residual = %24.16E" % (prev_norm))
-        
-        # calculate initial guess
-        self.initial_guess_method()
-        
-        # check if residual went down
-        ig_norm = self.calculate_residual()
-        
-        # if residual of previous step is smaller then initial guess
-        # copy back previous step
-        if ig_norm > prev_norm:
-            self.fl.copy(self.fc)
+            # calculate initial guess
+            self.initial_guess_method()
+            
+            # check if residual went down
+            ig_norm = self.calculate_residual()
+            
+            # if residual of previous step is smaller then initial guess
+            # copy back previous step
+            if ig_norm > prev_norm:
+                self.fl.copy(self.fc)
     
     
     def initial_guess_none(self):

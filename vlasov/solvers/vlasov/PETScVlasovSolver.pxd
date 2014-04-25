@@ -76,6 +76,7 @@ cdef class PETScVlasovSolverBase(object):
     
     cpdef function_snes_mult(self, SNES snes, Vec F, Vec Y)
     cpdef function_mult(self, Vec F, Vec Y)
+    cpdef double function_norm(self, Vec F, Vec Y)
 
     cdef jacobian_solver(self, Vec F, Vec Y)
     cdef function_solver(self, Vec F, Vec Y)
