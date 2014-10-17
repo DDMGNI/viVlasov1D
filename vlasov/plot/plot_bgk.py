@@ -71,18 +71,38 @@ class PlotBGK(object):
         fj = 0
         hi = 0
         hj = 0
+
+        r1i = 0
+        r1j = 0
+        r2i = 0
+        r2j = 0
         
         for i in range(self.grid.nx):
             for j in range(self.grid.nv):
                 if self.distribution.f[i,j] == fmax:
                     fi = i
                     fj = j
+                
                 if self.hamiltonian.h[i,j] == hmin:
                     hi = i
                     hj = j
         
-        slope = (self.distribution.f[fi,fj] - self.distribution.f[hi,hj]) \
-              / (self.hamiltonian.h[fi,fj]  - self.hamiltonian.h[hi,hj])
+        for i in range(self.grid.nx):
+            for j in range(self.grid.nv):
+                if self.distribution.f[i,j] < 0.26 and self.distribution.f[i,j] > 0.24 and self.hamiltonian.h[i,j] > self.hamiltonian.h[fi,fj]:
+                    r1i = i
+                    r1j = j
+        
+                if self.distribution.f[i,j] < 0.16 and self.distribution.f[i,j] > 0.14 and self.hamiltonian.h[i,j] > self.hamiltonian.h[fi,fj]:
+                    r2i = i
+                    r2j = j
+        
+        
+        slope1 = (self.distribution.f[fi,fj] - self.distribution.f[hi,hj]) \
+               / (self.hamiltonian.h[fi,fj]  - self.hamiltonian.h[hi,hj])
+        
+        slope2 = (self.distribution.f[r1i,r1j] - self.distribution.f[r2i,r2j]) \
+               / (self.hamiltonian.h[r1i,r1j]  - self.hamiltonian.h[r2i,r2j])
         
         print("min(phi):  %16.8E" % np.min(self.hamiltonian.h1))
         print("max(phi):  %16.8E" % np.max(self.hamiltonian.h1))
@@ -96,8 +116,11 @@ class PlotBGK(object):
         print("v(max(f)): %16.8E" % self.grid.v[fj])
         print("h(max(f)): %16.8E" % self.hamiltonian.h[fi,fj])
         print()
-        print("slope:     %16.8E" % slope)
-        print("slope^-1:  %16.8E" % (1./slope))
+        print("lslope:    %16.8E" % slope1)
+        print("lslope^-1: %16.8E" % (1./slope1))
+        print()
+        print("rslope:    %16.8E" % slope2)
+        print("rslope^-1: %16.8E" % (1./slope2))
         print()
         
         print()
@@ -105,6 +128,7 @@ class PlotBGK(object):
         
         
         plt.plot([self.hamiltonian.h[hi,hj], self.hamiltonian.h[fi,fj]], [self.distribution.f[hi,hj], self.distribution.f[fi,fj]], color='r')
+        plt.plot([self.hamiltonian.h[r1i,r1j] - 1., self.hamiltonian.h[r2i,r2j] + 1.5], [self.distribution.f[r1i,r1j] - 1.0 * slope2, self.distribution.f[r2i,r2j] + 1.5 * slope2], color='g')
         
         
         if self.write:
