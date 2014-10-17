@@ -127,9 +127,11 @@ class PlotBGK(object):
         print()
         
         
-        plt.plot([self.hamiltonian.h[hi,hj], self.hamiltonian.h[fi,fj]], [self.distribution.f[hi,hj], self.distribution.f[fi,fj]], color='r')
+        plt.plot([self.hamiltonian.h[hi,hj], self.hamiltonian.h[fi,fj] + 0.5], [self.distribution.f[hi,hj], self.distribution.f[fi,fj] + 0.5 * slope1], color='r')
         plt.plot([self.hamiltonian.h[r1i,r1j] - 1., self.hamiltonian.h[r2i,r2j] + 1.5], [self.distribution.f[r1i,r1j] - 1.0 * slope2, self.distribution.f[r2i,r2j] + 1.5 * slope2], color='g')
         
+        plt.figtext(0.1, 0.6, "%16.8E" % (1./slope1))
+        plt.figtext(0.4, 0.6, "%16.8E" % (1./slope2))
         
         if self.write:
             filename = self.prefix + str('%06d' % (self.iTime)) + '.png'
