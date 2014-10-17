@@ -66,9 +66,9 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    print
+    print()
     print("Replay run with " + args.hdf5_file)
-    print
+    print()
     
     pyvp = movie(args.hdf5_file, iPlot=args.iplot)
     

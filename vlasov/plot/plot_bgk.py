@@ -106,25 +106,25 @@ class PlotBGK(object):
         
         print("min(phi):  %16.8E" % np.min(self.hamiltonian.h1))
         print("max(phi):  %16.8E" % np.max(self.hamiltonian.h1))
-        print
+        print()
         print("min(h):    %16.8E" % hmin)
         print("x(min(h)): %16.8E" % self.grid.x[hi])
         print("v(min(h)): %16.8E" % self.grid.v[hj])
-        print
+        print()
         print("max(f):    %16.8E" % fmax)
         print("x(max(f)): %16.8E" % self.grid.x[fi])
         print("v(max(f)): %16.8E" % self.grid.v[fj])
         print("h(max(f)): %16.8E" % self.hamiltonian.h[fi,fj])
-        print
+        print()
         print("lslope:    %16.8E" % slope1)
         print("lslope^-1: %16.8E" % (1./slope1))
-        print
+        print()
         print("rslope:    %16.8E" % slope2)
         print("rslope^-1: %16.8E" % (1./slope2))
-        print
+        print()
         
-        print
-        print
+        print()
+        print()
         
         
         plt.plot([self.hamiltonian.h[hi,hj], self.hamiltonian.h[fi,fj] + 0.5], [self.distribution.f[hi,hj], self.distribution.f[fi,fj] + 0.5 * slope1], color='r')
