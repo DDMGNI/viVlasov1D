@@ -72,7 +72,3 @@ if __name__ == '__main__':
     
     pyvp = movie(args.hdf5_file, iPlot=args.iplot)
     
-    print
-    print("Replay finished.")
-    print
-    
