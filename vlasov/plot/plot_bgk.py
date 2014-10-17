@@ -57,6 +57,7 @@ class PlotBGK(object):
         plt.ylabel('Distribution Function')
         plt.xlim((-3,+12))
 #        plt.xlim((-5,+35))
+        plt.ylim((-0.05, +0.40))
         
         
         print()
