@@ -79,7 +79,7 @@ class PlotBGK(object):
         
         for i in range(self.grid.nx):
             for j in range(self.grid.nv):
-                if self.distribution.f[i,j] == fmax:
+                if self.distribution.f[i,j] < 0.27 and self.distribution.f[i,j] > 0.22 and self.hamiltonian.h[i,j] < self.hamiltonian.h[fi,fj]:
                     fi = i
                     fj = j
                 
