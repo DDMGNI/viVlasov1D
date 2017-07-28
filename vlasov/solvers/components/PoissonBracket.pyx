@@ -18,8 +18,8 @@ cdef class PoissonBracket(object):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
-                 Grid grid not None):
+                 object da1  not None,
+                 Grid   grid not None):
         '''
         Constructor
         '''
@@ -34,9 +34,9 @@ cdef class PoissonBracket(object):
         
         
     @staticmethod
-    def create(str  type not None,
-               VIDA da1  not None,
-               Grid grid not None):
+    def create(str    type not None,
+               object da1  not None,
+               Grid   grid not None):
         
         if type == 'simpson':
             return PoissonBracketSimpson(da1, grid)
@@ -68,9 +68,9 @@ cdef class PoissonBracket(object):
 cdef class PoissonBracketArakawaJ1(PoissonBracket):
     
     cdef void function(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         self.poisson_bracket_array(f, h, y, factor)
         
@@ -144,7 +144,7 @@ cdef class PoissonBracketArakawaJ1(PoissonBracket):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
         
         cdef double arak_fac_J1 = factor * self.grid.hx_inv * self.grid.hv_inv / 12.
         
@@ -188,9 +188,9 @@ cdef class PoissonBracketArakawaJ1(PoissonBracket):
 cdef class PoissonBracketArakawaJ2(PoissonBracket):
     
     cdef void function(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         self.poisson_bracket_array(f, h, y, factor)
 
@@ -265,7 +265,7 @@ cdef class PoissonBracketArakawaJ2(PoissonBracket):
         cdef int i, j, ix, jx
         cdef int xe, xs, ye, ys
         
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
         
         cdef double arak_fac_J2 = factor * self.grid.hx_inv * self.grid.hv_inv / 24.
         
@@ -313,8 +313,8 @@ cdef class PoissonBracketArakawaJ4(PoissonBracket):
     
     
     def __init__(self,
-                 VIDA da1  not None,
-                 Grid grid not None):
+                 object da1  not None,
+                 Grid   grid not None):
 
         super().__init__(da1, grid)
         
@@ -323,9 +323,9 @@ cdef class PoissonBracketArakawaJ4(PoissonBracket):
     
     
     cdef void function(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         self.poisson_bracket_array(f, h, y, factor)
 
@@ -405,9 +405,9 @@ cdef class PoissonBracketArakawaJ4(PoissonBracket):
 cdef class PoissonBracketSimpson(PoissonBracket):
 
     cdef void function(self, Vec F, Vec H, Vec Y, double factor):
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] h = self.da1.getLocalArray(H, self.localH)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] h = getLocalArray(self.da1, H, self.localH)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         self.poisson_bracket_array(f, h, y, factor)
 

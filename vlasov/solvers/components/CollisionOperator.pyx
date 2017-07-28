@@ -18,7 +18,7 @@ cdef class CollisionOperator(object):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
+                 object da1  not None,
                  Grid grid not None,
                  double coll_freq=0.,
                  double coll_diff=1.,
@@ -41,9 +41,9 @@ cdef class CollisionOperator(object):
         
 
     @staticmethod
-    def create(str  type not None,
-               VIDA da1  not None,
-               Grid grid not None,
+    def create(str    type not None,
+               object da1  not None,
+               Grid   grid not None,
                double coll_freq=0.,
                double coll_diff=1.,
                double coll_drag=1.):
@@ -90,8 +90,8 @@ cdef class CollisionOperatorT(CollisionOperator):
             u = U.getArray() / n
             a = A.getArray()
             
-            f = self.da1.getLocalArray(F, self.localF)
-            y = self.da1.getGlobalArray(Y)
+            f = getLocalArray(self.da1, F, self.localF)
+            y = getGlobalArray(self.da1, Y)
         
             (xs, xe), (ys, ye) = self.da1.getRanges()
             
@@ -182,8 +182,8 @@ cdef class CollisionOperatorE(CollisionOperator):
             u = U.getArray() / n
             a = A.getArray()
             
-            f = self.da1.getLocalArray(F, self.localF)
-            y = self.da1.getGlobalArray(Y)
+            f = getLocalArray(self.da1, F, self.localF)
+            y = getGlobalArray(self.da1, Y)
         
             (xs, xe), (ys, ye) = self.da1.getRanges()
             

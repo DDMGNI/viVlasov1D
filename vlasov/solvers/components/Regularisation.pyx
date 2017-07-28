@@ -18,9 +18,9 @@ cdef class Regularisation(object):
     '''
     
     def __init__(self,
-                 config    not None,
-                 VIDA da1  not None,
-                 Grid grid not None,
+                 config      not None,
+                 object da1  not None,
+                 Grid   grid not None,
                  double epsilon=0.):
         '''
         Constructor
@@ -63,8 +63,8 @@ cdef class Regularisation(object):
         cdef double[:,:] f, y
         
         if self.epsilon > 0.:
-            f = self.da1.getLocalArray(F, self.localF)
-            y = self.da1.getGlobalArray(Y)
+            f = getLocalArray(self.da1, F, self.localF)
+            y = getGlobalArray(self.da1, Y)
         
             (xs, xe), (ys, ye) = self.da1.getRanges()
             

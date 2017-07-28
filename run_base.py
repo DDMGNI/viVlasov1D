@@ -6,6 +6,8 @@ Created on June 05, 2013
 
 import sys, time, datetime
 
+import numpy as np
+
 import h5py
 import petsc4py
 petsc4py.init(sys.argv)
@@ -16,7 +18,7 @@ from vlasov.core.config  import Config
 
 from vlasov.core.Grid    import Grid
 
-from vlasov.toolbox.VIDA    import VIDA
+from vlasov.toolbox.VIDA    import *
 from vlasov.toolbox.Toolbox import Toolbox
 
 from vlasov.solvers.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
@@ -197,25 +199,31 @@ class petscVP1Dbase():
             print("Initialising Distributed Arrays.")
             
         # create DA for 2d grid (f only)
-#         self.da1 = VIDA().create(dim=2, dof=1,
+#         self.da1 = PETSc.DMDA().create(dim=2, dof=1,
+#                                        sizes=[nx, nv],
+#                                        proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
+#                                        boundary_type=['periodic', 'periodic'],
+#                                        stencil_width=stencil,
+#                                        stencil_type='box')
+#         self.da1 = PETSc.DMDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.COMM_WORLD.getSize(), 1],
 #                                        boundary_type=['periodic', 'ghosted'],
 #                                        stencil_width=stencil,
 #                                        stencil_type='box')
-        self.da1 = VIDA().create(dim=2, dof=1,
+        self.da1 = PETSc.DMDA().create(dim=2, dof=1,
                                        sizes=[nx, nv],
                                        proc_sizes=[1, PETSc.COMM_WORLD.getSize()],
                                        boundary_type=['periodic', 'ghosted'],
                                        stencil_width=stencil,
                                        stencil_type='box')
-#         self.da1 = VIDA().create(dim=2, dof=1,
+#         self.da1 = PETSc.DMDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.DECIDE, 2],
 #                                        boundary_type=['periodic', 'ghosted'],
 #                                        stencil_width=stencil,
 #                                        stencil_type='box')
-#         self.da1 = VIDA().create(dim=2, dof=1,
+#         self.da1 = PETSc.DMDA().create(dim=2, dof=1,
 #                                        sizes=[nx, nv],
 #                                        proc_sizes=[PETSc.DECIDE, PETSc.DECIDE],
 #                                        boundary_type=['periodic', 'ghosted'],
@@ -223,7 +231,7 @@ class petscVP1Dbase():
 #                                        stencil_type='box')
         
         # create VIDA for x grid
-        self.dax = VIDA().create(dim=1, dof=1,
+        self.dax = PETSc.DMDA().create(dim=1, dof=1,
                                        sizes=[nx],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('periodic'),
@@ -231,7 +239,7 @@ class petscVP1Dbase():
                                        stencil_type='box')
         
         # create VIDA for y grid
-        self.day = VIDA().create(dim=1, dof=1,
+        self.day = PETSc.DMDA().create(dim=1, dof=1,
                                        sizes=[nv],
                                        proc_sizes=[PETSc.COMM_WORLD.getSize()],
                                        boundary_type=('ghosted'),
@@ -258,7 +266,7 @@ class petscVP1Dbase():
         scatter.begin(coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         scatter.end  (coords_x, xVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
          
-        xGrid = xVec.getValues(range(0, nx)).copy()
+        xGrid = xVec.getValues(range(nx)).copy()
          
         scatter.destroy()
         xVec.destroy()
@@ -269,7 +277,7 @@ class petscVP1Dbase():
         scatter.begin(coords_v, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
         scatter.end  (coords_v, vVec, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
                    
-        vGrid = vVec.getValues(range(0, nv)).copy()
+        vGrid = vVec.getValues(range(nv)).copy()
          
         scatter.destroy()
         vVec.destroy()
@@ -454,6 +462,38 @@ class petscVP1Dbase():
             self.copy_xvec_to_seq(T0, t0)
             self.toolbox.initialise_distribution_nT(self.fc, n0, t0)
             
+            
+        # Fourier Filtering
+        nfourier = cfg['initial_data']['nfourier']
+          
+        if nfourier > 0:
+            from scipy.fftpack import rfft, irfft
+        
+            if PETSc.COMM_WORLD.getRank() == 0:
+                print("Fourier Filtering")
+            
+            # obtain whole f vector everywhere
+            scatter, Xglobal = PETSc.Scatter.toAll(self.fc)
+            
+            scatter.begin(self.fc, Xglobal, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+            scatter.end  (self.fc, Xglobal, PETSc.InsertMode.INSERT, PETSc.ScatterMode.FORWARD)
+            
+            petsc_indices = self.da1.getAO().app2petsc(np.arange(nx*nv, dtype=np.int32))
+            
+            fTmp = Xglobal.getValues(petsc_indices).copy().reshape((nv, nx)).T
+            
+            scatter.destroy()
+            Xglobal.destroy()
+            
+            # filter distribution function
+            fFft = rfft(fTmp, axis=0)
+            fFft[nfourier:,:] = 0.
+            fTmp = irfft(fFft, axis=0)
+            
+            # store filtered distribution function
+            f_arr = self.da1.getVecArray(self.fc)
+            f_arr[:,:] = fTmp[xs:xe, ys:ye]
+
         
         # normalise f
         self.normalise_distribution_function()
@@ -531,11 +571,11 @@ class petscVP1Dbase():
     
     def destroy(self):
         
-        del self.arakawa_rk4
-        del self.arakawa_gear
-        del self.arakawa_symplectic
+#        del self.arakawa_rk4
+#        del self.arakawa_gear
+#        del self.arakawa_symplectic
         
-        del self.toolbox
+#        del self.toolbox
         
         self.hdf5_viewer.destroy()
         
@@ -725,7 +765,7 @@ class petscVP1Dbase():
     def save_to_hdf5(self, itime):
         # save to hdf5 file
         if itime % self.nsave == 0 or itime == self.grid.nt + 1:
-            self.hdf5_viewer.incrementTimestep(1)
+            self.hdf5_viewer.incrementTimestep()
             self.save_hdf5_vectors()
 
 

@@ -67,8 +67,8 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
         
         cdef double nmean = N.sum() / self.nx
         
-        cdef double[:] b = self.dax.getGlobalArray(B)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        cdef double[:] b = getGlobalArray(self.dax, B)
+        cdef double[:] n = getLocalArray(self.dax, N, self.localN)
         
         (xs, xe), = self.dax.getRanges()
         sw        = self.dax.getStencilWidth()
@@ -86,8 +86,8 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
         cdef int i, ix, iy
         cdef int xs, xe, sw
         
-        cdef double[:] y = self.dax.getGlobalArray(Y)
-        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
+        cdef double[:] y = getGlobalArray(self.dax, Y)
+        cdef double[:] x = getLocalArray(self.dax, X, self.localX)
         
         (xs, xe), = self.dax.getRanges()
         sw        = self.dax.getStencilWidth()
@@ -107,9 +107,9 @@ cdef class PETScPoissonSolver(PETScPoissonSolverBase):
         
         cdef double nmean = N.sum() / self.nx
         
-        cdef double[:] y = self.dax.getGlobalArray(Y)
-        cdef double[:] x = self.dax.getLocalArray(X, self.localX)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        cdef double[:] y = getGlobalArray(self.dax, Y)
+        cdef double[:] x = getLocalArray(self.dax, X, self.localX)
+        cdef double[:] n = getLocalArray(self.dax, N, self.localN)
         
         (xs, xe), = self.dax.getRanges()
         sw        = self.dax.getStencilWidth()

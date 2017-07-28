@@ -6,36 +6,34 @@ Created on May 27, 2013
 
 from numpy cimport ndarray, float64_t
 from numpy  import swapaxes
-from petsc4py.PETSc cimport DMDA, Vec
+from petsc4py.PETSc cimport Vec
 
 
-cdef class VIDA(DMDA):
+cdef reshape(object dmda, ndarray vec, bool local):
+    if local:
+        cstarts, csizes = dmda.getGhostCorners()
+    else:
+        cstarts, csizes = dmda.getCorners()
     
-    cdef reshape(self, ndarray vec, bool local):
-        if local:
-            cstarts, csizes = self.getGhostCorners()
-        else:
-            cstarts, csizes = self.getCorners()
-        
 #         xm, ym, zm = csizes
-        
-        dim = self.getDim()
-        dof = self.getDof()
-         
-        shape   = (csizes[0],)
+    
+    dim = dmda.getDim()
+    dof = dmda.getDof()
+     
+    shape   = (csizes[0],)
 #         strides = (dof,)[:dim]
-         
-        if dim > 1: shape += (csizes[1],)
-        if dim > 2: shape += (csizes[2],)
+     
+    if dim > 1: shape += (csizes[1],)
+    if dim > 2: shape += (csizes[2],)
 #         if dof > 1: shape += (dof,)
-        if dof > 1: shape = (dof,) + shape
+    if dof > 1: shape = (dof,) + shape
 
 #         if dim > 1: strides += (dof*xm,)
 #         if dim > 2: strides += (dof*xm*ym,)
 #         if dof > 1: strides += (1,)
 
 #         print (dim, dof, shape, strides)
-        
+    
 #         if dof == 2:
 #             shape1 = (dof,) + shape
 #             shape2 = shape + (dof,)
@@ -47,23 +45,28 @@ cdef class VIDA(DMDA):
 #             
 #             return fvec
 #         else:
-        
-        arr = vec.reshape(shape, order='f')
-        
-        if dof > 1:
-            arr = swapaxes(arr, 0, 1)
-            if dim > 1: arr = swapaxes(arr, 1, 2)
-            if dim > 2: arr = swapaxes(arr, 2, 3)
-        
-        return arr 
+    
+    arr = vec.reshape(shape, order='f')
+    
+    if dof > 1:
+        arr = swapaxes(arr, 0, 1)
+        if dim > 1: arr = swapaxes(arr, 1, 2)
+        if dim > 2: arr = swapaxes(arr, 2, 3)
+    
+    return arr 
 #         return vec.reshape(shape, order='f')
-    
-    
-    cpdef getGlobalArray(self, Vec tvec):
-        return self.reshape(tvec.getArray(), local=False)
-    
-    
-    cpdef getLocalArray(self, Vec gvec, Vec lvec):
-        self.globalToLocal(gvec, lvec)
-        
-        return self.reshape(lvec.getArray(), local=True)
+
+
+cpdef getGlobalArray(object dmda, Vec tvec):
+    return reshape(dmda, tvec.getArray(), local=False)
+
+cpdef getGlobalArrayRO(object dmda, Vec tvec):
+    return reshape(dmda, tvec.getArray(readonly=True).copy(), local=False)
+
+cpdef getLocalArray(object dmda, Vec gvec, Vec lvec):
+    dmda.globalToLocal(gvec, lvec)
+    return reshape(dmda, lvec.getArray(), local=True)
+
+cpdef getLocalArrayRO(object dmda, Vec gvec, Vec lvec):
+    dmda.globalToLocal(gvec, lvec)
+    return reshape(dmda, lvec.getArray(readonly=True).copy(), local=True)

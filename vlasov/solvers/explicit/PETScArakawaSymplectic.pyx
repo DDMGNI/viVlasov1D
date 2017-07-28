@@ -22,7 +22,7 @@ cdef class PETScArakawaSymplectic(object):
     
     def __init__(self, 
                  config    not None,
-                 VIDA da1  not None,
+                 object da1  not None,
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
@@ -65,14 +65,14 @@ cdef class PETScArakawaSymplectic(object):
         cdef np.ndarray[np.float64_t, ndim=2] y
         cdef np.ndarray[np.float64_t, ndim=2] h0
         
-        h0 = self.da1.getLocalArray(self.H0, self.localH0)
-        x  = self.da1.getLocalArray(X,       self.localX)
-        y  = self.da1.getGlobalArray(self.Y)
+        h0 = getLocalArray(self.da1, self.H0, self.localH0)
+        x  = getLocalArray(self.da1, X,       self.localX)
+        y  = getGlobalArray(self.da1, self.Y)
         
         self.arakawa.poisson_bracket_array(x, y, h0, 1.0)
         
-        x  = self.da1.getGlobalArray(X)
-        y  = self.da1.getGlobalArray(self.Y)
+        x  = getGlobalArray(self.da1, X)
+        y  = getGlobalArray(self.da1, self.Y)
         
         x[:,:] += factor * self.grid.ht / float(self.niter) * y
 
@@ -84,15 +84,15 @@ cdef class PETScArakawaSymplectic(object):
         cdef np.ndarray[np.float64_t, ndim=2] h1
         cdef np.ndarray[np.float64_t, ndim=2] h2
         
-        h1 = self.da1.getLocalArray(self.H1, self.localH1)
-        h2 = self.da1.getLocalArray(self.H2, self.localH2)
-        x  = self.da1.getLocalArray(X,       self.localX)
-        y  = self.da1.getGlobalArray(self.Y)
+        h1 = getLocalArray(self.da1, self.H1, self.localH1)
+        h2 = getLocalArray(self.da1, self.H2, self.localH2)
+        x  = getLocalArray(self.da1, X,       self.localX)
+        y  = getGlobalArray(self.da1, self.Y)
         
         self.arakawa.poisson_bracket_array(x, y, h1+h2, 1.0)
         
-        x  = self.da1.getGlobalArray(X)
-        y  = self.da1.getGlobalArray(self.Y)
+        x  = getGlobalArray(self.da1, X)
+        y  = getGlobalArray(self.da1, self.Y)
         
         x[:,:] += factor * self.grid.ht / float(self.niter) * y
 

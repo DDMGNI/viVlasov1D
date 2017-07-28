@@ -86,8 +86,8 @@ class petscVP1DbasesplitRK4(petscVP1Dbasesplit):
     
     def calculate_moments4(self, potential=True, output=True):
         k_arr  = self.da2.getGlobalArray(self.k)
-        k1_arr = self.da1.getGlobalArray(self.k1)
-        k2_arr = self.da1.getGlobalArray(self.k2)
+        k1_arr = getGlobalArray(self.da1, self.k1)
+        k2_arr = getGlobalArray(self.da1, self.k2)
         
         k1_arr[:, :] = k_arr[:, :, 0]
         k2_arr[:, :] = k_arr[:, :, 1]

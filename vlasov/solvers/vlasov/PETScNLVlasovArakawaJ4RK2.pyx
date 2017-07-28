@@ -22,7 +22,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
+                 object da1  not None,
                  Grid grid not None,
                  Vec H0  not None,
                  Vec H1p not None,
@@ -62,7 +62,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec K, Vec Y):
+    cpdef jacobian(self, Vec K, Vec Y):
         cdef int a, i, j
         cdef int ix, iy, jx, jy
         cdef int xe, xs, ye, ys
@@ -75,10 +75,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         K.copy(self.Fave)
         self.Fave.scale(0.5 * self.grid.ht)
         
-        cdef double[:,:] h = self.da1.getLocalArray(self.Have, self.localHave)
-        cdef double[:,:] f = self.da1.getLocalArray(self.Fave, self.localFave)
-        cdef double[:,:] k = self.da1.getLocalArray(K, self.localK)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] h = getLocalArray(self.da1, self.Have, self.localHave)
+        cdef double[:,:] f = getLocalArray(self.da1, self.Fave, self.localFave)
+        cdef double[:,:] k = getLocalArray(self.da1, K, self.localK)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
@@ -137,7 +137,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec K, Vec Y):
+    cpdef function(self, Vec K, Vec Y):
         cdef int a, i, j
         cdef int ix, iy, jx, jy
         cdef int xe, xs, ye, ys
@@ -145,10 +145,10 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         self.Fh.copy(self.Fave)
         self.Fave.axpy(0.5 * self.grid.ht, K)
         
-        cdef double[:,:] h = self.da1.getLocalArray(self.Have, self.localHave)
-        cdef double[:,:] f = self.da1.getLocalArray(self.Fave, self.localFave)
-        cdef double[:,:] k = self.da1.getLocalArray(K, self.localK)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] h = getLocalArray(self.da1, self.Have, self.localHave)
+        cdef double[:,:] f = getLocalArray(self.da1, self.Fave, self.localFave)
+        cdef double[:,:] k = getLocalArray(self.da1, K, self.localK)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         
         (xs, xe), (ys, ye) = self.da1.getRanges()

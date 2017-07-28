@@ -25,34 +25,34 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         cdef np.ndarray[np.float64_t, ndim=2] tx3
         cdef np.ndarray[np.float64_t, ndim=2] tx4
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0, self.localH0)
-        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getLocalArray(self.H1, self.localH1)
-        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getLocalArray(self.H2, self.localH2)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = getLocalArray(self.da1, self.H0, self.localH0)
+        cdef np.ndarray[np.float64_t, ndim=2] h1  = getLocalArray(self.da1, self.H1, self.localH1)
+        cdef np.ndarray[np.float64_t, ndim=2] h2  = getLocalArray(self.da1, self.H2, self.localH2)
 
         cdef np.ndarray[np.float64_t, ndim=2] h   = h0 + h1 + h2
         
         
-        x   = self.da1.getLocalArray(X,       self.localX )
-        tx1 = self.da1.getGlobalArray(self.X1)
+        x   = getLocalArray(self.da1, X,       self.localX )
+        tx1 = getGlobalArray(self.da1, self.X1)
         self.arakawa.poisson_bracket_array(x, tx1, h, 1.0)
         
-        tx1 = self.da1.getLocalArray(self.X1, self.localX1)
-        tx2 = self.da1.getGlobalArray(self.X2)
+        tx1 = getLocalArray(self.da1, self.X1, self.localX1)
+        tx2 = getGlobalArray(self.da1, self.X2)
         self.arakawa.poisson_bracket_array(x + 0.5 * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
-        tx2 = self.da1.getLocalArray(self.X2, self.localX2)
-        tx3 = self.da1.getGlobalArray(self.X3)
+        tx2 = getLocalArray(self.da1, self.X2, self.localX2)
+        tx3 = getGlobalArray(self.da1, self.X3)
         self.arakawa.poisson_bracket_array(x + 0.5 * self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
-        tx3 = self.da1.getLocalArray(self.X3, self.localX3)
-        tx4 = self.da1.getGlobalArray(self.X4)
+        tx3 = getLocalArray(self.da1, self.X3, self.localX3)
+        tx4 = getGlobalArray(self.da1, self.X4)
         self.arakawa.poisson_bracket_array(x + 1.0 * self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
-        x   = self.da1.getGlobalArray(X)
-        tx1 = self.da1.getGlobalArray(self.X1)
-        tx2 = self.da1.getGlobalArray(self.X2)
-        tx3 = self.da1.getGlobalArray(self.X3)
-        tx4 = self.da1.getGlobalArray(self.X4)
+        x   = getGlobalArray(self.da1, X)
+        tx1 = getGlobalArray(self.da1, self.X1)
+        tx2 = getGlobalArray(self.da1, self.X2)
+        tx3 = getGlobalArray(self.da1, self.X3)
+        tx4 = getGlobalArray(self.da1, self.X4)
         
         x[:,:] = x + self.grid.ht / float(self.niter) * (tx1 + 2.*tx2 + 2.*tx3 + tx4) / 6.
         
@@ -66,34 +66,34 @@ cdef class PETScArakawaRungeKutta(PETScExplicitSolver):
         cdef np.ndarray[np.float64_t, ndim=2] tx3
         cdef np.ndarray[np.float64_t, ndim=2] tx4
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0, self.localH0)
-        cdef np.ndarray[np.float64_t, ndim=2] h1  = self.da1.getLocalArray(self.H1, self.localH1)
-        cdef np.ndarray[np.float64_t, ndim=2] h2  = self.da1.getLocalArray(self.H2, self.localH2)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = getLocalArray(self.da1, self.H0, self.localH0)
+        cdef np.ndarray[np.float64_t, ndim=2] h1  = getLocalArray(self.da1, self.H1, self.localH1)
+        cdef np.ndarray[np.float64_t, ndim=2] h2  = getLocalArray(self.da1, self.H2, self.localH2)
 
         cdef np.ndarray[np.float64_t, ndim=2] h   = h0 + h1 + h2
         
         
-        x   = self.da1.getLocalArray(X,       self.localX )
-        tx1 = self.da1.getGlobalArray(self.X1)
+        x   = getLocalArray(self.da1, X,       self.localX )
+        tx1 = getGlobalArray(self.da1, self.X1)
         self.arakawa.poisson_bracket_array(x, tx1, h, 1.0)
         
-        tx1 = self.da1.getLocalArray(self.X1, self.localX1)
-        tx2 = self.da1.getGlobalArray(self.X2)
+        tx1 = getLocalArray(self.da1, self.X1, self.localX1)
+        tx2 = getGlobalArray(self.da1, self.X2)
         self.arakawa.poisson_bracket_array(x + 1./3. * self.grid.ht / float(self.niter) * tx1, tx2, h, 1.0)
         
-        tx2 = self.da1.getLocalArray(self.X2, self.localX2)
-        tx3 = self.da1.getGlobalArray(self.X3)
+        tx2 = getLocalArray(self.da1, self.X2, self.localX2)
+        tx3 = getGlobalArray(self.da1, self.X3)
         self.arakawa.poisson_bracket_array(x - 1./3. * self.grid.ht / float(self.niter) * tx1 + self.grid.ht / float(self.niter) * tx2, tx3, h, 1.0)
         
-        tx3 = self.da1.getLocalArray(self.X3, self.localX3)
-        tx4 = self.da1.getGlobalArray(self.X4)
+        tx3 = getLocalArray(self.da1, self.X3, self.localX3)
+        tx4 = getGlobalArray(self.da1, self.X4)
         self.arakawa.poisson_bracket_array(x + self.grid.ht / float(self.niter) * tx1 - self.grid.ht / float(self.niter) * tx2 + self.grid.ht / float(self.niter) * tx3, tx4, h, 1.0)
         
-        x   = self.da1.getGlobalArray(X)
-        tx1 = self.da1.getGlobalArray(self.X1)
-        tx2 = self.da1.getGlobalArray(self.X2)
-        tx3 = self.da1.getGlobalArray(self.X3)
-        tx4 = self.da1.getGlobalArray(self.X4)
+        x   = getGlobalArray(self.da1, X)
+        tx1 = getGlobalArray(self.da1, self.X1)
+        tx2 = getGlobalArray(self.da1, self.X2)
+        tx3 = getGlobalArray(self.da1, self.X3)
+        tx4 = getGlobalArray(self.da1, self.X4)
         
         x[:,:] = x + self.grid.ht / float(self.niter) * (tx1 + 3.*tx2 + 3.*tx3 + tx4) / 8.
         

@@ -66,8 +66,8 @@ class petscVP1DbasesplitDB(petscVP1Dbasesplit):
         
     def calculate_moments_db(self, potential=True, output=True):
         k_arr = self.da2.getGlobalArray(self.k)
-        f_arr = self.da1.getGlobalArray(self.fc)
-        g_arr = self.da1.getGlobalArray(self.gc)
+        f_arr = getGlobalArray(self.da1, self.fc)
+        g_arr = getGlobalArray(self.da1, self.gc)
         
         f_arr[:, :] = k_arr[:, :, 0]
         g_arr[:, :] = k_arr[:, :, 1]

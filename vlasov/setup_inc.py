@@ -15,14 +15,8 @@ from os.path import join, isdir
 INCLUDE_DIRS = [os.curdir]
 LIBRARY_DIRS = []
 LIBRARIES    = []
-CARGS        = ['-O3','-axavx', '-std=c99']
+CARGS        = ['-O3', '-axavx', '-march=corei7-avx', '-std=c99', '-Wno-unused-function', '-Wno-unneeded-internal-declaration'] 
 LARGS        = []
-
-
-# MacPorts
-if isdir('/opt/local'):
-    INCLUDE_DIRS += ['/opt/local/include']
-    LIBRARY_DIRS += ['/opt/local/lib']
 
 
 # FFTW
@@ -67,11 +61,11 @@ if isdir(IMPI_DIR):
     INCLUDE_DIRS += [join(IMPI_DIR, 'include')]
     LIBRARY_DIRS += [join(IMPI_DIR, 'lib')]
 
-# OpenMPI
-if isdir('/opt/local/include/openmpi-gcc48'):
-    INCLUDE_DIRS += ['/opt/local/include/openmpi-gcc48']
-if isdir('/opt/local/lib/openmpi-gcc48'):
-    LIBRARY_DIRS += ['/opt/local/lib/openmpi-gcc48']
+# MacPorts OpenMPI
+if isdir('/opt/local/include/openmpi-gcc6'):
+    INCLUDE_DIRS += ['/opt/local/include/openmpi-gcc6']
+if isdir('/opt/local/lib/openmpi-gcc6'):
+    LIBRARY_DIRS += ['/opt/local/lib/openmpi-gcc6']
 
 # MPI library
 LIBRARIES    += ['mpi']

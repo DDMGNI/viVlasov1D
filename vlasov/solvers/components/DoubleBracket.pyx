@@ -18,8 +18,8 @@ cdef class DoubleBracket(object):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
-                 Grid grid not None,
+                 object da1  not None,
+                 Grid   grid not None,
                  PoissonBracket poisson_bracket not None,
                  double coll_freq=0.):
         '''
@@ -41,9 +41,9 @@ cdef class DoubleBracket(object):
         
 
     @staticmethod
-    def create(str  type not None,
-               VIDA da1  not None,
-               Grid grid not None,
+    def create(str    type not None,
+               object da1  not None,
+               Grid   grid not None,
                PoissonBracket poisson_bracket not None,
                double coll_freq=0.):
         

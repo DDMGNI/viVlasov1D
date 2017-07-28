@@ -25,14 +25,16 @@ cdef class PETScVlasovSolverBase(object):
     '''
     
     def __init__(self,
-                 config    not None,
-                 VIDA da1  not None,
-                 Grid grid not None,
+                 config      not None,
+                 object da1  not None,
+                 object daph not None,
+                 Grid   grid not None,
                  Vec H0  not None,
                  Vec H1p not None,
                  Vec H1h not None,
                  Vec H2p not None,
                  Vec H2h not None,
+                 Vec phi not None,
                  double charge=-1.,
                  double coll_freq=0.,
                  double coll_diff=1.,
@@ -55,6 +57,9 @@ cdef class PETScVlasovSolverBase(object):
         self.H1h = H1h
         self.H2p = H2p
         self.H2h = H2h
+        
+        # potential
+        self.phi = phi
         
         # distribution function and Hamiltonian
         self.Fp  = self.da1.createGlobalVec()
@@ -96,7 +101,7 @@ cdef class PETScVlasovSolverBase(object):
         self.double_bracket     = DoubleBracket.create(config.get_double_bracket(), da1, grid, self.poisson_bracket, coll_freq)
         self.collision_operator = CollisionOperator.create(config.get_collision_operator(), da1, grid, coll_freq, coll_diff, coll_drag)
         self.regularisation     = Regularisation(config, da1, grid, regularisation)
-        self.preconditioner     = TensorProductPreconditioner.create(config.get_preconditioner(), da1, grid)
+        self.preconditioner     = TensorProductPreconditioner.create(config.get_preconditioner(), da1, daph, grid, phi)
         
         
 
@@ -129,6 +134,10 @@ cdef class PETScVlasovSolverBase(object):
     
     def update_history(self, Vec F):
         F.copy(self.Fh)
+    
+        if self.preconditioner != None:
+            self.preconditioner.update_matrices()
+    
     
     def update_previous(self, Vec F):
         F.copy(self.Fp)

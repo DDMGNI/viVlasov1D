@@ -8,7 +8,7 @@ cimport cython
 cimport numpy as np
 
 from vlasov.core.Grid cimport Grid
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 
 from petsc4py.PETSc cimport Mat, Vec
 
@@ -17,7 +17,7 @@ cdef class Regularisation(object):
 
     cdef double epsilon
     
-    cdef VIDA da1
+    cdef object da1
     cdef Grid grid
     
     cdef Vec localF

@@ -328,7 +328,7 @@ class PlotTimetraces(object):
 #
 #        self.conts["f"] = self.axes["f"].contourf(xint, vint, fint, 100, norm=self.fnorm, extend='neither')
 
-        fint = gaussian_filter(self.distribution.f.T, sigma=1.0, order=0)
+#         fint = gaussian_filter(self.distribution.f.T, sigma=1.0, order=0)
 
         self.conts["f"] = self.axes["f"].contourf(self.grid.x, self.grid.v, self.distribution.f.T, 100, norm=self.fnorm, extend='neither')
 

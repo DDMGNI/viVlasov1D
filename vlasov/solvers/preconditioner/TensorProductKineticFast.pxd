@@ -6,28 +6,21 @@ Created on Jul 10, 2012
 
 cimport numpy as np
 
-# from libc.stdint cimport intptr_t
-
-ctypedef np.complex128_t dcomplex
-
 from petsc4py.PETSc         cimport Vec
 
-from pyfftw.pyfftw          cimport FFTW
-
 from vlasov.core.Grid    cimport Grid
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 
-from vlasov.solvers.preconditioner.TensorProduct cimport TensorProductPreconditioner
+from vlasov.solvers.preconditioner.TensorProduct        cimport *
+from vlasov.solvers.preconditioner.TensorProductKinetic cimport TensorProductPreconditionerKinetic
 
 
-cdef class TensorProductPreconditionerFast(TensorProductPreconditioner):
+cdef class TensorProductPreconditionerKineticFast(TensorProductPreconditionerKinetic):
     
-    cdef dcomplex[:,:,:] matrices
+    cdef object fftw_plan
+    cdef object ifftw_plan
+    
     cdef int[:,:] pivots
-    
-    cdef FFTW fftw_plan
-    cdef FFTW ifftw_plan
-    
     
     cdef int M
     cdef int N
@@ -45,12 +38,12 @@ cdef class TensorProductPreconditionerFast(TensorProductPreconditioner):
     cdef formBandedPreconditionerMatrix(self, dcomplex[:,:] matrix, dcomplex eigen)
     
 
-cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, double complex* A, int* LDA, int* IPIV, int* INFO)
-cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, double complex* A, int* LDA, int* IPIV, double complex* B, int* LDB, int* INFO)
+cdef extern void zgbtrf(int* M, int* N, int* KL, int* KU, dcomplex* A, int* LDA, int* IPIV, int* INFO)
+cdef extern void zgbtrs(char* TRANS, int* N, int* KL, int* KU, int* NRHS, dcomplex* A, int* LDA, int* IPIV, dcomplex* B, int* LDB, int* INFO)
 
 
-cdef extern from 'pyfftw_complex.h':
-    ctypedef double cdouble[2]
+# cdef extern from 'pyfftw_complex.h':
+#     ctypedef double cdouble[2]
 
 cdef extern from 'fftw3.h':
     ctypedef struct fftw_plan_struct:

@@ -22,8 +22,8 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     '''
     
     def __init__(self,
-                 VIDA da2  not None,
-                 VIDA da1  not None,
+                 object da2  not None,
+                 object da1  not None,
                  Grid grid not None,
                  Vec H0  not None,
                  Vec H1p not None,
@@ -81,11 +81,11 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         
     
     cpdef update_previous4(self):
-        cdef np.ndarray[double, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0)
-        cdef np.ndarray[double, ndim=2] h11 = self.da1.getLocalArray(self.H11, self.localH11)
-        cdef np.ndarray[double, ndim=2] h12 = self.da1.getLocalArray(self.H12, self.localH12)
-        cdef np.ndarray[double, ndim=2] h21 = self.da1.getLocalArray(self.H21, self.localH21)
-        cdef np.ndarray[double, ndim=2] h22 = self.da1.getLocalArray(self.H22, self.localH22)
+        cdef np.ndarray[double, ndim=2] h0  = getLocalArray(self.da1, self.H0,  self.localH0)
+        cdef np.ndarray[double, ndim=2] h11 = getLocalArray(self.da1, self.H11, self.localH11)
+        cdef np.ndarray[double, ndim=2] h12 = getLocalArray(self.da1, self.H12, self.localH12)
+        cdef np.ndarray[double, ndim=2] h21 = getLocalArray(self.da1, self.H21, self.localH21)
+        cdef np.ndarray[double, ndim=2] h22 = getLocalArray(self.da1, self.H22, self.localH22)
         
         self.h_arr[:,:,0] = h0[:,:] + h11[:,:] + h21[:,:]  
         self.h_arr[:,:,1] = h0[:,:] + h12[:,:] + h22[:,:]  
@@ -94,7 +94,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def jacobian(self, Vec K, Vec Y):
+    cpdef jacobian(self, Vec K, Vec Y):
         cdef int a, i, j
         cdef int ix, iy, jx, jy
         cdef int xe, xs, ye, ys
@@ -169,7 +169,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def function(self, Vec K, Vec Y):
+    cpdef function(self, Vec K, Vec Y):
         cdef int a, i, j
         cdef int ix, iy, jx, jy
         cdef int xe, xs, ye, ys
@@ -179,7 +179,7 @@ cdef class PETScVlasovSolver(PETScVlasovSolverBase):
         cdef double result_J1, result_J2, result_J4, poisson
         
         cdef np.ndarray[double, ndim=3] k_arr = self.da2.getLocalArray(K, self.localK)
-        cdef np.ndarray[double, ndim=2] fh    = self.da1.getLocalArray(self.Fh, self.localFh)
+        cdef np.ndarray[double, ndim=2] fh    = getLocalArray(self.da1, self.Fh, self.localFh)
         
         self.f_arr[:,:,0] = fh[:,:] + self.grid.ht * self.a11 * k_arr[:,:,0] + self.grid.ht * self.a12 * k_arr[:,:,1]
         self.f_arr[:,:,1] = fh[:,:] + self.grid.ht * self.a21 * k_arr[:,:,0] + self.grid.ht * self.a22 * k_arr[:,:,1]

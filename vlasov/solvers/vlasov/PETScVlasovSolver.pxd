@@ -7,7 +7,7 @@ Created on June 05, 2013
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
 from vlasov.core.Grid    cimport Grid
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 
 from vlasov.solvers.components.CollisionOperator cimport CollisionOperator
 from vlasov.solvers.components.DoubleBracket     cimport DoubleBracket
@@ -28,7 +28,7 @@ cdef class PETScVlasovSolverBase(object):
     
     cdef double charge
     
-    cdef VIDA da1
+    cdef object da1
     cdef Grid grid
     
     cdef Vec H0
@@ -36,6 +36,8 @@ cdef class PETScVlasovSolverBase(object):
     cdef Vec H1h
     cdef Vec H2p
     cdef Vec H2h
+    
+    cdef Vec phi
     
     cdef Vec Np
     cdef Vec Up

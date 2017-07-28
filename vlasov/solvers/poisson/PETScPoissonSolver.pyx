@@ -20,7 +20,7 @@ cdef class PETScPoissonSolverBase(object):
     
     '''
     
-    def __init__(self, VIDA dax, 
+    def __init__(self, object dax, 
                  np.uint64_t nx, np.float64_t hx,
                  np.float64_t charge):
         '''
@@ -61,8 +61,8 @@ cdef class PETScPoissonSolverBase(object):
         
         cdef double nmean = N.sum() / self.nx
         
-        cdef double[:] b = self.dax.getGlobalArray(B)
-        cdef double[:] n = self.dax.getLocalArray(N, self.localN)
+        cdef double[:] b = getGlobalArray(self.dax, B)
+        cdef double[:] n = getLocalArray(self.dax, N, self.localN)
         
         (xs, xe), = self.dax.getRanges()
         sw        = self.dax.getStencilWidth()

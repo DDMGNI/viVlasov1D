@@ -23,9 +23,9 @@ cdef class PETScFullSolverBase(object):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
-                 VIDA da2  not None,
-                 VIDA dax  not None,
+                 object da1  not None,
+                 object da2  not None,
+                 object dax  not None,
                  Grid grid not None,
                  Vec H0  not None,
                  Vec H1p not None,
@@ -223,34 +223,34 @@ cdef class PETScFullSolverBase(object):
         
     
     cdef get_data_arrays(self):
-        self.h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        self.h1p = self.da1.getLocalArray(self.H1p, self.localH1p)
-        self.h1h = self.da1.getLocalArray(self.H1h, self.localH1h)
-        self.h1d = self.da1.getLocalArray(self.H1d, self.localH1d)
-        self.h2p = self.da1.getLocalArray(self.H2p, self.localH2p)
-        self.h2h = self.da1.getLocalArray(self.H2h, self.localH2h)
+        self.h0  = getLocalArray(self.da1, self.H0,  self.localH0 )
+        self.h1p = getLocalArray(self.da1, self.H1p, self.localH1p)
+        self.h1h = getLocalArray(self.da1, self.H1h, self.localH1h)
+        self.h1d = getLocalArray(self.da1, self.H1d, self.localH1d)
+        self.h2p = getLocalArray(self.da1, self.H2p, self.localH2p)
+        self.h2h = getLocalArray(self.da1, self.H2h, self.localH2h)
         
-        self.fp  = self.da1.getLocalArray(self.Fp,  self.localFp)
-        self.pp  = self.dax.getLocalArray(self.Pp,  self.localPp)
-        self.np  = self.dax.getLocalArray(self.Np,  self.localNp)
-        self.up  = self.dax.getLocalArray(self.Up,  self.localUp)
-        self.ep  = self.dax.getLocalArray(self.Ep,  self.localEp)
-        self.ap  = self.dax.getLocalArray(self.Ap,  self.localAp)
+        self.fp  = getLocalArray(self.da1, self.Fp,  self.localFp)
+        self.pp  = getLocalArray(self.dax, self.Pp,  self.localPp)
+        self.np  = getLocalArray(self.dax, self.Np,  self.localNp)
+        self.up  = getLocalArray(self.dax, self.Up,  self.localUp)
+        self.ep  = getLocalArray(self.dax, self.Ep,  self.localEp)
+        self.ap  = getLocalArray(self.dax, self.Ap,  self.localAp)
         
-        self.fh  = self.da1.getLocalArray(self.Fh,  self.localFh)
-        self.ph  = self.dax.getLocalArray(self.Ph,  self.localPh)
-        self.nh  = self.dax.getLocalArray(self.Nh,  self.localNh)
-        self.uh  = self.dax.getLocalArray(self.Uh,  self.localUh)
-        self.eh  = self.dax.getLocalArray(self.Eh,  self.localEh)
-        self.ah  = self.dax.getLocalArray(self.Ah,  self.localAh)
+        self.fh  = getLocalArray(self.da1, self.Fh,  self.localFh)
+        self.ph  = getLocalArray(self.dax, self.Ph,  self.localPh)
+        self.nh  = getLocalArray(self.dax, self.Nh,  self.localNh)
+        self.uh  = getLocalArray(self.dax, self.Uh,  self.localUh)
+        self.eh  = getLocalArray(self.dax, self.Eh,  self.localEh)
+        self.ah  = getLocalArray(self.dax, self.Ah,  self.localAh)
         
-        self.fd  = self.da1.getLocalArray(self.Fd,  self.localFd)
-        self.pd  = self.dax.getLocalArray(self.Pd,  self.localPd)
-        self.nd  = self.dax.getLocalArray(self.Nd,  self.localNd)
-        self.ud  = self.dax.getLocalArray(self.Ud,  self.localUd)
-        self.ed  = self.dax.getLocalArray(self.Ed,  self.localEd)
-        self.ad  = self.dax.getLocalArray(self.Ad,  self.localAd)
+        self.fd  = getLocalArray(self.da1, self.Fd,  self.localFd)
+        self.pd  = getLocalArray(self.dax, self.Pd,  self.localPd)
+        self.nd  = getLocalArray(self.dax, self.Nd,  self.localNd)
+        self.ud  = getLocalArray(self.dax, self.Ud,  self.localUd)
+        self.ed  = getLocalArray(self.dax, self.Ed,  self.localEd)
+        self.ad  = getLocalArray(self.dax, self.Ad,  self.localAd)
         
-        self.nc  = self.dax.getLocalArray(self.Nc,  self.localNc)
-        self.uc  = self.dax.getLocalArray(self.Uc,  self.localUc)
-        self.ec  = self.dax.getLocalArray(self.Ec,  self.localEc)
+        self.nc  = getLocalArray(self.dax, self.Nc,  self.localNc)
+        self.uc  = getLocalArray(self.dax, self.Uc,  self.localUc)
+        self.ec  = getLocalArray(self.dax, self.Ec,  self.localEc)

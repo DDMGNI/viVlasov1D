@@ -9,7 +9,7 @@ cimport numpy as npy
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
 from vlasov.core.Grid    cimport Grid
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 from vlasov.toolbox.Toolbox cimport Toolbox
 
 
@@ -21,9 +21,9 @@ cdef class PETScFullSolverBase(object):
     cdef npy.float64_t coll_drag
     cdef npy.float64_t regularisation
     
-    cdef VIDA dax
-    cdef VIDA da1
-    cdef VIDA da2
+    cdef object dax
+    cdef object da1
+    cdef object da2
     cdef Grid grid
     
     cdef Vec H0

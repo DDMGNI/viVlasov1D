@@ -9,7 +9,7 @@ cimport numpy as np
 from petsc4py.PETSc cimport SNES, Mat, Vec
 
 from vlasov.core.Grid    cimport Grid
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 
 from vlasov.solvers.vlasov.PETScVlasovSolver cimport PETScVlasovSolverBase
 

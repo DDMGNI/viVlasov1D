@@ -20,9 +20,9 @@ cdef class Toolbox(object):
     '''
     
     def __cinit__(self,
-                 VIDA da1  not None,
-                 VIDA dax  not None,
-                 Grid grid not None):
+                 object da1  not None,
+                 object dax  not None,
+                 Grid   grid not None):
         '''
         Constructor
         '''
@@ -40,7 +40,7 @@ cdef class Toolbox(object):
         cdef np.uint64_t pxs, pxe, hxs, hxe, hys, hye
         cdef np.float64_t phisum, phiave
         
-        cdef np.ndarray[np.float64_t, ndim=2] h = self.da1.getGlobalArray(H)
+        cdef np.ndarray[np.float64_t, ndim=2] h = getGlobalArray(self.da1, H)
         cdef np.ndarray[np.float64_t, ndim=1] p
         cdef np.ndarray[np.float64_t, ndim=1] p0
         
@@ -52,7 +52,7 @@ cdef class Toolbox(object):
         p0     = np.empty(hxe-hxs)
         
         if pxs == hxs and pxe == hxe:
-            p  = self.dax.getGlobalArray(P)
+            p  = getGlobalArray(self.dax, P)
             p0 = p - phiave
             
             for j in range(0, hye-hys):
@@ -83,7 +83,7 @@ cdef class Toolbox(object):
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
         cdef double[:]   n = np.zeros(xe-xs)
-        cdef double[:,:] f = self.da1.getGlobalArray(F)
+        cdef double[:,:] f = getGlobalArray(self.da1, F)
         
         N.set(0.)
         N.assemble()
@@ -108,7 +108,7 @@ cdef class Toolbox(object):
         
         cdef double[:]   u = np.zeros(xe-xs)
         cdef double[:]   v = self.grid.v
-        cdef double[:,:] f = self.da1.getGlobalArray(F)
+        cdef double[:,:] f = getGlobalArray(self.da1, F)
         
         U.set(0.)
         U.assemble()
@@ -133,7 +133,7 @@ cdef class Toolbox(object):
         
         cdef double[:]   e  = np.zeros(xe-xs)
         cdef double[:]   v2 = self.grid.v2
-        cdef double[:,:] f  = self.da1.getGlobalArray(F)
+        cdef double[:,:] f  = getGlobalArray(self.da1, F)
         
         E.set(0.)
         E.assemble()
@@ -154,10 +154,10 @@ cdef class Toolbox(object):
         cdef int i
         cdef int xs, xe
         
-        cdef double[:] n = self.dax.getGlobalArray(N)
-        cdef double[:] u = self.dax.getGlobalArray(U)
-        cdef double[:] e = self.dax.getGlobalArray(E)
-        cdef double[:] a = self.dax.getGlobalArray(A)
+        cdef double[:] n = getGlobalArray(self.dax, N)
+        cdef double[:] u = getGlobalArray(self.dax, U)
+        cdef double[:] e = getGlobalArray(self.dax, E)
+        cdef double[:] a = getGlobalArray(self.dax, A)
         
         (xs, xe), = self.dax.getRanges()
         
@@ -176,8 +176,8 @@ cdef class Toolbox(object):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe, ys, ye
          
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
-        cdef np.ndarray[np.float64_t, ndim=2] h = self.da1.getGlobalArray(H)
+        cdef double[:] v = self.grid.v
+        cdef double[:,:] h = getGlobalArray(self.da1, H)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -191,7 +191,7 @@ cdef class Toolbox(object):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe, ys, ye
         
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
+        cdef double[:,:] f = getGlobalArray(self.da1, F)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -207,10 +207,10 @@ cdef class Toolbox(object):
         cdef np.uint64_t i, j
         cdef np.uint64_t xs, xe, ys, ye
          
-        cdef np.ndarray[np.float64_t, ndim=1] v = self.grid.v
-        cdef np.ndarray[np.float64_t, ndim=2] f = self.da1.getGlobalArray(F)
-        cdef np.ndarray[np.float64_t, ndim=1] n = N.getArray()
-        cdef np.ndarray[np.float64_t, ndim=1] t = T.getArray()
+        cdef double[:] v = self.grid.v
+        cdef double[:,:] f = getGlobalArray(self.da1, F)
+        cdef double[:] n = N.getArray()
+        cdef double[:] t = T.getArray()
         
         cdef np.float64_t fac = sqrt(0.5 / np.pi)
          

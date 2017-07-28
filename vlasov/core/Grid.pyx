@@ -12,11 +12,11 @@ cdef class Grid(object):
     '''
 
     def create(self, 
-                 np.ndarray[np.float64_t, ndim=1] x,
-                 np.ndarray[np.float64_t, ndim=1] v,
-                 np.uint64_t  nt, np.uint64_t  nx, np.uint64_t  nv,
-                 np.float64_t ht, np.float64_t hx, np.float64_t hv,
-                 np.uint64_t  stencil):
+                 double[:] x,
+                 double[:] v,
+                 int    nt, int    nx, int    nv,
+                 double ht, double hx, double hv,
+                 int stencil):
         '''
         Constructor
         '''
@@ -27,7 +27,7 @@ cdef class Grid(object):
         self.x  = x
         self.v  = v
         
-        self.v2 = v**2
+        self.v2 = np.power(v, 2)
         
         self.nt = nt
         self.nx = nx
@@ -58,7 +58,7 @@ cdef class Grid(object):
         self.x = hdf5['x'][:]
         self.v = hdf5['v'][:]
         
-        self.v2 = self.v**2
+        self.v2 = np.power(self.v, 2)
         
         self.nt = len(self.t)-1
         self.nx = len(self.x)

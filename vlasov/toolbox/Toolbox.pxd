@@ -8,15 +8,15 @@ cimport cython
 cimport numpy as np
 
 from vlasov.core.Grid cimport Grid
-from VIDA cimport VIDA
+from VIDA cimport *
 
 from petsc4py.PETSc cimport Vec
 
 
 cdef class Toolbox(object):
 
-    cdef VIDA dax
-    cdef VIDA da1
+    cdef object dax
+    cdef object da1
     cdef Grid grid
     
 

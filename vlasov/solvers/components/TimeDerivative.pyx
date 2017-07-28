@@ -18,8 +18,8 @@ cdef class TimeDerivative(object):
     '''
     
     def __init__(self,
-                 VIDA da1  not None,
-                 Grid grid not None):
+                 object da1  not None,
+                 Grid   grid not None):
         '''
         Constructor
         '''
@@ -33,9 +33,9 @@ cdef class TimeDerivative(object):
     
     
     @staticmethod
-    def create(str  type not None,
-               VIDA da1  not None,
-               Grid grid not None):
+    def create(str    type not None,
+               object da1  not None,
+               Grid   grid not None):
         
         if type == 'point':
             return TimeDerivative(da1, grid) 
@@ -91,8 +91,8 @@ cdef class TimeDerivativeMidpoint(TimeDerivative):
         
         cdef double time_fac = self.grid.ht_inv / 16.
         
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -167,8 +167,8 @@ cdef class TimeDerivativeSimpson(TimeDerivative):
         
         cdef double time_fac = self.grid.ht_inv / 36.
         
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         
@@ -252,8 +252,8 @@ cdef class TimeDerivativeArakawaJ4(TimeDerivative):
         
         cdef double time_fac = self.grid.ht_inv / 64.
         
-        cdef double[:,:] f = self.da1.getLocalArray(F, self.localF)
-        cdef double[:,:] y = self.da1.getGlobalArray(Y)
+        cdef double[:,:] f = getLocalArray(self.da1, F, self.localF)
+        cdef double[:,:] y = getGlobalArray(self.da1, Y)
         
         (xs, xe), (ys, ye) = self.da1.getRanges()
         

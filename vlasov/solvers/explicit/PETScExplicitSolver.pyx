@@ -22,7 +22,7 @@ cdef class PETScExplicitSolver(object):
     
     def __init__(self, 
                  config    not None,
-                 VIDA da1  not None,
+                 object da1  not None,
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,

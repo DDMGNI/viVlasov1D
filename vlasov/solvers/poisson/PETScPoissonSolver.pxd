@@ -14,7 +14,7 @@ from petsc4py cimport PETSc
 
 from petsc4py.PETSc cimport Mat, Vec
 
-from vlasov.toolbox.VIDA cimport VIDA
+from vlasov.toolbox.VIDA cimport *
 
 
 cdef class PETScPoissonSolverBase(object):
@@ -27,7 +27,7 @@ cdef class PETScPoissonSolverBase(object):
     
     cdef double charge
     
-    cdef VIDA dax
+    cdef object dax
     
     cdef Vec localX
     cdef Vec localN

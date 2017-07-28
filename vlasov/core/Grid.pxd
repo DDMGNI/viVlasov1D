@@ -9,31 +9,31 @@ cimport numpy as np
 
 cdef class Grid(object):
 
-    cdef readonly np.uint64_t stencil
+    cdef readonly int stencil
     
-    cdef readonly np.ndarray t
-    cdef readonly np.ndarray x
-    cdef readonly np.ndarray v
+    cdef readonly double[:] t
+    cdef readonly double[:] x
+    cdef readonly double[:] v
     
-    cdef readonly np.ndarray v2
+    cdef readonly double[:] v2
     
-    cdef readonly np.uint64_t  nt
-    cdef readonly np.uint64_t  nx
-    cdef readonly np.uint64_t  nv
+    cdef readonly int    nt
+    cdef readonly int    nx
+    cdef readonly int    nv
     
-    cdef readonly np.float64_t ht
-    cdef readonly np.float64_t hx
-    cdef readonly np.float64_t hv
+    cdef readonly double ht
+    cdef readonly double hx
+    cdef readonly double hv
     
-    cdef readonly np.float64_t ht_inv
-    cdef readonly np.float64_t hx_inv
-    cdef readonly np.float64_t hv_inv
+    cdef readonly double ht_inv
+    cdef readonly double hx_inv
+    cdef readonly double hv_inv
     
-    cdef readonly np.float64_t hx2
-    cdef readonly np.float64_t hv2
+    cdef readonly double hx2
+    cdef readonly double hv2
     
-    cdef readonly np.float64_t hx2_inv
-    cdef readonly np.float64_t hv2_inv
+    cdef readonly double hx2_inv
+    cdef readonly double hv2_inv
     
 #     cdef readonly np.float64_t tMin
 #     cdef readonly np.float64_t tMax

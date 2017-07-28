@@ -20,7 +20,7 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
     
     def __init__(self, 
                  config    not None,
-                 VIDA da1  not None,
+                 object da1  not None,
                  Grid grid not None,
                  Vec H0    not None,
                  Vec H1    not None,
@@ -50,13 +50,13 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
         cdef np.uint64_t ix, iy, i, j
         cdef np.uint64_t xs, xe
         
-        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da1.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=2] y   = getGlobalArray(self.da1, Y)
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getLocalArray(self.H1,  self.localH1 )
-        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getLocalArray(self.H2,  self.localH2 )
-        cdef np.ndarray[np.float64_t, ndim=2] fh1 = self.da1.getLocalArray(self.Fh1, self.localFh1)
-        cdef np.ndarray[np.float64_t, ndim=2] fh2 = self.da1.getLocalArray(self.Fh2, self.localFh2)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = getLocalArray(self.da1, self.H0,  self.localH0 )
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = getLocalArray(self.da1, self.H1,  self.localH1 )
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = getLocalArray(self.da1, self.H2,  self.localH2 )
+        cdef np.ndarray[np.float64_t, ndim=2] fh1 = getLocalArray(self.da1, self.Fh1, self.localFh1)
+        cdef np.ndarray[np.float64_t, ndim=2] fh2 = getLocalArray(self.da1, self.Fh2, self.localFh2)
         
         cdef np.ndarray[np.float64_t, ndim=2] hh  = h0 + h1h + h2h
         
@@ -84,13 +84,13 @@ cdef class PETScArakawaLeapfrog(PETScExplicitSolver):
         cdef np.uint64_t ix, iy, i, j
         cdef np.uint64_t xs, xe
         
-        cdef np.ndarray[np.float64_t, ndim=2] y   = self.da1.getGlobalArray(Y)
+        cdef np.ndarray[np.float64_t, ndim=2] y   = getGlobalArray(self.da1, Y)
         
-        cdef np.ndarray[np.float64_t, ndim=2] h0  = self.da1.getLocalArray(self.H0,  self.localH0 )
-        cdef np.ndarray[np.float64_t, ndim=2] h1h = self.da1.getLocalArray(self.H1,  self.localH1 )
-        cdef np.ndarray[np.float64_t, ndim=2] h2h = self.da1.getLocalArray(self.H2,  self.localH2 )
-        cdef np.ndarray[np.float64_t, ndim=2] fh1 = self.da1.getLocalArray(self.Fh1, self.localFh1)
-        cdef np.ndarray[np.float64_t, ndim=2] fh2 = self.da1.getLocalArray(self.Fh2, self.localFh2)
+        cdef np.ndarray[np.float64_t, ndim=2] h0  = getLocalArray(self.da1, self.H0,  self.localH0 )
+        cdef np.ndarray[np.float64_t, ndim=2] h1h = getLocalArray(self.da1, self.H1,  self.localH1 )
+        cdef np.ndarray[np.float64_t, ndim=2] h2h = getLocalArray(self.da1, self.H2,  self.localH2 )
+        cdef np.ndarray[np.float64_t, ndim=2] fh1 = getLocalArray(self.da1, self.Fh1, self.localFh1)
+        cdef np.ndarray[np.float64_t, ndim=2] fh2 = getLocalArray(self.da1, self.Fh2, self.localFh2)
         
         cdef np.ndarray[np.float64_t, ndim=2] hh  = h0 + h1h + h2h
         

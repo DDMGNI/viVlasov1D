@@ -26,8 +26,9 @@ class petscVP1Drunscript(petscVP1Dbasesplit):
         # create solver objects
 #         self.vlasov_solver = PETScVlasovSolver(
         self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
-                                               self.cfg, self.da1, self.grid,
+                                               self.cfg, self.da1, self.dax, self.grid,
                                                self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
+                                               self.pc_int,
                                                self.charge,
                                                coll_freq=self.coll_freq,
                                                coll_drag=self.coll_drag,
