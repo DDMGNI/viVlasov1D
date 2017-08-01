@@ -10,12 +10,12 @@ import numpy as np
 
 from petsc4py import PETSc
 
-from run_base_split import petscVP1Dbasesplit
+from run_base_split import viVlasov1Dbasesplit
 
 from vlasov.solvers.explicit.PETScArakawaGear import PETScArakawaGear
 
 
-class petscVP1Drunscript(petscVP1Dbasesplit):
+class viVlasov1Drunscript(viVlasov1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson LU Solver in 1D.
     '''
@@ -70,6 +70,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Drunscript(args.c, args.i)
+    petscvp = viVlasov1Drunscript(args.c, args.i)
     petscvp.run()
     

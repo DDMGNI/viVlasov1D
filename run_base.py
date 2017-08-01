@@ -26,7 +26,7 @@ from vlasov.solvers.explicit.PETScArakawaGear       import PETScArakawaGear
 from vlasov.solvers.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
 
-class petscVP1Dbase(object):
+class viVlasov1Dbase(object):
     '''
     PETSc/Python Vlasov Poisson Solver in 1D.
     '''

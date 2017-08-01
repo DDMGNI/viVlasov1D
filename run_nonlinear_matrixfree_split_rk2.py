@@ -8,10 +8,10 @@ import argparse, time
 
 from petsc4py import PETSc
 
-from run_base_split_rk2 import petscVP1DbasesplitRK2
+from run_base_split_rk2 import viVlasov1DbasesplitRK2
 
 
-class petscVP1Drunscript(petscVP1DbasesplitRK2):
+class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -180,6 +180,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    with petscVP1Drunscript(args.c, args.i) as petscvp:
+    with viVlasov1Drunscript(args.c, args.i) as petscvp:
         petscvp.run()
     

@@ -10,14 +10,14 @@ import numpy as np
 
 from petsc4py import PETSc
 
-from run_base_full import petscVP1Dbasefull
+from run_base_full import viVlasov1Dbasefull
 
 # from vlasov.solvers.full.PETScNLArakawaJ1            import PETScSolver
 # from vlasov.solvers.full.PETScNLArakawaJ2            import PETScSolver
 from vlasov.solvers.full.PETScNLArakawaJ4            import PETScSolver
 
 
-class petscVP1Dlu(petscVP1Dbasefull):
+class viVlasov1Dlu(viVlasov1Dbasefull):
     '''
     PETSc/Python Vlasov Poisson LU Solver in 1D.
     '''
@@ -264,6 +264,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dlu(args.runfile)
+    petscvp = viVlasov1Dlu(args.runfile)
     petscvp.run()
     

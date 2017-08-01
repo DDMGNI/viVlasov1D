@@ -6,7 +6,7 @@ Created on June 06, 2013
 
 import argparse
 
-from run_base import petscVP1Dbase
+from run_base import viVlasov1Dbase
 
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear
@@ -25,7 +25,7 @@ solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
-class petscVP1Djacobian(petscVP1Dbase):
+class viVlasov1Djacobian(viVlasov1Dbase):
     '''
     PETSc/Python Vlasov Poisson Solver in 1D.
     '''
@@ -158,6 +158,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Djacobian(args.runfile)
+    petscvp = viVlasov1Djacobian(args.runfile)
     petscvp.check_jacobian()
     

@@ -9,10 +9,10 @@ import argparse, time
 from petsc4py import PETSc
 
 
-from run_nonlinear_matrixfree_split import petscVP1Dmatrixfree
+from run_nonlinear_matrixfree_split import viVlasov1Dmatrixfree
 
 
-class petscVP1Ddamped(petscVP1Dmatrixfree):
+class viVlasov1Ddamped(viVlasov1Dmatrixfree):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -113,6 +113,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Ddamped(args.c, args.i)
+    petscvp = viVlasov1Ddamped(args.c, args.i)
     petscvp.run()
     

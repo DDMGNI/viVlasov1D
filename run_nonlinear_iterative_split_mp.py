@@ -13,10 +13,10 @@ from petsc4py import PETSc
 from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st     import PETScVlasovSolver
 
-from run_base_split import petscVP1Dbasesplit
+from run_base_split import viVlasov1Dbasesplit
 
 
-class petscVP1Dgmres(petscVP1Dbasesplit):
+class viVlasov1Dgmres(viVlasov1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Dgmres(args.c, args.i)
+    petscvp = viVlasov1Dgmres(args.c, args.i)
     petscvp.run()
     
 
@@ -195,7 +195,7 @@ if __name__ == '__main__':
 # import numpy as np
 # 
 # from petsc4py import PETSc
-# from run_base import petscVP1Dbase
+# from run_base import viVlasov1Dbase
 # 
 # # from vlasov.vi.PETScNLArakawaJ1            import PETScSolver
 # # from vlasov.vi.PETScNLArakawaJ2            import PETScSolver
@@ -211,7 +211,7 @@ if __name__ == '__main__':
 # 
 # 
 # 
-# class petscVP1Dgmres(petscVP1Dbase):
+# class viVlasov1Dgmres(viVlasov1Dbase):
 #     '''
 #     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
 #     '''
@@ -456,6 +456,6 @@ if __name__ == '__main__':
 #     
 #     args = parser.parse_args()
 #     
-#     petscvp = petscVP1Dgmres(args.runfile)
+#     petscvp = viVlasov1Dgmres(args.runfile)
 #     petscvp.run()
 #     

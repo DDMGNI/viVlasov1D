@@ -15,10 +15,10 @@ from petsc4py import PETSc
 from vlasov.toolbox.Arakawa import Arakawa
 from vlasov.toolbox.VIDA    import VIDA
 
-from run_base_split import petscVP1Dbasesplit
+from run_base_split import viVlasov1Dbasesplit
 
 
-class petscVP1DbasesplitDB(petscVP1Dbasesplit):
+class viVlasov1DbasesplitDB(viVlasov1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson Solver in 1D.
     '''

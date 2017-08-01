@@ -15,10 +15,10 @@ from petsc4py import PETSc
 # from vlasov.core.config     import Config
 # from vlasov.toolbox.maxwell import maxwellian
 
-from run_base import petscVP1Dbase
+from run_base import viVlasov1Dbase
 
 
-class petscVP1Dbasesplit(petscVP1Dbase):
+class viVlasov1Dbasesplit(viVlasov1Dbase):
     '''
     PETSc/Python Vlasov Poisson Solver in 1D.
     '''
@@ -29,7 +29,7 @@ class petscVP1Dbasesplit(petscVP1Dbase):
         Constructor
         '''
         
-        super(petscVP1Dbasesplit, self).__init__(cfgfile, runid, cfg)
+        super(viVlasov1Dbasesplit, self).__init__(cfgfile, runid, cfg)
         
         
         # create matrixfree Jacobian

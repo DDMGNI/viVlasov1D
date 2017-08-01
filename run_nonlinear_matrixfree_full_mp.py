@@ -10,7 +10,7 @@ import numpy as np
 
 from petsc4py import PETSc
 
-from run_base_full import petscVP1Dbasefull
+from run_base_full import viVlasov1Dbasefull
 
 # from vlasov.solvers.full.PETScNLArakawaJ1            import PETScSolver
 # from vlasov.solvers.full.PETScNLArakawaJ2            import PETScSolver
@@ -22,7 +22,7 @@ solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
-class petscVP1Drunscript(petscVP1Dbasefull):
+class viVlasov1Drunscript(viVlasov1Dbasefull):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -204,6 +204,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = petscVP1Drunscript(args.runfile)
+    petscvp = viVlasov1Drunscript(args.runfile)
     petscvp.run()
     
