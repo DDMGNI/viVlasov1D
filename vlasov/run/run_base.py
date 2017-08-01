@@ -172,6 +172,7 @@ class viVlasov1Dbase(object):
         # set initial guess method
         initial_guess_options = {
             None          : self.initial_guess_none,
+            "None"        : self.initial_guess_none,
             ""            : self.initial_guess_none,
             "rk4"         : self.initial_guess_rk4,
             "gear"        : self.initial_guess_gear,
@@ -765,7 +766,7 @@ class viVlasov1Dbase(object):
     def save_to_hdf5(self, itime):
         # save to hdf5 file
         if itime % self.nsave == 0 or itime == self.grid.nt + 1:
-            self.hdf5_viewer.incrementTimestep()
+            self.hdf5_viewer.incrementTimestep(1)
             self.save_hdf5_vectors()
 
 
