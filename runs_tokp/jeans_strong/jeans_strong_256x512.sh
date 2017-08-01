@@ -10,7 +10,7 @@
 #$ -o /tokp/scratch/mkraus/viVlasov1D/jeans_strong_256x512.$JOB_ID.out
 #$ -e /tokp/scratch/mkraus/viVlasov1D/jeans_strong_256x512.$JOB_ID.err
 #
-#$ -m e
+#$ -m b e
 #$ -M michael.kraus@ipp.mpg.de
 #
 #$ -notify
