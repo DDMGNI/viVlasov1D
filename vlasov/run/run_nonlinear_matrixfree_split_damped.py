@@ -9,7 +9,7 @@ import argparse, time
 from petsc4py import PETSc
 
 
-from run_nonlinear_matrixfree_split import viVlasov1Dmatrixfree
+from vlasov.run.run_nonlinear_matrixfree_split import viVlasov1Dmatrixfree
 
 
 class viVlasov1Ddamped(viVlasov1Dmatrixfree):

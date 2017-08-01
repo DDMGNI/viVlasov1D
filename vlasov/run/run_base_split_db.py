@@ -15,7 +15,7 @@ from petsc4py import PETSc
 from vlasov.toolbox.Arakawa import Arakawa
 from vlasov.toolbox.VIDA    import VIDA
 
-from run_base_split import viVlasov1Dbasesplit
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
 
 
 class viVlasov1DbasesplitDB(viVlasov1Dbasesplit):

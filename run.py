@@ -90,7 +90,7 @@ if __name__ == '__main__':
         print("Loading runscript      %s" % (run_script))
     
     
-    run_object = __import__(run_script, globals(), locals(), ['viVlasov1Drunscript'], 0)
+    run_object = __import__("vlasov.run." + run_script, globals(), locals(), ['viVlasov1Drunscript'], 0)
     
     with run_object.viVlasov1Drunscript(args.config, runid=args.runid, cfg=cfg) as petscvp:
         if args.profiler:

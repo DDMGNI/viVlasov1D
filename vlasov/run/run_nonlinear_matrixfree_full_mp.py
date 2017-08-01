@@ -9,14 +9,12 @@ import sys, time
 import numpy as np
 
 from petsc4py import PETSc
-from run_base_full import viVlasov1Dbasefull
+
+from vlasov.run.run_base_full import viVlasov1Dbasefull
 
 # from vlasov.solvers.full.PETScNLArakawaJ1            import PETScSolver
 # from vlasov.solvers.full.PETScNLArakawaJ2            import PETScSolver
 from vlasov.solvers.full.PETScNLArakawaJ4            import PETScSolver
-
-# from vlasov.solvers.poisson.PoissonSolver2     import PETScPoissonSolver
-# from vlasov.solvers.poisson.PoissonSolver4     import PETScPoissonSolver
 
 
 # solver_package = 'superlu_dist'
@@ -24,7 +22,7 @@ solver_package = 'mumps'
 # solver_package = 'pastix'
 
 
-class viVlasov1Dgmres(viVlasov1Dbasefull):
+class viVlasov1Drunscript(viVlasov1Dbasefull):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
@@ -40,9 +38,6 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
     
     def updateJacobian(self, snes, X, J, P):
         self.petsc_solver.update_previous(X)
-        
-        self.petsc_solver.formJacobian(J)
-        J.setNullSpace(self.nullspace)
         
         if J != P:
             self.petsc_solver.formJacobian(P)
@@ -60,8 +55,8 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
         phisum = self.p.sum()
         
         if PETSc.COMM_WORLD.getRank() == 0:
-            print("  Linear Solver:                          funcnorm = %24.16E" % (ignorm))
-            print("                                          sum(phi) = %24.16E" % (phisum))
+            print("  Linear Solver:                      funcnorm = %24.16E" % (ignorm))
+            print("                                      sum(phi) = %24.16E" % (phisum))
         
     
     def run(self):
@@ -76,23 +71,20 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
 #         OptDB.setValue('snes_ls', 'basic')
 
 
-        # initialise matrix
-        self.A = self.da2.createMat()
-        self.A.setOption(self.A.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.A.setUp()
-        self.A.setNullSpace(self.nullspace)
-
-        # initialise Jacobian
-        self.J = self.da2.createMat()
-        self.J.setOption(self.J.Option.NEW_NONZERO_ALLOCATION_ERR, False)
-        self.J.setUp()
-        self.J.setNullSpace(self.nullspace)
-        
         # create Jacobian, Function, and linear Matrix objects
         self.petsc_solver = PETScSolver(self.da1, self.da2, self.dax,
                                             self.h0, self.vGrid,
                                             self.nx, self.nv, self.ht, self.hx, self.hv,
                                             self.charge, coll_freq=self.coll_freq)
+        
+
+        # initialise matrixfree Jacobian
+        self.Jmf = PETSc.Mat().createPython([self.x.getSizes(), self.b.getSizes()], 
+                                            context=self.petsc_solver,
+                                            comm=PETSc.COMM_WORLD)
+        self.Jmf.setUp()
+#         self.Jmf.setNullSpace(self.nullspace)
+        
         
 
         # copy external potential
@@ -105,7 +97,7 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
         # create nonlinear solver
         self.snes = PETSc.SNES().create()
         self.snes.setFunction(self.petsc_solver.function_snes_mult, self.b)
-        self.snes.setJacobian(self.updateJacobian, self.J)
+        self.snes.setJacobian(self.updateJacobian, self.Jmf)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
         self.snes.getKSP().getPC().setType('none')
@@ -172,8 +164,8 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
             phisum = self.p.sum()
             
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Nonlin Solver:  %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
-                print("                  %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum) )
+                print("  Nonlinear Solver: %5i Newton iterations, funcnorm = %24.16E" % (self.snes.getIterationNumber(), self.snes.getFunctionNorm()) )
+                print("                    %5i GMRES  iterations, sum(phi) = %24.16E" % (self.snes.getLinearSolveIterations(), phisum))
                 print()
             
             if self.snes.getConvergedReason() < 0:
@@ -202,7 +194,7 @@ class viVlasov1Dgmres(viVlasov1Dbasefull):
             
             # save to hdf5
             self.save_to_hdf5(itime)
-            
+                        
  
 
 if __name__ == '__main__':
@@ -212,6 +204,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    petscvp = viVlasov1Dgmres(args.runfile)
+    petscvp = viVlasov1Drunscript(args.runfile)
     petscvp.run()
     

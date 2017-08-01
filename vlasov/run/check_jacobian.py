@@ -6,7 +6,7 @@ Created on June 06, 2013
 
 import argparse
 
-from run_base import viVlasov1Dbase
+from vlasov.run.run_base import viVlasov1Dbase
 
 from vlasov.predictor.PETScArakawaRK4       import PETScArakawaRK4
 from vlasov.predictor.PETScArakawaGear      import PETScArakawaGear

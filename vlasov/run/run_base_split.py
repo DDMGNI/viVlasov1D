@@ -15,7 +15,7 @@ from petsc4py import PETSc
 # from vlasov.core.config     import Config
 # from vlasov.toolbox.maxwell import maxwellian
 
-from run_base import viVlasov1Dbase
+from vlasov.run.run_base import viVlasov1Dbase
 
 
 class viVlasov1Dbasesplit(viVlasov1Dbase):

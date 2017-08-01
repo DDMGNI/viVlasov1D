@@ -10,7 +10,7 @@ import numpy as np
 
 from petsc4py import PETSc
 
-from run_base_split import viVlasov1Dbasesplit
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
 
 from vlasov.solvers.explicit.PETScArakawaGear import PETScArakawaGear
 

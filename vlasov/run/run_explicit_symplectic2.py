@@ -10,9 +10,9 @@ import numpy as np
 
 from petsc4py import PETSc
 
-from run_base_split import viVlasov1Dbasesplit
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
 
-from vlasov.solvers.explicit.PETScArakawaRungeKutta import PETScArakawaRungeKutta
+from vlasov.explicit.PETScArakawaSymplectic import PETScArakawaSymplectic
 
 
 class viVlasov1Drunscript(viVlasov1Dbasesplit):
@@ -23,9 +23,9 @@ class viVlasov1Drunscript(viVlasov1Dbasesplit):
     def __init__(self, cfgfile, runid):
         super().__init__(cfgfile, runid)
         
-        self.arakawa_rk = PETScArakawaRungeKutta(self.da1, self.dax,
-                                                 self.h0, self.vGrid,
-                                                 self.nx, self.nv, self.ht, self.hx, self.hv)
+        self.arakawa_symplectic = PETScArakawaSymplectic(self.da1, self.dax,
+                                                         self.h0, self.vGrid,
+                                                         self.nx, self.nv, self.ht, self.hx, self.hv)
         
         
     def run(self):
@@ -39,7 +39,11 @@ class viVlasov1Drunscript(viVlasov1Dbasesplit):
                 self.time.setValue(0, current_time)
             
             # solve
-            self.arakawa_rk.rk18_J4(self.f, self.h1)
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
+            self.calculate_moments(output=False)
+            self.arakawa_symplectic.potential(self.f, self.h1, 1.0)
+ 
+            self.arakawa_symplectic.kinetic(self.f, 0.5)
             self.calculate_moments(output=False)
             
             # save to hdf5

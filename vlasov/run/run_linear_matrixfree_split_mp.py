@@ -8,39 +8,44 @@ import argparse, time
 
 from petsc4py import PETSc
 
-from run_base_split_rk2 import viVlasov1DbasesplitRK2
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
+# from vlasov.solvers.vlasov.PETScNLVlasovMP import PETScVlasovSolver
 
 
-class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
+class viVlasov1Drunscript(viVlasov1Dbasesplit):
     '''
     PETSc/Python Vlasov Poisson GMRES Solver in 1D.
     '''
 
-
     def __init__(self, cfgfile, runid=None, cfg=None):
         super().__init__(cfgfile, runid, cfg)
         
+        if PETSc.COMM_WORLD.getRank() == 0:
+            print("Creating solver objects.")
+        
         # create solver objects
+#         self.vlasov_solver = PETScVlasovSolver(
         self.vlasov_solver = self.vlasov_object.PETScVlasovSolver(
-                                               self.da1, self.grid,
-                                               self.h0,  self.h1c, self.h1h, self.h2c, self.h2h,
-                                               self.h11, self.h21)
+                                               self.cfg, self.da1, self.grid,
+                                               self.h0, self.h1c, self.h1h, self.h2c, self.h2h,
+                                               self.charge,
+                                               coll_freq=self.coll_freq,
+                                               coll_drag=self.coll_drag,
+                                               coll_diff=self.coll_diff)
         
         self.vlasov_solver.set_moments(self.nc, self.uc, self.ec, self.ac,
                                        self.nh, self.uh, self.eh, self.ah)
         
         
         # initialise matrixfree Jacobian
-        self.Jmf = PETSc.Mat().createPython([self.k1.getSizes(), self.b.getSizes()], 
-                                            context=self.vlasov_solver,
-                                            comm=PETSc.COMM_WORLD)
+        self.Jmf.setPythonContext(self.vlasov_solver)
         self.Jmf.setUp()
         
         
         # create nonlinear predictor solver
         self.snes = PETSc.SNES().create()
         self.snes.setType('ksponly')
-        self.snes.setFunction(self.vlasov_solver.function_snes_mult, self.b)
+        self.snes.setFunction(self.vlasov_solver.function_snes_mult, self.fb)
         self.snes.setJacobian(self.updateVlasovJacobian, self.Jmf)
         self.snes.setFromOptions()
         self.snes.getKSP().setType('gmres')
@@ -59,7 +64,7 @@ class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
                                                    context=self.poisson_solver,
                                                    comm=PETSc.COMM_WORLD)
         self.poisson_mf.setUp()
-        
+           
         
         # create linear Poisson solver
         self.poisson_ksp = PETSc.KSP().create()
@@ -69,13 +74,15 @@ class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
         self.poisson_ksp.setType('cg')
 #         self.poisson_ksp.setType('bcgs')
 #         self.poisson_ksp.setType('ibcgs')
-        self.poisson_ksp.getPC().setType('hypre')
-            
+#         self.poisson_ksp.getPC().setType('hypre')
+        self.poisson_ksp.getPC().setType('lu')
+        self.poisson_ksp.getPC().setFactorSolverPackage('superlu_dist')
+        
         
         if PETSc.COMM_WORLD.getRank() == 0:
             print("Run script initialisation done.")
             print("")
-        
+    
     
     def __enter__(self):
         return self
@@ -83,16 +90,17 @@ class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
     
     def __exit__(self,ext_type,exc_value,traceback):
         self.poisson_ksp.destroy()
-        self.snes.destroy()
-        
         self.poisson_mf.destroy()
+        self.poisson_matrix.destroy()
+        
+        self.snes.destroy()
         self.Jmf.destroy()
         
         del self.poisson_solver
         del self.vlasov_solver
         
         super().destroy()
-
+        
     
     def updateVlasovJacobian(self, snes, X, J, P):
         if J != P:
@@ -113,62 +121,31 @@ class viVlasov1Drunscript(viVlasov1DbasesplitRK2):
             self.make_history()
             
             # calculate external field and copy to solver
-            self.calculate_external2(itime)
+            self.calculate_external(current_time)
             
             # compute initial guess
-            self.initial_guess2()
+            self.initial_guess(output=False)
             
             # update current solution in solver
-            self.vlasov_solver.update_previous2()
+            self.vlasov_solver.update_previous(self.fc)
             
             # nonlinear solve
-            i = 0
-            pred_norm = self.calculate_residual2()
-            while True:
-                i+=1
-                
-                self.k1.copy(self.kh)
-                
-                self.snes.solve(None, self.k1)
-                
-                self.calculate_moments2(output=False)
-                self.vlasov_solver.update_previous2()
-                
-                prev_norm = pred_norm
-                pred_norm = self.calculate_residual2()
-                phisum1 = self.p1_int.sum()
-
-                if PETSc.COMM_WORLD.getRank() == 0:
-                    print("  Nonlinear Solver: %5i GMRES  iterations, residual = %24.16E" % (self.snes.getLinearSolveIterations(),  pred_norm) )
-                    print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.p1_niter, phisum1))
-                
-                if (pred_norm > prev_norm and i > 1) or pred_norm < self.cfg['solver']['petsc_snes_atol'] or i >= self.cfg['solver']['petsc_snes_max_iter']:
-                    if pred_norm > prev_norm:
-                        self.kh.copy(self.k1)
-                        self.calculate_moments2(output=False)
-                    
-                    break
-                
-            if pred_norm > 10.:
-                if PETSc.COMM_WORLD.getRank() == 0:
-                    print("ERROR: Residual of nonlinear solver too large.")
-                sys.exit(1)
+            self.snes.solve(None, self.fc)
             
-            # compute final distribution function, potential and moments
-#             self.fh.copy(self.f)
-            self.fc.axpy(self.grid.ht, self.k1)
-            
+            # moments
             self.calculate_moments(output=False)
+            
+            # some output
             phisum = self.pc_int.sum()
             if PETSc.COMM_WORLD.getRank() == 0:
-                print("  Poisson   Solver: %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum)    )
+                print("  Nonlinear Solver: %5i GMRES  iterations"                     % (self.snes.getLinearSolveIterations()) )
+                print("                    %5i CG     iterations, sum(phi) = %24.16E" % (self.poisson_ksp.getIterationNumber(), phisum))
             
             # save to hdf5
             self.save_to_hdf5(itime)
         
         # flush all data
         self.hdf5_viewer.flush()
-        
 
 
 if __name__ == '__main__':

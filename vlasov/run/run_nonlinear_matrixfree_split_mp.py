@@ -8,7 +8,7 @@ import argparse, sys, time
 
 from petsc4py import PETSc
 
-from run_base_split import viVlasov1Dbasesplit
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
 # from vlasov.solvers.vlasov.PETScNLVlasovMP import PETScVlasovSolver
 
 

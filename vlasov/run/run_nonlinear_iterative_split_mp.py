@@ -13,7 +13,7 @@ from petsc4py import PETSc
 from vlasov.solvers.vlasov.PETScNLVlasovArakawaJ4     import PETScVlasovSolver
 # from vlasov.solvers.vlasov.PETScNLVlasovUpwind1st     import PETScVlasovSolver
 
-from run_base_split import viVlasov1Dbasesplit
+from vlasov.run.run_base_split import viVlasov1Dbasesplit
 
 
 class viVlasov1Dgmres(viVlasov1Dbasesplit):

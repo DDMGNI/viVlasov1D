@@ -8,7 +8,7 @@ import argparse, time
 
 from petsc4py import PETSc
 
-from run_base_split_rk4 import viVlasov1DbasesplitRK4
+from vlasov.run.run_base_split_rk4 import viVlasov1DbasesplitRK4
 
 
 class viVlasov1Drunscript(viVlasov1DbasesplitRK4):
