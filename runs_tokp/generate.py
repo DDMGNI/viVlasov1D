@@ -45,7 +45,7 @@ run_script = """
 """
 
 # output directory
-out_dir = run_dir + "/temp/"
+out_dir = run_dir + "/paper/"
 
 # create output directory
 try:
@@ -88,7 +88,7 @@ for (run_id, run_title) in run_ids:
             cfg.write_current_config(outfile)
             
             # add entry in run script
-            run_script += "qsub -N " + run_name + " runs_tokp/run_tokp.sh"
+            run_script += "qsub -N " + run_name + " runs_tokp/run_paper.sh"
             run_script += "\n"
         
         run_script += "\n"

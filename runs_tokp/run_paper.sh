@@ -10,7 +10,7 @@
 #$ -o /tokp/scratch/mkraus/viVlasov1D/$JOB_NAME.$JOB_ID.out
 #$ -e /tokp/scratch/mkraus/viVlasov1D/$JOB_NAME.$JOB_ID.err
 #
-#$ -m b e
+#$ -m beas
 #$ -M michael.kraus@ipp.mpg.de
 #
 #$ -notify
@@ -40,4 +40,4 @@ export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/mkl/lib/intel64/libm
 export LD_PRELOAD=/afs/@cell/common/soft/intel/ics2013/14.0/compiler/lib/intel64/libiomp5.so:$LD_PRELOAD
 
 
-mpiexec -perhost 16 -l -n 16 python3.3 run.py -c runs_tokp/temp/$JOB_NAME.cfg -i $JOB_ID
+mpiexec -perhost 16 -l -n 16 python3.3 run.py -c runs_tokp/paper/$JOB_NAME.cfg -i $JOB_ID
