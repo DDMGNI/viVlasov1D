@@ -206,14 +206,14 @@ class PlotMovie(object):
             if self.deltaf:
                 f  = self.distribution.f  - self.fmax[0:-1, :]
                 f0 = self.distribution.f0 - self.fmax[0:-1, :]
-                fl = self.distribution.fl - self.fmax[0:-1, :]
+#                 fl = self.distribution.fl - self.fmax[0:-1, :]
             else:
                 f  = self.distribution.f
                 f0 = self.distribution.f0
-                fl = self.distribution.fl
+#                 fl = self.distribution.fl
             
-            fmin = min(fmin, f.min(), f0.min(), fl.min() )
-            fmax = max(fmax, f.max(), f0.max(), fl.max() )
+            fmin = min(fmin, f.min(), f0.min() )
+            fmax = max(fmax, f.max(), f0.max() )
             fmax *= self.cFac
 
         deltaf = (fmax-fmin)

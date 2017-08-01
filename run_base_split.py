@@ -29,7 +29,7 @@ class petscVP1Dbasesplit(petscVP1Dbase):
         Constructor
         '''
         
-        super().__init__(cfgfile, runid, cfg)
+        super(petscVP1Dbasesplit, self).__init__(cfgfile, runid, cfg)
         
         
         # create matrixfree Jacobian

@@ -20,6 +20,11 @@ cdef class TensorProductPreconditionerKineticFast(TensorProductPreconditionerKin
     cdef object fftw_plan
     cdef object ifftw_plan
     
+    cdef double[:,:]   fftw_in
+    cdef dcomplex[:,:] fftw_out
+    cdef dcomplex[:,:] ifftw_in
+    cdef double[:,:]   ifftw_out
+
     cdef int[:,:] pivots
     
     cdef int M

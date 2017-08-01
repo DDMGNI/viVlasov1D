@@ -40,15 +40,23 @@ cdef class TensorProductPreconditionerKineticFast(TensorProductPreconditionerKin
             print("Creating FFTW objects.")
         
         # FFTW arrays 
-        fftw_in   = np.empty((ye-ys, self.grid.nx     ), dtype=np.float64,    order='c')
-        fftw_out  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
-        ifftw_in  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
-        ifftw_out = np.empty((ye-ys, self.grid.nx     ), dtype=np.float64,    order='c')
+#         fftw_in   = np.empty((ye-ys, self.grid.nx     ), dtype=np.float64,    order='c')
+#         fftw_out  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
+#         ifftw_in  = np.empty((ye-ys, self.grid.nx//2+1), dtype=np.complex128, order='c')
+#         ifftw_out = np.empty((ye-ys, self.grid.nx     ), dtype=np.float64,    order='c')
+        
+        self.fftw_in   = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx),      64, dtype='float64',    order='C')
+        self.fftw_out  = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx//2+1), 64, dtype='complex128', order='C')
+        self.ifftw_in  = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx//2+1), 64, dtype='complex128', order='C')
+        self.ifftw_out = pyfftw.n_byte_align_empty((ye-ys, self.grid.nx),      64, dtype='float64',    order='C')        
         
         # create pyFFTW plans
-        self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
-        self.ifftw_plan = pyfftw.FFTW(ifftw_in, ifftw_out, axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
+#         self.fftw_plan  = pyfftw.FFTW(fftw_in,  fftw_out,  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
+#         self.ifftw_plan = pyfftw.FFTW(ifftw_in, ifftw_out, axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_UNALIGNED','FFTW_DESTROY_INPUT'))
         
+        self.fftw_plan  = pyfftw.FFTW(np.asarray(self.fftw_in),  np.asarray(self.fftw_out),  axes=(1,), direction='FFTW_FORWARD',  flags=('FFTW_PATIENT','FFTW_DESTROY_INPUT'))
+        self.ifftw_plan = pyfftw.FFTW(np.asarray(self.ifftw_in), np.asarray(self.ifftw_out), axes=(1,), direction='FFTW_BACKWARD', flags=('FFTW_PATIENT','FFTW_DESTROY_INPUT'))
+                                               
         # LAPACK parameters
         self.M = self.grid.nv
         self.N = self.grid.nv
@@ -94,31 +102,42 @@ cdef class TensorProductPreconditionerKineticFast(TensorProductPreconditionerKin
     cdef fft(self, Vec X, Vec Y):
         # Fourier Transform for each v
         
-        # This code uses some complicated casts to call
-        # the pyFFTW wrapper around FFTW.
-        (xs, xe), (ys, ye) = self.dax.getRanges()
-           
-        cdef np.ndarray[double, ndim=2] x = X.getArray().reshape((ye-ys, xe-xs), order='c')
-            
-        (xs, xe), (ys, ye) = self.cax.getRanges()
-        
-        assert xs == 0
-        assert xe == self.grid.nx//2+1
-        
-        cdef np.ndarray[np.complex128_t, ndim=2] y = np.empty((ye-ys, xe-xs), dtype=np.complex128, order='c')
-           
-        self.fftw_plan(input_array=x, output_array=y)
-   
-        (<dcomplex[:(ye-ys), :(xe-xs)]> np.PyArray_DATA(Y.getArray()))[...] = y
-         
-#         # This code calls directly into FFTW passing the array
-#         # buffers of the input and output vectors.
-#         # The FFTW plan is still setup using pyFFTW.
-#         # Be careful to allow for unaligned input/output arrays.
-#         fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
-#                              <double*>np.PyArray_DATA(X.getArray()),
-#                              <cdouble*>np.PyArray_DATA(Y.getArray()))
+#         # This code uses some complicated casts to call
+#         # the pyFFTW wrapper around FFTW.
+#         (xs, xe), (ys, ye) = self.dax.getRanges()
+#            
+#         cdef np.ndarray[double, ndim=2] x = X.getArray().reshape((ye-ys, xe-xs), order='c')
+#             
+#         (xs, xe), (ys, ye) = self.cax.getRanges()
+#         
+#         assert xs == 0
+#         assert xe == self.grid.nx//2+1
+#         
+#         cdef np.ndarray[np.complex128_t, ndim=2] y = np.empty((ye-ys, xe-xs), dtype=np.complex128, order='c')
+#            
+#         self.fftw_plan(input_array=x, output_array=y)
+#    
+#         (<dcomplex[:(ye-ys), :(xe-xs)]> np.PyArray_DATA(Y.getArray()))[...] = y
+#          
+# #         # This code calls directly into FFTW passing the array
+# #         # buffers of the input and output vectors.
+# #         # The FFTW plan is still setup using pyFFTW.
+# #         # Be careful to allow for unaligned input/output arrays.
+# #         fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
+# #                              <double*>np.PyArray_DATA(X.getArray()),
+# #                              <cdouble*>np.PyArray_DATA(Y.getArray()))
 
+        (ys, ye), (xs, xe) = self.dax.getRanges()
+        self.fftw_in = <double[:(xe-xs), :(ye-ys)]> np.PyArray_DATA(X.getArray())
+
+        fftw_execute_dft_r2c(<fftw_plan>self.fftw_plan.__plan,
+                             <double*>&self.fftw_in[0,0],
+                             <cdouble*>&self.fftw_out[0,0])
+
+        (ys, ye), (xs, xe) = self.cax.getRanges()
+        cdef dcomplex[:,:] y = <dcomplex[:(xe-xs), :(ye-ys)]> np.PyArray_DATA(Y.getArray())
+        y [...] = self.fftw_out
+        
 #         cdef void* fftw_planp  = self.fftw_plan.__plan
 #         cdef void* fftw_input  = np.PyArray_DATA(X.getArray())
 #         cdef void* fftw_output = np.PyArray_DATA(Y.getArray())
@@ -134,32 +153,46 @@ cdef class TensorProductPreconditionerKineticFast(TensorProductPreconditionerKin
     cdef ifft(self, Vec X, Vec Y):
         # inverse Fourier Transform for each v
         
-        # This code uses some complicated casts to call
-        # the pyFFTW wrapper around FFTW.
-        (xs, xe), (ys, ye) = self.dax.getRanges()
-              
-        cdef np.ndarray[double, ndim=2] y = Y.getArray().reshape((ye-ys, xe-xs), order='c')
-               
-        (xs, xe), (ys, ye) = self.cax.getRanges()
-              
-        assert xs == 0
-        assert xe == self.grid.nx//2+1
-        
-        cdef np.ndarray[np.complex128_t, ndim=2] x = np.empty((ye-ys, xe-xs), dtype=np.complex128, order='c')
-         
-        x[...] = (<dcomplex[:(ye-ys), :(xe-xs)]> np.PyArray_DATA(X.getArray()))
-              
-        self.ifftw_plan(input_array=x, output_array=y)
-        
-#         # This code calls directly into FFTW passing the array
-#         # buffers of the input and output vectors.
-#         # The FFTW plan is still setup using pyFFTW.
-#         # Be careful to allow for unaligned input/output arrays.
-#         fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
-#                              <cdouble*>np.PyArray_DATA(X.getArray()),
-#                              <double*>np.PyArray_DATA(Y.getArray()))
+#         # This code uses some complicated casts to call
+#         # the pyFFTW wrapper around FFTW.
+#         (xs, xe), (ys, ye) = self.dax.getRanges()
+#               
+#         cdef np.ndarray[double, ndim=2] y = Y.getArray().reshape((ye-ys, xe-xs), order='c')
+#                
+#         (xs, xe), (ys, ye) = self.cax.getRanges()
+#               
+#         assert xs == 0
+#         assert xe == self.grid.nx//2+1
+#         
+#         cdef np.ndarray[np.complex128_t, ndim=2] x = np.empty((ye-ys, xe-xs), dtype=np.complex128, order='c')
 #          
-#         Y.scale(1./float(self.grid.nx))
+#         x[...] = (<dcomplex[:(ye-ys), :(xe-xs)]> np.PyArray_DATA(X.getArray()))
+#               
+#         self.ifftw_plan(input_array=x, output_array=y)
+#         
+# #         # This code calls directly into FFTW passing the array
+# #         # buffers of the input and output vectors.
+# #         # The FFTW plan is still setup using pyFFTW.
+# #         # Be careful to allow for unaligned input/output arrays.
+# #         fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
+# #                              <cdouble*>np.PyArray_DATA(X.getArray()),
+# #                              <double*>np.PyArray_DATA(Y.getArray()))
+# #          
+# #         Y.scale(1./float(self.grid.nx))
+        
+        (ys, ye), (xs, xe) = self.cax.getRanges()
+        self.ifftw_in = <dcomplex[:(xe-xs), :(ye-ys)]> np.PyArray_DATA(X.getArray())
+
+        fftw_execute_dft_c2r(<fftw_plan>self.ifftw_plan.__plan,
+                             <cdouble*>&self.ifftw_in[0,0],
+                             <double*>&self.ifftw_out[0,0])
+
+        (ys, ye), (xs, xe) = self.dax.getRanges()
+        cdef double[:,:] y = <double[:(xe-xs), :(ye-ys)]> np.PyArray_DATA(Y.getArray())
+        y[...] = self.ifftw_out
+
+
+        Y.scale(1./float(self.grid.nx))        
         
 #         cdef void* ifftw_planp  = self.ifftw_plan.__plan
 #         cdef void* ifftw_input  = np.PyArray_DATA(X.getArray())
