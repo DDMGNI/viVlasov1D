@@ -1,3 +1,5 @@
+doctest/_build
+runs_tokp/paper/
 *.c
 *.so
 *.pyc
