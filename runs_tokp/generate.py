@@ -1,4 +1,6 @@
 
+import os
+
 from vlasov.core.config  import Config
 
 
@@ -42,6 +44,15 @@ run_script = """
 #!/bin/bash
 """
 
+# output directory
+out_dir = run_dir + "/temp/"
+
+# create output directory
+try:
+    os.stat(out_dir)
+except:
+    os.mkdir(out_dir)
+
 
 # loop over all test cases
 for (run_id, run_title) in run_ids:
@@ -71,20 +82,22 @@ for (run_id, run_title) in run_ids:
                      + "_nu%1.0E" % nu
             
             # compose config file name
-            outfile = run_dir + "/" + run_id + "/" +  run_name + ".cfg"
+            outfile = out_dir + "/" +  run_name + ".cfg"
             
             # create config files for each run
             cfg.write_current_config(outfile)
             
             # add entry in run script
-            run_script += "qsub -N " + run_id + "/" +run_name + " runs_tokp/run_tokp.sh"
+            run_script += "qsub -N " + run_name + " runs_tokp/run_tokp.sh"
             run_script += "\n"
         
         run_script += "\n"
             
 
+# save run script
 f = open(run_filename, "w")
 f.write(run_script)
 f.close()
 
+# print run script
 print(run_script)
