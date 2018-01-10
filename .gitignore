@@ -5,3 +5,8 @@ runs_tokp/paper/
 *.pyc
 build
 __pycache__
+.DS_Store
+.project
+.pydevproject
+.settings
+.externalToolBuilders
